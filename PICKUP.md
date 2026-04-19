@@ -69,13 +69,28 @@
 
 ## Next session — start here
 
-**Step 3 in [ROADMAP.md](ROADMAP.md) — Pricing tier & feature-gating infrastructure:**
-- Add Team tier ($49/mo) to Stripe plans + billing page
-- Schema change: team_id on profiles (or team_members table — TBD)
-- Feature gating helper: `requireTier('pro' | 'team')` in auth-usage
-- Update pricing table on landing page
+**Step 3 in [ROADMAP.md](ROADMAP.md) — Pricing tiers + AI quality routing:**
 
-OR we can pivot to **Step 4** (new AI features) if you'd rather keep building visible features before worrying about gating. Both are unblocked.
+### 🔒 Locked product decisions (2026-04-19):
+- **Tier names: Starter / Creator / Elite** (+ Team as a seat-count variant of Creator)
+- **Each tier maps to a Crisp Engine quality level:**
+  - Starter (Free) → Haiku / GPT-4o-mini
+  - Creator ($19-29/mo) → Sonnet / GPT-4o
+  - Team ($49/mo, 5 seats) → same AI as Creator
+  - Elite ($59-99/mo) → Opus / top OpenAI, + forced Opus on premium features
+- **Never expose model names to users** — whitelabel everything as "Crisp Engine" / "Crisp Engine Pro" / "Crisp Engine Elite"
+- **Per-feature badges** in the UI so users see which engine tier is running
+
+### Implementation checklist:
+- Extend `TASK_PROFILE` → `TASK_TIER_PROFILE` (2D matrix: task × tier → model)
+- Update `resolveTaskConfig(task, tier)` signature, thread tier through `crispGenerate()`
+- Admin UI: 3-column grid per task with per-tier provider+model dropdowns
+- Add Elite + Team Stripe products (price Elite at $59, $79, or $99 — decide after cost modeling)
+- `requireTier('creator' | 'team' | 'elite')` helper
+- UI string rename: "Pro" → "Creator" across billing, upgrade prompts, landing, dashboard (~15-20 spots)
+- "Powered by" badge component on feature results
+
+OR we can pivot to **Step 4** (new AI features) if you'd rather keep building visible features before doing the tier rework. Both are unblocked.
 
 ---
 
