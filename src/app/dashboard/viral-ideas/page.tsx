@@ -10,12 +10,11 @@ import { UpgradePrompt } from '@/components/ui/UpgradePrompt'
 import { useToast } from '@/components/ui/Toast'
 import { useUsage } from '@/hooks/useUsage'
 import type { ViralIdea } from '@/app/api/viral-ideas/route'
+import { VIRAL_FORMATS, VIRAL_ANGLES } from '@/lib/constants'
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'X', 'Facebook', 'Threads']
-const FORMATS = ['Video', 'Carousel', 'Photo', 'Text Post', 'Story', 'Live']
-const TREND_SOURCES = ['Current Trends', 'Evergreen', 'Seasonal', 'Educational', 'Behind-the-Scenes', 'Controversial']
-const COUNTS = [5, 7, 10, 15]
-
+const FORMATS = VIRAL_FORMATS
+const TREND_SOURCES = VIRAL_ANGLES
 const GENERATION_MESSAGES = [
   'Analyzing viral patterns...',
   'Studying what\'s trending...',
@@ -45,10 +44,36 @@ function IdeaCard({ idea, index }: { idea: ViralIdea; index: number }) {
   const hashtagText = idea.hashtags.join(' ')
 
   const handleSave = async () => {
+    const fullContent = [
+      `# ${idea.title}`,
+      ``,
+      `📊 ${idea.format} · ${idea.platform} · ${idea.difficulty} · ${idea.engagement}`,
+      ``,
+      `💡 WHY IT COULD GO VIRAL`,
+      idea.whyViral,
+      ``,
+      `🎯 HOOK`,
+      `"${idea.hook}"`,
+      ``,
+      `📝 CONTENT OUTLINE`,
+      outlineText,
+      ``,
+      `🏷️ SUGGESTED HASHTAGS`,
+      hashtagText,
+      ``,
+      `⏰ BEST TIME TO POST`,
+      idea.bestTime,
+    ].join('\n')
+
     try {
       await apiFetch('/api/saved', {
         method: 'POST',
-        body: JSON.stringify({ type: 'caption', content: `${idea.title}\n\n${idea.hook}\n\n${outlineText}`, platform: idea.platform.toLowerCase() }),
+        body: JSON.stringify({
+          type: 'viral_idea',
+          content: fullContent,
+          platform: idea.platform.toLowerCase(),
+          topic: idea.title,
+        }),
       })
       addToast('Idea saved!', 'success')
     } catch {
@@ -136,7 +161,7 @@ function IdeaCard({ idea, index }: { idea: ViralIdea; index: number }) {
 export default function ViralIdeasPage() {
   const [niche, setNiche] = useState('')
   const [platforms, setPlatforms] = useState<string[]>(['Instagram', 'TikTok'])
-  const [formats, setFormats] = useState<string[]>(['Video'])
+  const [formats, setFormats] = useState<string[]>(['Short / Reel / TikTok'])
   const [trendSource, setTrendSource] = useState('Current Trends')
   const [audience, setAudience] = useState('')
   const [count, setCount] = useState(10)
@@ -162,7 +187,7 @@ export default function ViralIdeasPage() {
       const data = await apiFetch<{ ideas: ViralIdea[] }>('/api/viral-ideas', {
         method: 'POST',
         body: JSON.stringify({ niche, platforms, formats, trendSource, audience, count }),
-        timeout: 30000,
+        timeout: 60000,
       })
       setIdeas(data.ideas)
       addToast(`${data.ideas.length} ideas generated!`, 'success')
@@ -272,26 +297,31 @@ export default function ViralIdeasPage() {
           />
         </div>
 
-        {/* Count + generate */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Number of ideas</label>
-            <div className="flex gap-2">
-              {COUNTS.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setCount(n)}
-                  className={`w-12 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    count === n
-                      ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
-                      : 'bg-surface-tertiary text-zinc-400 border border-transparent hover:bg-surface-hover'
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+        {/* Count slider */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="count" className="block text-sm font-medium text-zinc-300">
+              Number of ideas
+            </label>
+            <span className="text-sm font-mono text-brand-300">{count}</span>
           </div>
+          <input
+            id="count"
+            type="range"
+            min={5}
+            max={15}
+            step={1}
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-2xs text-zinc-600 mt-1">
+            <span>5</span><span>10</span><span>15</span>
+          </div>
+        </div>
+
+        {/* Generate */}
+        <div className="flex flex-wrap items-center justify-end gap-4">
 
           <div className="flex items-center gap-3">
             {!isPro && (

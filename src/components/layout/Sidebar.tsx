@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 const NAV_ITEMS = [
@@ -20,7 +20,24 @@ export function Sidebar() {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const supabase = createClient();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !mounted) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (mounted) setIsAdmin(profile?.role === "admin");
+    })();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -66,10 +83,19 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto px-3 py-4 border-t border-brand-500/10">
+      <div className="mt-auto px-3 py-4 border-t border-brand-500/10 space-y-2">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={() => setMobileOpen(false)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 text-sm transition-colors min-h-[44px]"
+          >
+            {collapsed ? "🛡️" : "🛡️ Admin"}
+          </Link>
+        )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-sm transition-colors min-h-[44px] mb-2"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-sm transition-colors min-h-[44px]"
         >
           {collapsed ? "🚪" : "🚪 Logout"}
         </button>

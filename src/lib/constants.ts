@@ -44,6 +44,88 @@ export const CONTENT_TYPES: readonly { id: ContentTypeId; label: string; icon: s
   { id: "script-hook",   label: "Video Script Hook",icon: "🎤" },
 ] as const;
 
+// Content type options for Best Times
+export const BEST_TIME_CONTENT_TYPES = [
+  { id: "post",      label: "Post" },
+  { id: "reel",      label: "Reel / Short" },
+  { id: "story",     label: "Story" },
+  { id: "carousel",  label: "Carousel" },
+  { id: "live",      label: "Live" },
+  { id: "longform",  label: "Long-form Video" },
+] as const;
+
+// Audience regions for Best Times
+export const AUDIENCE_REGIONS = [
+  { id: "north-america",  label: "North America" },
+  { id: "europe",         label: "Europe" },
+  { id: "asia-pacific",   label: "Asia-Pacific" },
+  { id: "latin-america",  label: "Latin America" },
+  { id: "global",         label: "Global" },
+] as const;
+
+// Content formats for Viral Ideas / Script Generator / Repurposer
+export const VIRAL_FORMATS = [
+  "Short / Reel / TikTok",
+  "Long Video",
+  "Carousel",
+  "Photo / Image",
+  "Text Post",
+  "Story",
+  "Live",
+  "Thread",
+  "Podcast / Audio",
+  "Infographic",
+  "Meme / Reaction",
+] as const;
+
+// Content angles for Viral Ideas
+export const VIRAL_ANGLES = [
+  "Current Trends",
+  "Evergreen",
+  "Seasonal / Holiday",
+  "Educational / How-to",
+  "Behind-the-Scenes",
+  "Controversial / Hot Takes",
+  "Humor / Comedy",
+  "Storytelling / Personal",
+  "Tips / Hacks",
+  "Listicle / Top X",
+  "Case Study / Results",
+  "Challenge / Trend-jacking",
+  "Myth-busting / Debunking",
+  "Inspirational / Motivational",
+  "Q&A / AMA",
+] as const;
+
+// Industry / niche options — used across best-times, viral-ideas, etc.
+export const NICHES = [
+  { id: "general",            label: "General / Other" },
+  { id: "fitness",            label: "Fitness & Health" },
+  { id: "food",               label: "Food & Cooking" },
+  { id: "travel",             label: "Travel" },
+  { id: "fashion",            label: "Fashion & Beauty" },
+  { id: "finance",            label: "Personal Finance" },
+  { id: "tech",               label: "Tech & Gadgets" },
+  { id: "business",           label: "Business & Entrepreneurship" },
+  { id: "marketing",          label: "Marketing & Social Media" },
+  { id: "education",          label: "Education & How-to" },
+  { id: "parenting",          label: "Parenting & Family" },
+  { id: "lifestyle",          label: "Lifestyle & Vlogs" },
+  { id: "gaming",             label: "Gaming" },
+  { id: "music",              label: "Music & Entertainment" },
+  { id: "art",                label: "Art & Design" },
+  { id: "comedy",             label: "Comedy & Humor" },
+  { id: "sports",             label: "Sports" },
+  { id: "news",               label: "News & Commentary" },
+  { id: "motivation",         label: "Motivation & Self-improvement" },
+  { id: "real-estate",        label: "Real Estate" },
+  { id: "automotive",         label: "Automotive" },
+  { id: "pets",               label: "Pets & Animals" },
+  { id: "beauty",             label: "Beauty & Skincare" },
+  { id: "diy",                label: "DIY & Crafts" },
+  { id: "photography",        label: "Photography" },
+] as const;
+
 // Tone options
 export const TONES = [
   { id: "casual",         label: "Casual",         icon: "😎" },
@@ -133,7 +215,7 @@ export type Tone = (typeof TONES)[number]["id"];
 
 export interface SavedItem {
   id: string;
-  type: "caption" | "hashtags";
+  type: "caption" | "hashtags" | "viral_idea";
   content: string;
   platform: string;
   createdAt: string;

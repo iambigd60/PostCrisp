@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { checkAuthAndUsage, incrementUsage, CLAUDE_MODEL } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { crispGenerate } from '@/lib/crisp-engine'
+import { parseLooseJson } from '@/lib/safe-json'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+const contentTypeLabels: Record<string, string> = {
+  post:     'standard feed posts',
+  reel:     'short-form vertical video (Reels / Shorts / TikTok)',
+  story:    'ephemeral Stories',
+  carousel: 'multi-slide carousels',
+  live:     'live streams',
+  longform: 'long-form video content',
+}
 
 export async function GET(request: Request) {
   const auth = await checkAuthAndUsage()
@@ -14,11 +22,22 @@ export async function GET(request: Request) {
   const contentType = searchParams.get('contentType') || 'post'
   const region = searchParams.get('region') || 'North America'
 
-  const prompt = `You are a social media analytics expert. Provide best posting times for ${platform} for a ${niche} creator posting ${contentType} content targeting ${region}.
+  const contentLabel = contentTypeLabels[contentType] || 'posts'
 
-Return ONLY valid JSON — no markdown:
+  const prompt = `You are a social media analytics expert with deep knowledge of each platform's algorithm and audience behavior.
+
+Provide best posting times for ${platform}, specifically for ${contentLabel}, targeting a ${niche} audience in ${region}.
+
+Account for:
+- ${platform}'s current algorithm preferences and feed-ranking behavior
+- Typical daily rhythms of ${region} audiences (work hours, commute, evening scroll time)
+- Content type nuances — e.g., Reels/Shorts peak at different times than feed posts
+- ${niche}-specific audience behavior patterns
+- Weekend vs weekday differences
+
+Return ONLY valid JSON — no markdown, no commentary:
 {
-  "weekData": [[scores for Mon 0-23h], [Tue], [Wed], [Thu], [Fri], [Sat], [Sun]],
+  "weekData": [[24 hourly scores Mon], [Tue], [Wed], [Thu], [Fri], [Sat], [Sun]],
   "topSlots": [
     {"day": "Tuesday", "time": "10:00 AM", "score": 95, "reason": "Peak lunch break engagement"},
     {"day": "Thursday", "time": "7:00 PM", "score": 92, "reason": "Evening scroll time"},
@@ -27,33 +46,42 @@ Return ONLY valid JSON — no markdown:
     {"day": "Monday", "time": "8:00 PM", "score": 82, "reason": "End of day wind-down"}
   ],
   "tips": [
-    "Platform-specific algorithm tip 1",
-    "Tip about content type optimization",
-    "Tip about audience behavior"
+    "Specific ${platform} algorithm insight for ${contentLabel}",
+    "Platform-specific posting cadence tip",
+    "Audience behavior tip for ${niche} creators in ${region}"
   ]
 }
 
-Rules for weekData:
-- 7 arrays (Mon-Sun), each with 24 integers (hours 0-23), scores 0-100
-- Reflect real engagement patterns for ${platform} and ${niche}
-- Weekend patterns should differ from weekdays
-- topSlots must have exactly 5 items, sorted by score descending`
+Rules:
+- weekData: 7 arrays (Mon-Sun), each with 24 integers (hours 0-23), scores 0-100
+- Reflect REAL engagement patterns — don't produce flat or random data
+- Weekend patterns must differ meaningfully from weekdays
+- topSlots must be exactly 5 items, sorted by score descending, with times in 12-hour format
+- Each "reason" must reference the specific niche, platform, or content type (not generic)
+- tips array must be exactly 3 items, each actionable and specific to the inputs above`
 
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 2000,
+    const { text, totalTokens } = await crispGenerate({
+      task: 'posting-times',
       system: 'You are a social media timing expert. Output only valid JSON.',
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
+      maxTokens: 2500,
     })
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : ''
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
+    const parsed = parseLooseJson<{ weekData: number[][]; topSlots: unknown[]; tips: string[] }>(text)
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    return NextResponse.json({ platform, ...parsed })
+    await auth.supabase.from('generations').insert({
+      user_id: auth.userId,
+      feature: 'posting_times',
+      platform,
+      input_data: { niche, contentType, region },
+      output_data: parsed,
+      tokens_used: totalTokens,
+    })
+
+    return NextResponse.json({ platform, niche, contentType, region, ...parsed })
   } catch (error) {
     console.error('Best times generation error:', error)
     return NextResponse.json({ error: 'Failed to analyze posting times. Please try again.' }, { status: 500 })

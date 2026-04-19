@@ -17,9 +17,11 @@ interface ViralIdea {
   engagement: 'Low' | 'Medium' | 'High' | 'Viral Potential'
 }
 
+import { VIRAL_FORMATS, VIRAL_ANGLES } from '@/lib/constants'
+
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'X', 'Facebook', 'Threads']
-const FORMATS = ['Video', 'Carousel', 'Photo', 'Text Post', 'Story', 'Live']
-const TREND_SOURCES = ['Current Trends', 'Evergreen', 'Seasonal', 'Educational', 'Behind-the-Scenes', 'Controversial']
+const FORMATS = VIRAL_FORMATS
+const TREND_SOURCES = VIRAL_ANGLES
 const COUNTS = [5, 7, 10, 15]
 
 const MOCK_IDEAS: ViralIdea[] = [

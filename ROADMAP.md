@@ -11,15 +11,31 @@ Bring the four shipped features in line with the PRD, fix data gaps, add Threads
 
 - [x] **Captions (`/dashboard/generate`)**: content type selector (Post / Reel Hook / Story / Thread Opener / Script Hook), audience input, per-card character count w/ platform limit, regenerate-single, "Generate 5 more" — done 2026-04-18
 - [x] **Hashtags (`/dashboard/hashtags`)**: count slider 10-30, mix slider (popular ↔ niche), 3 categorized groups with color-coded badges, selectable chips, Copy Selected / Select Optimal Mix / Save Set — done 2026-04-18
-- [ ] **Best Times (`/dashboard/best-times`)**: add content type dropdown (Post / Reel / Story / Carousel / Live / Long-form), audience location dropdown, industry/niche dropdown, wire into the API prompt
-- [ ] **Viral Ideas**: verify against PRD spec — already close
+- [x] **Best Times (`/dashboard/best-times`)**: content type pills, audience region dropdown (5 regions), industry/niche dropdown (25 niches), explicit Analyze button, 45s timeout, heatmap with ice-blue→red gradient, responsive cell sizing, in-cell scores — done 2026-04-19
+- [x] **Viral Ideas**: full PRD alignment — range slider 5-15, robust JSON extraction (survives truncation + JS comments), generations insert, expanded formats (11) and angles (15) including Short/Reel/TikTok and Humor/Comedy — done 2026-04-19
 - [x] **Add Threads platform** — done
-- [x] **Generations inserts** in `/api/generate` and `/api/hashtags` — done. **Still missing in `/api/best-times` and `/api/viral-ideas`.**
-- [ ] **Unify `MOCK_BEST_TIMES`**: add `facebook`, `youtube`, `threads` keys or delete (currently unused dead code)
+- [x] **Generations inserts** in all 4 AI routes (captions, hashtags, best-times, viral-ideas) — done
+- [ ] **Unify `MOCK_BEST_TIMES`**: add `facebook`, `youtube`, `threads` keys or delete (currently unused dead code — low priority)
 
 ---
 
-## Step 2 — Pricing tier & feature-gating infrastructure (~half day)
+## Step 2 — Admin Dashboard Phase 1: AI Engine Config (~1 day) ✅ DONE 2026-04-19
+
+Runtime-configurable AI provider/model per task so we can swap providers (Anthropic ↔ OpenAI ↔ Azure), experiment with models, and respond to outages — without code pushes.
+
+- [x] **Schema**: `role` column on `profiles`, `ai_config_overrides` table with admin-only RLS policies
+- [x] **Provider abstraction** (`src/lib/providers/`): `AIProvider` interface + `anthropicProvider` + `openaiProvider`; Azure stubbed (falls back to Anthropic)
+- [x] **Engine refactor**: `crisp-engine.ts` (server) reads DB overrides (60s cache), `crisp-engine-config.ts` (client-safe types + catalog)
+- [x] **Admin gate**: middleware blocks `/admin/*` for non-admin users
+- [x] **Admin layout** (`/admin/*`): sidebar with AI Config active, stubs for User Mgmt / Billing / Analytics / Moderation / Audit Log (Phase 2)
+- [x] **AI Config editor** (`/admin/ai-config`): all 19 tasks with provider + model dropdowns, per-row Save/Reset, **bulk edit via checkboxes + sticky action bar**
+- [x] **API** (`/api/admin/ai-config`): GET/PUT (single) + POST (bulk), admin-only via `requireAdmin()` helper
+- [x] **Captain admin account**: `captain@postcrisp.com` created via bootstrap SQL, upgraded to Pro, 🛡️ Admin button visible in main sidebar for admins
+- [x] **Admins bypass daily cap**: `auth-usage.ts` treats `role === 'admin'` as unlimited regardless of tier
+- [x] **Loose JSON parsing**: `parseLooseJson()` helper strips markdown fences, JS comments, trailing commas — survives any provider's quirks
+- [x] **OpenAI JSON mode**: adapter auto-enables `response_format: json_object` when prompt mentions JSON
+
+## Step 3 — Pricing tier & feature-gating infrastructure (~half day)
 
 - [ ] **Add Team tier** ($49/mo, up to 5 members) to `lib/stripe.ts` `PLANS`, billing page, pricing card
 - [ ] **Schema**: add `team_members` table or `team_id` column to profiles (TBD based on simpler path)
@@ -28,7 +44,7 @@ Bring the four shipped features in line with the PRD, fix data gaps, add Threads
 
 ---
 
-## Step 3 — New Claude-text features (15 features, ~2 weeks)
+## Step 4 — New AI-text features (15 features, ~2 weeks)
 
 All follow the same pattern as existing captions/hashtags: dashboard page + API route calling Claude. Ordered by user value:
 
@@ -59,7 +75,7 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 
 ---
 
-## Step 4 — Moderate-complexity features (~1 week)
+## Step 5 — Moderate-complexity features (~1 week)
 
 - [ ] **Content Calendar** (`/dashboard/calendar`): month/week views, drag-drop rescheduling, "Auto-Fill Week" AI button, status markers, CSV/Google Calendar export. Library: `@dnd-kit` or react-big-calendar.
 - [ ] **Media Kit Builder** (`/dashboard/media-kit`): profile data form, 4 template styles, PDF export. Library: `@react-pdf/renderer` or `react-to-pdf`.
@@ -67,7 +83,7 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 
 ---
 
-## Step 5 — Landing page completion (~half day)
+## Step 6 — Landing page completion (~half day)
 
 - [ ] "How it works" 3-step section
 - [ ] Pricing section (3 tiers: Free / Pro / Team)
@@ -77,11 +93,12 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 
 ---
 
-## Step 6 — Launch prep (~1-2 days)
+## Step 7 — Launch prep (~1-2 days)
 
 - [ ] Delete orphaned `src/app/login/actions.ts`
 - [ ] Lower `FREE_DAILY_LIMIT` back to 10 (currently 100 for dev)
 - [ ] Fix `api/viral-ideas` JSON parse error (Claude sometimes returns malformed arrays)
+- [ ] **MFA for admin accounts** — required before launch. Any account with `role = 'admin'` must enroll in Supabase Auth MFA (TOTP). Block `/admin/*` access if admin hasn't enrolled. Use Supabase Auth's built-in MFA flow.
 - [ ] Error boundary audit on all new pages
 - [ ] Mobile responsive audit
 - [ ] `npm run build` green
@@ -90,6 +107,7 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 - [ ] Stripe products + webhook pointed at production domain
 - [ ] Stripe Billing Portal configured
 - [ ] Google OAuth enabled in Supabase
+- [ ] Rotate temp admin password (`captain@postcrisp.com` is using `SH@Q5150` during dev)
 
 ---
 
@@ -109,7 +127,23 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 
 ---
 
-## Deferred — Post-launch Phase 2 (media generation)
+## Deferred — Post-launch Phase 2: Admin Dashboard (full)
+
+Phase 1 ships AI config editor only. After launch, build out the rest of admin to run the business:
+
+- **User management**: list/search users, filter by tier/date, grant free Pro, flag/ban, impersonate for support, manual tier changes
+- **Billing admin**: Stripe subscription overview, MRR/churn snapshot, failed payment list, manual refunds, manual trial extension, coupon management
+- **Analytics dashboard**: DAU/WAU/MAU, sign-up funnel, feature usage breakdown, conversion rate Free→Pro, churn cohorts, revenue by tier, AI token cost by feature
+- **Content moderation**: reported content queue, bulk delete, pattern-flagged outputs (e.g., profanity detection on saved content)
+- **Support tooling**: view user's saved items / generations history, reset their daily cap, resend welcome email
+- **Feature flags**: toggle individual features on/off per user or globally, soft-launch new features to Pro only
+- **Audit log**: who changed what and when (admin actions, tier changes, refunds)
+
+Scope: significant — probably 2-3 weeks of focused work. Should happen once there's real user volume to manage.
+
+---
+
+## Deferred — Post-launch Phase 3 (media generation)
 
 These need paid external APIs, per-generation cost tracking, and separate rate limits. Safest to launch without them and add after the text features are validated:
 

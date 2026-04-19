@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { checkAuthAndUsage, incrementUsage, CLAUDE_MODEL } from '@/lib/auth-usage'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { crispGenerate } from '@/lib/crisp-engine'
+import { parseLooseJson } from '@/lib/safe-json'
 
 // Split N hashtags across 3 categories based on mix (0=popular-heavy, 1=niche-heavy)
 function splitCounts(total: number, mix: number): { high: number; medium: number; low: number } {
@@ -60,16 +59,14 @@ Rules:
 - Sort each group by score descending`
 
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1500,
+    const { text, totalTokens } = await crispGenerate({
+      task: 'hashtags',
       system: 'You are a hashtag research expert. Output only valid JSON.',
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
+      maxTokens: 1500,
     })
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : ''
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
+    const parsed = parseLooseJson<{ hashtags?: unknown[] }>(text)
     const hashtags = parsed.hashtags || []
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
@@ -80,7 +77,7 @@ Rules:
       platform,
       input_data: { query, count, mix },
       output_data: { hashtags },
-      tokens_used: response.usage.input_tokens + response.usage.output_tokens,
+      tokens_used: totalTokens,
     })
 
     return NextResponse.json({ hashtags, query, platform, count, mix })

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email                      TEXT NOT NULL,
   full_name                  TEXT,
   avatar_url                 TEXT,
+  role                       TEXT NOT NULL DEFAULT 'user'
+                               CHECK (role IN ('user', 'admin')),
   subscription_tier          TEXT NOT NULL DEFAULT 'free'
                                CHECK (subscription_tier IN ('free', 'pro', 'business')),
   stripe_customer_id         TEXT UNIQUE,
@@ -19,6 +21,28 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ai_config_overrides — admin-editable runtime config for Crisp Engine task routing
+-- When a row exists for a task, it overrides the code defaults in crisp-engine.ts.
+-- Engine falls back to code defaults if row is missing.
+CREATE TABLE IF NOT EXISTS public.ai_config_overrides (
+  task       TEXT PRIMARY KEY,
+  provider   TEXT NOT NULL,
+  model      TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE public.ai_config_overrides ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read or write config overrides
+CREATE POLICY "Admins read ai_config_overrides"
+  ON public.ai_config_overrides FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+CREATE POLICY "Admins write ai_config_overrides"
+  ON public.ai_config_overrides FOR ALL
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
 
 -- generations
 CREATE TABLE IF NOT EXISTS public.generations (

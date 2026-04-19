@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { checkAuthAndUsage, incrementUsage, CLAUDE_MODEL } from '@/lib/auth-usage'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { crispGenerate } from '@/lib/crisp-engine'
+import { parseLooseJson } from '@/lib/safe-json'
 
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
@@ -73,16 +72,14 @@ Return ONLY valid JSON with this structure — no markdown:
 {"captions": [${Array.from({ length: safeCount }, (_, i) => `"caption ${i + 1}"`).join(', ')}]}`
 
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 2000,
+    const { text, totalTokens } = await crispGenerate({
+      task: 'captions',
       system: 'You are a social media expert. Output only valid JSON.',
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
+      maxTokens: 2000,
     })
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : ''
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
+    const parsed = parseLooseJson<{ captions?: string[] }>(text)
     const captions: string[] = parsed.captions || []
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
@@ -93,7 +90,7 @@ Return ONLY valid JSON with this structure — no markdown:
       platform,
       input_data: { topic, tone, contentType, audience: audience ?? null, count: safeCount },
       output_data: { captions },
-      tokens_used: response.usage.input_tokens + response.usage.output_tokens,
+      tokens_used: totalTokens,
     })
 
     return NextResponse.json({ captions, platform, tone, contentType, generatedAt: new Date().toISOString() })

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-import { checkAuthAndUsage, incrementUsage, CLAUDE_MODEL } from '@/lib/auth-usage'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { crispGenerate } from '@/lib/crisp-engine'
+import { parseLooseJson } from '@/lib/safe-json'
 
 export interface ViralIdea {
   title: string
@@ -15,6 +14,63 @@ export interface ViralIdea {
   hashtags: string[]
   bestTime: string
   engagement: 'Low' | 'Medium' | 'High' | 'Viral Potential'
+}
+
+/**
+ * Recover ideas from a possibly-truncated engine response.
+ * Strategy: find the outermost JSON object; if it fails to parse, try to
+ * trim to the last complete `}` inside the "ideas" array and close the array.
+ */
+function extractIdeas(content: string): ViralIdea[] {
+  // Pass 1: try to parse the whole JSON object (tolerant of comments, trailing
+  // commas, and markdown fences that some models sprinkle in)
+  try {
+    const parsed = parseLooseJson<{ ideas?: ViralIdea[] }>(content)
+    if (Array.isArray(parsed?.ideas)) return parsed.ideas
+  } catch {
+    // fall through to pass 2 — truncated response recovery
+  }
+
+  // Pass 2: truncated response. Find the `"ideas": [` marker,
+  // then walk forward collecting complete `{...}` objects until we can't.
+  const ideasStart = content.indexOf('"ideas"')
+  if (ideasStart === -1) return []
+  const arrStart = content.indexOf('[', ideasStart)
+  if (arrStart === -1) return []
+
+  const ideas: ViralIdea[] = []
+  let depth = 0
+  let inString = false
+  let escape = false
+  let objStart = -1
+
+  for (let i = arrStart + 1; i < content.length; i++) {
+    const ch = content[i]
+    if (escape) { escape = false; continue }
+    if (ch === '\\') { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+
+    if (ch === '{') {
+      if (depth === 0) objStart = i
+      depth++
+    } else if (ch === '}') {
+      depth--
+      if (depth === 0 && objStart !== -1) {
+        const slice = content.slice(objStart, i + 1)
+        try {
+          const obj = JSON.parse(slice)
+          ideas.push(obj)
+        } catch {
+          break // stop at the first malformed object
+        }
+        objStart = -1
+      }
+    } else if (ch === ']' && depth === 0) {
+      break
+    }
+  }
+  return ideas
 }
 
 export async function POST(request: Request) {
@@ -70,22 +126,40 @@ Rules:
 - "engagement" must be: Low, Medium, High, or Viral Potential
 - Make ideas SPECIFIC to the niche — avoid generic platitudes
 - Vary difficulty and format across ideas
-- Each idea must have exactly 5 outline points and 5-8 hashtags`
+- Each idea must have exactly 5 outline points and 5-8 hashtags
+- Keep whyViral under 200 characters, hook under 120 characters to stay within response limits`
+
+  // Budget ~500 output tokens per idea. Cap at Opus's practical limit.
+  const maxTokens = Math.min(8000, 800 + safeCount * 520)
 
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 4000,
+    const { text, totalTokens } = await crispGenerate({
+      task: 'viral-ideas',
       system: 'You are a viral content expert. Output only valid JSON, no markdown.',
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
+      maxTokens,
     })
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : ''
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
-    const ideas: ViralIdea[] = parsed.ideas || []
+    const ideas = extractIdeas(text)
+
+    if (ideas.length === 0) {
+      console.error('Viral ideas: got zero parseable ideas. Raw content:', text.slice(0, 500))
+      return NextResponse.json(
+        { error: 'The AI response could not be parsed. Please try again.' },
+        { status: 502 }
+      )
+    }
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
+
+    await auth.supabase.from('generations').insert({
+      user_id: auth.userId,
+      feature: 'viral_ideas',
+      platform: platforms[0] ?? null,
+      input_data: { niche, platforms, formats, trendSource, audience, count: safeCount },
+      output_data: { ideas },
+      tokens_used: totalTokens,
+    })
 
     return NextResponse.json({ ideas, generatedAt: new Date().toISOString() })
   } catch (error) {

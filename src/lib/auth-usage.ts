@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
 export const FREE_DAILY_LIMIT = 100
-export const CLAUDE_MODEL = 'claude-sonnet-4-6'
 
 type ServerClient = ReturnType<typeof createClient>
 
@@ -28,7 +27,7 @@ export async function checkAuthAndUsage(): Promise<AuthUsageOk | AuthUsageDenied
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('subscription_tier, daily_generations_used, daily_generations_reset_at')
+    .select('subscription_tier, role, daily_generations_used, daily_generations_reset_at')
     .eq('id', user.id)
     .single()
 
@@ -48,7 +47,10 @@ export async function checkAuthAndUsage(): Promise<AuthUsageOk | AuthUsageDenied
     dailyUsed = 0
   }
 
-  if (profile.subscription_tier === 'free' && dailyUsed >= FREE_DAILY_LIMIT) {
+  // Admins and paid tiers bypass the daily cap
+  const isUnlimited = profile.role === 'admin' || profile.subscription_tier !== 'free'
+
+  if (!isUnlimited && dailyUsed >= FREE_DAILY_LIMIT) {
     return {
       ok: false,
       response: NextResponse.json(

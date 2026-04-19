@@ -1,0 +1,113 @@
+/**
+ * Crisp Engine — server-side runtime.
+ *
+ * Imports server-only modules (Supabase server client). Do NOT import this
+ * from a client component — use `crisp-engine-config.ts` for client-safe
+ * types, labels, and constants.
+ */
+
+import { createClient as createSupabaseServer } from '@/utils/supabase/server'
+import { getProvider, type ProviderId } from './providers'
+import {
+  type CrispTask,
+  type PowerProfile,
+  type ProfileConfig,
+  DEFAULT_PROFILE_CONFIG,
+  TASK_PROFILE,
+} from './crisp-engine-config'
+
+// Re-export client-safe pieces so existing imports from crisp-engine still work
+// (server routes can keep importing from this file).
+export {
+  ALL_TASKS,
+  DEFAULT_PROFILE_CONFIG,
+  MODEL_CATALOG,
+  TASK_LABELS,
+  TASK_PROFILE,
+} from './crisp-engine-config'
+export type { CrispTask, PowerProfile, ProfileConfig } from './crisp-engine-config'
+
+// ─── Override cache (60s) ───────────────────────────────────────────────────
+
+interface CacheEntry {
+  overrides: Map<string, ProfileConfig>
+  fetchedAt: number
+}
+let _cache: CacheEntry | null = null
+const CACHE_TTL_MS = 60_000
+
+async function loadOverrides(): Promise<Map<string, ProfileConfig>> {
+  if (_cache && Date.now() - _cache.fetchedAt < CACHE_TTL_MS) return _cache.overrides
+
+  try {
+    const supabase = createSupabaseServer()
+    const { data, error } = await supabase
+      .from('ai_config_overrides')
+      .select('task, provider, model')
+    if (error) {
+      console.error('[crisp-engine] failed to load overrides:', error.message)
+      return new Map()
+    }
+    const map = new Map<string, ProfileConfig>()
+    for (const row of data ?? []) {
+      map.set(row.task, { provider: row.provider as ProviderId, model: row.model })
+    }
+    _cache = { overrides: map, fetchedAt: Date.now() }
+    return map
+  } catch (e) {
+    console.error('[crisp-engine] override load threw:', e)
+    return new Map()
+  }
+}
+
+export function invalidateOverrideCache() {
+  _cache = null
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
+
+export interface CrispGenerateArgs {
+  task: CrispTask
+  system: string
+  prompt: string
+  maxTokens: number
+}
+
+export interface CrispGenerateResult {
+  text: string
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  providerUsed: ProviderId
+  modelUsed: string
+}
+
+export async function resolveTaskConfig(task: CrispTask): Promise<ProfileConfig> {
+  const overrides = await loadOverrides()
+  const override = overrides.get(task)
+  if (override) return override
+
+  const forced = process.env.DEV_FORCE_PROFILE as PowerProfile | undefined
+  if (forced && forced in DEFAULT_PROFILE_CONFIG) return DEFAULT_PROFILE_CONFIG[forced]
+
+  return DEFAULT_PROFILE_CONFIG[TASK_PROFILE[task]]
+}
+
+export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGenerateResult> {
+  const { provider, model } = await resolveTaskConfig(args.task)
+  const providerImpl = getProvider(provider)
+
+  const result = await providerImpl.generate({
+    model,
+    system: args.system,
+    prompt: args.prompt,
+    maxTokens: args.maxTokens,
+  })
+
+  return {
+    ...result,
+    totalTokens: result.inputTokens + result.outputTokens,
+    providerUsed: provider,
+    modelUsed: model,
+  }
+}

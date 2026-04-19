@@ -14,7 +14,8 @@ export default function SavedPage() {
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "caption" | "hashtags">("all");
+  const [filter, setFilter] = useState<"all" | "caption" | "hashtags" | "viral_idea">("all");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { addToast } = useToast();
@@ -51,28 +52,49 @@ export default function SavedPage() {
 
   const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
 
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Roughly: 4 lines at ~80 chars/line ≈ 240 chars. Anything longer is worth a "More" button.
+  const isLongContent = (text: string) => text.length > 240 || text.split("\n").length > 4;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Saved Content</h1>
-        <p className="text-zinc-500 mt-1">Your saved captions and hashtag sets.</p>
+        <p className="text-zinc-500 mt-1">Your saved captions, hashtag sets, and viral ideas.</p>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2">
-        {(["all", "caption", "hashtags"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-              filter === f
-                ? "bg-brand-600/20 text-brand-300 border border-brand-500/30"
-                : "bg-surface-secondary text-zinc-400 hover:bg-surface-hover hover:text-zinc-200"
-            }`}
-          >
-            {f === "all" ? "All" : f === "caption" ? "✍️ Captions" : "🏷️ Hashtags"}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        {(["all", "caption", "hashtags", "viral_idea"] as const).map((f) => {
+          const label =
+            f === "all" ? "All" :
+            f === "caption" ? "✍️ Captions" :
+            f === "hashtags" ? "🏷️ Hashtags" :
+            "🚀 Viral Ideas";
+          const count = f === "all" ? items.length : items.filter((i) => i.type === f).length;
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                filter === f
+                  ? "bg-brand-600/20 text-brand-300 border border-brand-500/30"
+                  : "bg-surface-secondary text-zinc-400 hover:bg-surface-hover hover:text-zinc-200"
+              }`}
+            >
+              <span>{label}</span>
+              <span className="text-2xs text-zinc-500 bg-surface-tertiary px-1.5 py-0.5 rounded-full">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Loading */}
@@ -93,17 +115,31 @@ export default function SavedPage() {
                 <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
                   item.type === "caption"
                     ? "bg-brand-500/10 text-brand-300"
-                    : "bg-blue-500/10 text-blue-300"
+                    : item.type === "hashtags"
+                    ? "bg-blue-500/10 text-blue-300"
+                    : "bg-emerald-500/10 text-emerald-300"
                 }`}>
-                  {item.type === "caption" ? "✍️ Caption" : "🏷️ Hashtags"}
+                  {item.type === "caption" ? "✍️ Caption" : item.type === "hashtags" ? "🏷️ Hashtags" : "🚀 Viral Idea"}
                 </span>
                 <span className="text-xs text-zinc-600">
                   {new Date(item.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <p className="text-sm text-zinc-300 whitespace-pre-wrap mb-4 line-clamp-4">
+              <p
+                className={`text-sm text-zinc-300 whitespace-pre-wrap mb-2 ${
+                  expanded.has(item.id) ? "" : "line-clamp-4"
+                }`}
+              >
                 {item.content}
               </p>
+              {isLongContent(item.content) && (
+                <button
+                  onClick={() => toggleExpand(item.id)}
+                  className="text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors mb-3"
+                >
+                  {expanded.has(item.id) ? "▲ Show less" : "▼ Show more"}
+                </button>
+              )}
               <div className="flex items-center gap-2">
                 <CopyButton text={item.content} />
                 <Button
@@ -133,7 +169,7 @@ export default function SavedPage() {
       {!loading && !error && filtered.length === 0 && items.length > 0 && (
         <div className="text-center py-12 text-zinc-500">
           <span className="text-3xl block mb-3">🔍</span>
-          <p>No {filter === "caption" ? "captions" : "hashtag sets"} saved yet.</p>
+          <p>No {filter === "caption" ? "captions" : filter === "hashtags" ? "hashtag sets" : "viral ideas"} saved yet.</p>
         </div>
       )}
 
