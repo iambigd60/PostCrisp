@@ -93,6 +93,14 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 
 ---
 
+## Step 6.5 — Cost optimization pre-launch (~half day)
+
+Token economics levers worth pulling before real traffic hits:
+
+- [ ] **Re-map FAST tier default** in `crisp-engine-config.ts` from `claude-haiku-4-5` → `gpt-4o-mini` (~5× cheaper at $0.15/$0.60 per 1M vs Haiku's $0.80/$4)
+- [ ] **Prompt caching** — consolidate stable system prompts to meet the 1,024-token threshold for cache eligibility, pass `cache_control` hints in Anthropic adapter, rely on OpenAI's automatic prefix caching. Real 20-40% savings on repeated prompt prefixes at scale.
+- [ ] **Token-cost-per-feature dashboard** (part of admin Phase 2 analytics) — so we can see which features are actually expensive and tune per-feature overrides
+
 ## Step 7 — Launch prep (~1-2 days)
 
 - [ ] Delete orphaned `src/app/login/actions.ts`
@@ -126,6 +134,14 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 - `FREE_DAILY_LIMIT` raised to 100 temporarily (for dev testing) — **remember to drop back to 10 before launch**
 
 ---
+
+## Deferred — Post-launch provider expansion
+
+Add new provider adapters as volume + business needs justify them:
+
+- **Gemini** (Vertex AI): Gemini 2.5 Flash Lite is the cheapest model on the market at $0.10/$0.40 per 1M — strong candidate for a new FAST tier or a third option for cost-sensitive customers. Pro tier costs compare favorably to Sonnet for ≤200K context.
+- **Azure OpenAI**: same GPT models as OpenAI direct but with different billing/SLA. Value is enterprise compliance (EU data residency, BAAs, negotiated pricing) rather than capability. Wire up when a customer asks.
+- **Batch / Flex processing**: for offline jobs (Trend Radar daily refresh, Platform Tips periodic updates), both OpenAI Batch and Anthropic's async modes cut cost ~50%. Useful once we add scheduled features.
 
 ## Deferred — Post-launch Phase 2: Admin Dashboard (full)
 
