@@ -35,12 +35,26 @@ Runtime-configurable AI provider/model per task so we can swap providers (Anthro
 - [x] **Loose JSON parsing**: `parseLooseJson()` helper strips markdown fences, JS comments, trailing commas — survives any provider's quirks
 - [x] **OpenAI JSON mode**: adapter auto-enables `response_format: json_object` when prompt mentions JSON
 
-## Step 3 — Pricing tier & feature-gating infrastructure (~half day)
+## Step 3 — Pricing tier & feature-gating + AI-quality-per-tier (~1-2 days)
 
-- [ ] **Add Team tier** ($49/mo, up to 5 members) to `lib/stripe.ts` `PLANS`, billing page, pricing card
-- [ ] **Schema**: add `team_members` table or `team_id` column to profiles (TBD based on simpler path)
-- [ ] **Per-feature gating**: helper in `auth-usage.ts` for `requireTier('pro' | 'team')` so PRO-only features cleanly block Free users
-- [ ] **Update pricing table** on landing page to include Team column
+**New strategic decision (2026-04-19):** Each subscription tier maps to a different AI quality tier in the Crisp Engine. This becomes a core product differentiator, not just an internal cost optimization.
+
+Proposed tier model:
+- **Starter (Free)**: cheapest models — Haiku / GPT-4o-mini. Sustains at $0/mo since per-user cost drops to ~$1-2 heavy usage.
+- **Pro ($19-29/mo)**: mid models — Sonnet / GPT-4o. Unlimited generations.
+- **Influencer / Elite ($59-99/mo)**: premium models — Opus / top OpenAI flagship, with Opus forced on monetization-critical features (Brand Pitch, Competitor Analysis, Media Kit).
+- **Team ($49/mo, up to 5 members)**: Pro-quality models + team seats.
+
+Implementation:
+
+- [ ] **Extend `TASK_PROFILE` to `TASK_TIER_PROFILE`**: 2D matrix `(task × tier) → {provider, model}` in `crisp-engine-config.ts`
+- [ ] **Update `resolveTaskConfig(task, tier)`** in `crisp-engine.ts` to route by both task AND caller's subscription tier
+- [ ] **Update `crispGenerate()`** to look up caller's tier (pass through from `auth-usage` result)
+- [ ] **Admin UI** changes: 3-column grid per task (Starter / Pro / Influencer) with independent provider+model dropdowns per column; bulk edit extends to per-tier bulk changes
+- [ ] **Add Influencer tier** ($59-99/mo — price TBD after internal cost modeling): Stripe product, billing page card, landing page column
+- [ ] **Add Team tier** ($49/mo, up to 5 members): Stripe product + either `team_members` table or `team_id` column on profiles
+- [ ] **Per-feature gating**: helper in `auth-usage.ts` for `requireTier('pro' | 'team' | 'influencer')` for tier-locked features
+- [ ] **User-facing "powered by" badges**: subtle tag on generation results like "🧠 Crisp Engine" / "🧠 Crisp Engine Pro" / "🧠 Crisp Engine Elite" — never expose underlying provider names
 
 ---
 
