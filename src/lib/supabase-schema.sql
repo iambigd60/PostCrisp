@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS public.saved_content (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   generation_id UUID REFERENCES public.generations(id) ON DELETE SET NULL,
+  type          TEXT NOT NULL DEFAULT 'caption',
+  content       TEXT NOT NULL DEFAULT '',
+  platform      TEXT,
+  topic         TEXT,
   label         TEXT,
   folder        TEXT NOT NULL DEFAULT 'default',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()

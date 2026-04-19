@@ -136,49 +136,52 @@ export default function DashboardPage() {
     const supabase = createClient()
 
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { setLoading(false); return }
 
-      const [profileRes, generationsRes, savedRes, recentRes] = await Promise.all([
-        supabase.from('profiles')
-          .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at')
-          .eq('id', user.id)
-          .single(),
-        supabase.from('generations')
+        const [profileRes, generationsRes, savedRes, recentRes] = await Promise.all([
+          supabase.from('profiles')
+            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at')
+            .eq('id', user.id)
+            .maybeSingle(),
+          supabase.from('generations')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase.from('saved_content')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase.from('generations')
+            .select('id, feature, platform, output_data, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(5),
+        ])
+
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const { count: weekCount } = await supabase.from('generations')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-        supabase.from('saved_content')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-        supabase.from('generations')
-          .select('id, feature, platform, output_data, created_at')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ])
+          .gte('created_at', weekAgo)
 
-      // Count generations from the last 7 days
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const { count: weekCount } = await supabase.from('generations')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', weekAgo)
+        let dailyUsed = profileRes.data?.daily_generations_used ?? 0
+        if (profileRes.data) {
+          const resetAt = new Date(profileRes.data.daily_generations_reset_at)
+          if (resetAt.toDateString() !== new Date().toDateString()) dailyUsed = 0
+        }
 
-      // Reset daily count if it's a new day
-      let dailyUsed = profileRes.data?.daily_generations_used ?? 0
-      if (profileRes.data) {
-        const resetAt = new Date(profileRes.data.daily_generations_reset_at)
-        if (resetAt.toDateString() !== new Date().toDateString()) dailyUsed = 0
+        setStats({
+          profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
+          totalGenerations: generationsRes.count ?? 0,
+          savedCount: savedRes.count ?? 0,
+          weekGenerations: weekCount ?? 0,
+          recentGenerations: (recentRes.data ?? []) as Generation[],
+        })
+      } catch (err) {
+        console.error('[dashboard] unexpected error:', err)
+      } finally {
+        setLoading(false)
       }
-
-      setStats({
-        profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
-        totalGenerations: generationsRes.count ?? 0,
-        savedCount: savedRes.count ?? 0,
-        weekGenerations: weekCount ?? 0,
-        recentGenerations: (recentRes.data ?? []) as Generation[],
-      })
-      setLoading(false)
     }
 
     load()
@@ -191,7 +194,7 @@ export default function DashboardPage() {
   const isPro = profile?.subscription_tier !== 'free'
 
   return (
-    <div className="space-y-6 stagger-children">
+    <div className="space-y-6">
       {/* Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

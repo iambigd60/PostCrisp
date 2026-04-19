@@ -276,7 +276,7 @@ export default function SettingsPage() {
                     : 'bg-surface-tertiary text-zinc-400 border border-transparent hover:bg-surface-hover'
                 }`}
               >
-                <span>{p.icon}</span> {p.label}
+                <p.icon className="w-4 h-4" style={{ color: p.color }} /> {p.label}
               </button>
             ))}
           </div>

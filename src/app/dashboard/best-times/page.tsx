@@ -81,7 +81,7 @@ export default function BestTimesPage() {
                 : "bg-surface-secondary text-zinc-400 border border-transparent hover:bg-surface-hover hover:text-zinc-200"
             }`}
           >
-            <span>{p.icon}</span>
+            <p.icon className="w-4 h-4" style={{ color: p.color }} />
             <span>{p.label}</span>
           </button>
         ))}

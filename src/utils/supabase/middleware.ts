@@ -8,6 +8,12 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
+  // If Supabase env vars aren't set (e.g. viewing /demo without real config),
+  // skip auth entirely so public routes still render.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

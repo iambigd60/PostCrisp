@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   /* Brand Colors */
@@ -353,9 +353,8 @@ body {
     animation: spin 2s linear infinite;
   }
 
-  /* Stagger children animations */
+  /* Stagger children animations — no initial opacity:0, so elements stay visible if animation fails to trigger */
   .stagger-children > * {
-    opacity: 0;
     animation: fadeInUp var(--transition-slow) ease-out forwards;
   }
   .stagger-children > *:nth-child(1) { animation-delay: 0ms; }

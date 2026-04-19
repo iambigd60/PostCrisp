@@ -40,12 +40,20 @@ export default function HomePage() {
               PostCrisp
             </span>
           </div>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-glow min-h-[44px] flex items-center"
-          >
-            Get Started
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/demo"
+              className="px-4 py-2 text-zinc-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] hidden sm:flex items-center"
+            >
+              View Demo
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-glow min-h-[44px] flex items-center"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -81,10 +89,10 @@ export default function HomePage() {
               Start Creating — It&apos;s Free
             </Link>
             <Link
-              href="/dashboard/generate"
+              href="/demo"
               className="px-8 py-3.5 bg-surface-elevated hover:bg-surface-hover text-zinc-300 font-semibold rounded-xl border border-brand-500/20 hover:border-brand-500/40 transition-all text-base min-h-[48px] flex items-center justify-center"
             >
-              Try Caption Generator
+              View Demo →
             </Link>
           </div>
         </div>

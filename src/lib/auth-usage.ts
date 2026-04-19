@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
-export const FREE_DAILY_LIMIT = 10
+export const FREE_DAILY_LIMIT = 100
 export const CLAUDE_MODEL = 'claude-sonnet-4-6'
 
 type ServerClient = ReturnType<typeof createClient>

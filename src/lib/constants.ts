@@ -1,18 +1,58 @@
 // Platform options
-export const PLATFORMS = [
-  { id: "instagram", label: "Instagram", icon: "📸" },
-  { id: "twitter", label: "Twitter/X", icon: "🐦" },
-  { id: "linkedin", label: "LinkedIn", icon: "💼" },
-  { id: "tiktok", label: "TikTok", icon: "🎵" },
+import type { IconType } from "react-icons";
+import { SiInstagram, SiX, SiTiktok, SiFacebook, SiYoutube, SiThreads } from "react-icons/si";
+import { FaLinkedin } from "react-icons/fa";
+
+export type PlatformId = "instagram" | "x" | "linkedin" | "tiktok" | "facebook" | "youtube" | "threads";
+
+export type PlatformDef = {
+  id: PlatformId;
+  label: string;
+  icon: IconType;
+  color: string;
+};
+
+export const PLATFORMS: readonly PlatformDef[] = [
+  { id: "instagram", label: "Instagram", icon: SiInstagram, color: "#E4405F" },
+  { id: "tiktok",    label: "TikTok",    icon: SiTiktok,    color: "#EE1D52" },
+  { id: "youtube",   label: "YouTube",   icon: SiYoutube,   color: "#FF0000" },
+  { id: "x",         label: "X",         icon: SiX,         color: "#ffffff" },
+  { id: "facebook",  label: "Facebook",  icon: SiFacebook,  color: "#1877F2" },
+  { id: "threads",   label: "Threads",   icon: SiThreads,   color: "#ffffff" },
+  { id: "linkedin",  label: "LinkedIn",  icon: FaLinkedin,  color: "#0A66C2" },
+] as const;
+
+// Platform character limits — { optimal: sweet spot, max: hard cap }
+export const PLATFORM_LIMITS: Record<PlatformId, { optimal: number; max: number }> = {
+  instagram: { optimal: 150,  max: 2200 },
+  tiktok:    { optimal: 100,  max: 4000 },
+  youtube:   { optimal: 300,  max: 5000 },
+  x:         { optimal: 280,  max: 280 },
+  facebook:  { optimal: 80,   max: 63206 },
+  threads:   { optimal: 300,  max: 500 },
+  linkedin:  { optimal: 200,  max: 3000 },
+};
+
+// Content type options for caption generator
+export type ContentTypeId = "post" | "reel-hook" | "story" | "thread-opener" | "script-hook";
+
+export const CONTENT_TYPES: readonly { id: ContentTypeId; label: string; icon: string }[] = [
+  { id: "post",          label: "Post Caption",     icon: "📝" },
+  { id: "reel-hook",     label: "Reel/Short Hook",  icon: "🎬" },
+  { id: "story",         label: "Story Caption",    icon: "📸" },
+  { id: "thread-opener", label: "Thread Opener",    icon: "🧵" },
+  { id: "script-hook",   label: "Video Script Hook",icon: "🎤" },
 ] as const;
 
 // Tone options
 export const TONES = [
-  { id: "professional", label: "Professional", icon: "👔" },
-  { id: "casual", label: "Casual", icon: "😎" },
-  { id: "funny", label: "Funny", icon: "😂" },
-  { id: "inspirational", label: "Inspirational", icon: "✨" },
-  { id: "educational", label: "Educational", icon: "📚" },
+  { id: "casual",         label: "Casual",         icon: "😎" },
+  { id: "professional",   label: "Professional",   icon: "👔" },
+  { id: "humorous",       label: "Humorous",       icon: "😂" },
+  { id: "inspirational",  label: "Inspirational",  icon: "✨" },
+  { id: "educational",    label: "Educational",    icon: "📚" },
+  { id: "controversial",  label: "Controversial",  icon: "🔥" },
+  { id: "storytelling",   label: "Storytelling",   icon: "📖" },
 ] as const;
 
 // Generation loading messages
@@ -80,7 +120,7 @@ export const MOCK_HASHTAGS = [
 // Mock best times data (hour: engagement score 0-100)
 export const MOCK_BEST_TIMES: Record<string, number[]> = {
   instagram: [10, 15, 12, 8, 5, 8, 20, 35, 55, 72, 80, 85, 78, 82, 70, 60, 65, 75, 88, 92, 85, 70, 45, 25],
-  twitter:   [12, 8, 5, 3, 2, 5, 15, 40, 65, 78, 82, 88, 90, 85, 72, 65, 70, 80, 85, 75, 60, 45, 30, 18],
+  x:         [12, 8, 5, 3, 2, 5, 15, 40, 65, 78, 82, 88, 90, 85, 72, 65, 70, 80, 85, 75, 60, 45, 30, 18],
   linkedin:  [5, 3, 2, 2, 3, 8, 25, 55, 82, 90, 85, 88, 75, 65, 60, 55, 62, 70, 50, 35, 20, 12, 8, 5],
   tiktok:    [15, 12, 10, 8, 5, 8, 18, 30, 45, 55, 60, 65, 62, 68, 72, 75, 80, 85, 92, 95, 90, 78, 55, 30],
 };
