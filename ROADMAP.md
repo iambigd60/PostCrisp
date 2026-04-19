@@ -98,7 +98,7 @@ All follow the same pattern as existing captions/hashtags: dashboard page + API 
 Token economics levers worth pulling before real traffic hits:
 
 - [ ] **Re-map FAST tier default** in `crisp-engine-config.ts` from `claude-haiku-4-5` → `gpt-4o-mini` (~5× cheaper at $0.15/$0.60 per 1M vs Haiku's $0.80/$4)
-- [ ] **Prompt caching** — consolidate stable system prompts to meet the 1,024-token threshold for cache eligibility, pass `cache_control` hints in Anthropic adapter, rely on OpenAI's automatic prefix caching. Real 20-40% savings on repeated prompt prefixes at scale.
+- [ ] **Prompt caching** — current system prompts are ~12 tokens; caching requires 1,024+. Restructure by relocating stable guidance (platform char limits, content-type guidance, tone definitions, JSON schema examples, output formatting rules) OUT of the user prompt and INTO a bulked-up system prompt. Once over threshold, OpenAI's prefix caching kicks in automatically; Anthropic requires explicit `cache_control` hints in the adapter. Expected 20-40% savings on input tokens at scale.
 - [ ] **Token-cost-per-feature dashboard** (part of admin Phase 2 analytics) — so we can see which features are actually expensive and tune per-feature overrides
 
 ## Step 7 — Launch prep (~1-2 days)
