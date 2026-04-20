@@ -82,6 +82,22 @@ export default function AdminOverviewPage() {
             <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
           </div>
         </Link>
+
+        <Link
+          href="/admin/audit"
+          className="p-5 rounded-xl border border-amber-500/20 bg-surface-secondary hover:border-amber-500/40 hover:bg-surface-elevated transition-all group"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📋</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Audit Log</h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                Every admin action — tier changes, disables, credit grants — with actor, reason, and timestamps. Filter by action type, target user, or time range.
+              </p>
+            </div>
+            <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+          </div>
+        </Link>
       </div>
     </div>
   );

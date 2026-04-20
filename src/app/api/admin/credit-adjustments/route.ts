@@ -53,6 +53,16 @@ export async function POST(request: Request) {
       actorId: auth.userId,
     })
     if (!result) return NextResponse.json({ error: 'Failed to grant credits' }, { status: 500 })
+
+    await auth.supabaseAdmin.from('admin_actions').insert({
+      actor_id: auth.userId,
+      target_user_id: target.id,
+      action: 'credit_grant',
+      from_value: String(target.credits_balance),
+      to_value: String(result.balanceAfter),
+      reason,
+    })
+
     return NextResponse.json({ ok: true, action: 'granted', amount, newBalance: result.balanceAfter })
   }
 
@@ -73,6 +83,15 @@ export async function POST(request: Request) {
     balance_after: newBalance,
     reason: `Admin adjust: ${reason}`,
     actor_id: auth.userId,
+  })
+
+  await auth.supabaseAdmin.from('admin_actions').insert({
+    actor_id: auth.userId,
+    target_user_id: target.id,
+    action: 'credit_adjust',
+    from_value: String(target.credits_balance),
+    to_value: String(newBalance),
+    reason,
   })
 
   return NextResponse.json({ ok: true, action: 'adjusted', amount, newBalance })

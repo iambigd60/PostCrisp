@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/billing",          label: "Billing",           icon: "💳",  enabled: false },
   { href: "/admin/analytics",        label: "Analytics",         icon: "📈",  enabled: true },
   { href: "/admin/moderation",       label: "Moderation",        icon: "🚧",  enabled: false },
-  { href: "/admin/audit",            label: "Audit Log",         icon: "📋",  enabled: false },
+  { href: "/admin/audit",            label: "Audit Log",         icon: "📋",  enabled: true },
 ];
 
 export function AdminSidebar() {

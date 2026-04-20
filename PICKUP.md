@@ -13,6 +13,7 @@
 - **`scripts/rotate-admin-password.mjs`** — interactive Supabase admin password rotation via service role; masks input, enforces ≥12 chars, confirmation match, explicit `yes` to execute. Used it to rotate `captain@postcrisp.com`.
 - **FREE_DAILY_LIMIT 100 → 10** — legacy const dropped back; credits are the real cap anyway
 - **Analytics cost tracking** — added `MODEL_BLENDED_PRICE_PER_1M` pricing table in analytics API and an `estimateCostUSD(feature, tokens)` helper. KPI "Tokens" tile now shows est. cost, Feature Breakdown adds $ per feature, Top Users table adds Est. cost column. Labeled as estimate (uses current Creator-tier routing — doesn't know historical tier or mid-window routing changes).
+- **Audit Log viewer** — new `/admin/audit` page over the existing `admin_actions` table. Filters by action type, target email search, and time window. Shows actor, target (link-through), change (from → to), reason, relative timestamp. Also wired credit grant/adjust into `admin_actions` so they appear in the log.
 
 ## What session 6 shipped
 
