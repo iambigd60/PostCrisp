@@ -8,9 +8,9 @@ const NAV_ITEMS = [
   { href: "/admin/ai-config",        label: "AI Engine Config",  icon: "⚙️",  enabled: true },
   { href: "/admin/feature-access",      label: "Feature Access",      icon: "🔐",  enabled: true },
   { href: "/admin/credit-adjustments",  label: "Credit Adjustments",  icon: "🪙",  enabled: true },
-  { href: "/admin/users",            label: "Users",             icon: "👥",  enabled: false },
+  { href: "/admin/users",            label: "Users",             icon: "👥",  enabled: true },
   { href: "/admin/billing",          label: "Billing",           icon: "💳",  enabled: false },
-  { href: "/admin/analytics",        label: "Analytics",         icon: "📈",  enabled: false },
+  { href: "/admin/analytics",        label: "Analytics",         icon: "📈",  enabled: true },
   { href: "/admin/moderation",       label: "Moderation",        icon: "🚧",  enabled: false },
   { href: "/admin/audit",            label: "Audit Log",         icon: "📋",  enabled: false },
 ];

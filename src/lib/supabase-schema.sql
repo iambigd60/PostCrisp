@@ -52,6 +52,31 @@ CREATE POLICY "Admins read all credit transactions"
 
 -- No INSERT policy — writes go through server-side code with service role
 
+-- admin_actions — audit log of every admin-initiated change against a user
+CREATE TABLE IF NOT EXISTS public.admin_actions (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  actor_id        UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  target_user_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  action          TEXT NOT NULL,  -- 'tier_change' | 'role_change' | 'disable' | 'enable' | 'impersonate' | 'note'
+  from_value      TEXT,
+  to_value        TEXT,
+  reason          TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS admin_actions_target_user_idx
+  ON public.admin_actions (target_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_actions_actor_idx
+  ON public.admin_actions (actor_id, created_at DESC);
+
+ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins read admin_actions"
+  ON public.admin_actions FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- No INSERT/UPDATE policy — all writes happen server-side via service role or admin API routes
+
 -- feature_access — admin-editable runtime config for per-feature tier gating
 -- When a row exists for a feature, it overrides the code defaults in
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.

@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '100', 10), 500)
 
-  const { data, error } = await auth.supabase
+  const { data, error } = await auth.supabaseAdmin
     .from('credit_transactions')
     .select('id, user_id, type, amount, balance_after, reason, task, created_at, profiles:user_id(email, full_name)')
     .order('created_at', { ascending: false })
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   // Find user by email
-  const { data: target } = await auth.supabase
+  const { data: target } = await auth.supabaseAdmin
     .from('profiles')
     .select('id, email, credits_balance')
     .eq('email', userEmail)
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
   // Positive amount = grant. Negative amount = adjust (subtract).
   if (amount > 0) {
-    const result = await grantCredits(auth.supabase, target.id, amount, {
+    const result = await grantCredits(auth.supabaseAdmin, target.id, amount, {
       type: 'grant',
       reason: `Admin grant: ${reason}`,
       actorId: auth.userId,
@@ -59,14 +59,14 @@ export async function POST(request: Request) {
   // Negative amount — adjust down
   const newBalance = Math.max(0, target.credits_balance + amount)  // amount is negative
 
-  const { error: updateError } = await auth.supabase
+  const { error: updateError } = await auth.supabaseAdmin
     .from('profiles')
     .update({ credits_balance: newBalance })
     .eq('id', target.id)
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
-  await auth.supabase.from('credit_transactions').insert({
+  await auth.supabaseAdmin.from('credit_transactions').insert({
     user_id: target.id,
     type: 'adjust',
     amount,  // negative

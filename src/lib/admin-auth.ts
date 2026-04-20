@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 
+function serviceRoleClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  )
+}
+
 /**
- * Use in admin API routes. Returns { ok: true, userId, supabase } on success,
+ * Use in admin API routes. Returns { ok: true, userId, supabase, supabaseAdmin } on success,
  * or { ok: false, response } with a 401/403 response.
+ *
+ * - `supabase`       — user-scoped client (subject to RLS). Safe for the caller's own data.
+ * - `supabaseAdmin`  — service-role client that BYPASSES RLS. Use for cross-user reads/writes
+ *                      (listing users, editing another user's profile, reading their generations).
  */
 export async function requireAdmin() {
   const supabase = createClient()
@@ -23,7 +36,7 @@ export async function requireAdmin() {
     return { ok: false as const, response: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
   }
 
-  return { ok: true as const, userId: user.id, supabase }
+  return { ok: true as const, userId: user.id, supabase, supabaseAdmin: serviceRoleClient() }
 }
 
 /**

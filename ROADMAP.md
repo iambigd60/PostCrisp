@@ -274,19 +274,26 @@ Add new provider adapters as volume + business needs justify them:
 - **Azure OpenAI**: same GPT models as OpenAI direct but with different billing/SLA. Value is enterprise compliance (EU data residency, BAAs, negotiated pricing) rather than capability. Wire up when a customer asks.
 - **Batch / Flex processing**: for offline jobs (Trend Radar daily refresh, Platform Tips periodic updates), both OpenAI Batch and Anthropic's async modes cut cost ~50%. Useful once we add scheduled features.
 
-## Deferred — Post-launch Phase 2: Admin Dashboard (full)
+## Admin Dashboard Phase 2 (in progress — pulled forward from post-launch)
 
-Phase 1 ships AI config editor only. After launch, build out the rest of admin to run the business:
+Phase 1 shipped AI config editor. Phase 2 is being built piecemeal as needed to run the business.
 
-- **User management**: list/search users, filter by tier/date, grant free Pro, flag/ban, impersonate for support, manual tier changes
-- **Billing admin**: Stripe subscription overview, MRR/churn snapshot, failed payment list, manual refunds, manual trial extension, coupon management
-- **Analytics dashboard**: DAU/WAU/MAU, sign-up funnel, feature usage breakdown, conversion rate Free→Pro, churn cohorts, revenue by tier, AI token cost by feature
-- **Content moderation**: reported content queue, bulk delete, pattern-flagged outputs (e.g., profanity detection on saved content)
-- **Support tooling**: view user's saved items / generations history, reset their daily cap, resend welcome email
-- **Feature flags**: toggle individual features on/off per user or globally, soft-launch new features to Pro only
-- **Audit log**: who changed what and when (admin actions, tier changes, refunds)
+**Done:**
 
-Scope: significant — probably 2-3 weeks of focused work. Should happen once there's real user volume to manage.
+- ✅ **User management** (2026-04-19) — list/search/filter/sort, paginated (50/page), detail page with tier+role change form (reason required, logged), disable/enable via Supabase auth ban, credit-adjust link, feature usage breakdown, recent generations, credit transactions, admin actions audit log. New `admin_actions` audit table + `supabaseAdmin` service-role client in `requireAdmin()` for cross-user RLS bypass.
+- ✅ **Analytics v1** (2026-04-19) — 8 KPI tiles (DAU, MAU, new signups, paid users, est. MRR, 30d generations/tokens/credits), tier distribution, generations-per-day SVG bar chart, feature breakdown (count + tokens) ranked, top-10 users by token consumption with link-through. All aggregated in-process from existing tables — no new schema.
+
+**Still to build:**
+
+- **Billing admin**: Stripe subscription overview, real MRR/churn (replacing current list-price estimate), failed payment list, manual refunds, trial extension, coupon management
+- **Content moderation**: reported content queue, bulk delete, pattern-flagged outputs
+- **Feature flags** (beyond feature_access): per-user toggles, soft-launch to Pro only
+- **Audit log viewer**: UI surface over `admin_actions` (currently only visible on user detail page)
+- **Support tooling**: impersonate, reset daily cap, resend welcome email
+
+Scope of remainder: ~1 week if done together. Should happen as real user volume surfaces specific needs.
+
+**Cost-tracking gap**: generations don't currently log `provider` + `model`, so analytics shows tokens (real, from API `usage`) but not $ cost per feature. Easy to add — log it at generation insert time and the analytics page can join against provider pricing tables.
 
 ---
 

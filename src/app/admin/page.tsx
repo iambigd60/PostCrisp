@@ -41,15 +41,21 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
 
-        <div className="p-5 rounded-xl border border-brand-500/10 bg-surface-secondary/50 opacity-60 cursor-not-allowed">
+        <Link
+          href="/admin/users"
+          className="p-5 rounded-xl border border-amber-500/20 bg-surface-secondary hover:border-amber-500/40 hover:bg-surface-elevated transition-all group"
+        >
           <div className="flex items-start gap-3">
-            <span className="text-2xl opacity-50">👥</span>
+            <span className="text-2xl">👥</span>
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-400">User Management</h3>
-              <p className="text-sm text-zinc-600 mt-1">List users, grant tiers, flag/ban. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
+              <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">User Management</h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                Search users, change tier &amp; role, grant credits, disable accounts. Full audit log of admin actions.
+              </p>
             </div>
+            <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
           </div>
-        </div>
+        </Link>
 
         <div className="p-5 rounded-xl border border-brand-500/10 bg-surface-secondary/50 opacity-60 cursor-not-allowed">
           <div className="flex items-start gap-3">
@@ -61,15 +67,21 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-brand-500/10 bg-surface-secondary/50 opacity-60 cursor-not-allowed">
+        <Link
+          href="/admin/analytics"
+          className="p-5 rounded-xl border border-amber-500/20 bg-surface-secondary hover:border-amber-500/40 hover:bg-surface-elevated transition-all group"
+        >
           <div className="flex items-start gap-3">
-            <span className="text-2xl opacity-50">📈</span>
+            <span className="text-2xl">📈</span>
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-400">Analytics</h3>
-              <p className="text-sm text-zinc-600 mt-1">DAU, conversion, token cost by feature. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
+              <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Analytics</h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                DAU/MAU, MRR estimate, feature popularity, token consumption, and top users by usage — 30-day window.
+              </p>
             </div>
+            <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   );
