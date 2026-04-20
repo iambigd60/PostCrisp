@@ -49,24 +49,27 @@
 | Step 6 — Landing page | ✅ Done |
 | Step 6.5 — Cost optimization | ✅ Done |
 | Step 6.75 — Credit system | ✅ Done |
-| Admin Phase 2 — Users + Analytics | ✅ Done this session |
-| Admin Phase 2 — Billing / Moderation / Audit viewer | ⏳ Next option |
-| Step 7 — Launch prep | ⏳ |
+| Admin Phase 2 — Users + Analytics | ✅ Done (session 6) |
+| Admin Phase 2 — Analytics cost tracking + Audit viewer | ✅ Done (session 7) |
+| Admin Phase 2 — Billing admin / Moderation / Support tools | ⏳ Remaining |
+| Step 7 — Launch prep | 🟡 Partial (admin password rotated, FREE_DAILY_LIMIT dropped; MFA + Stripe prod + deploy remain) |
 
 ---
 
 ## Next session — options
 
-1. **Finish Admin Phase 2** — Billing admin (real Stripe MRR, failed payments, refund tooling), Audit Log viewer (UI over `admin_actions`), Moderation queue.
-2. **Cost tracking** — log `provider` + `model` on every `generations` row, surface $ cost per feature on Analytics. Small but valuable.
-3. **Step 7 launch prep** — drop starter daily cap from 100 to 10, rotate captain password, wire real Stripe product IDs, deploy to Vercel.
-4. **Step 5.5 design refresh** — waiting on user's logo.
+1. **Per-row cost accuracy** — add `provider` + `model` columns to `generations`, update the 20 feature routes to log them on insert, switch analytics to use stored values instead of current-routing inference. Kills the "current routing" caveat on cost estimates.
+2. **Billing admin** — real Stripe subscription overview, real MRR/churn (replacing the list-price estimate), failed payment list, manual refunds, trial extension, coupon management. Biggest remaining Phase 2 item.
+3. **Moderation queue** — reported content queue, bulk delete, pattern-flagged outputs on `saved_content`.
+4. **Step 7 launch push** — MFA enrollment gate on `/admin/*` for any admin who hasn't enrolled, wire real Stripe price IDs for all 6 products, Vercel deploy with production env vars.
+5. **Code hygiene pass** — delete orphaned `src/app/login/actions.ts`, fix `api/viral-ideas` JSON parse error, remove `MOCK_BEST_TIMES` dead code (all flagged in ROADMAP punchlist).
+6. **Step 5.5 design refresh** — waiting on your logo.
 
 No blockers — pick whichever next session.
 
 ---
 
-## SQL migrations run this session
+## SQL migrations (ran in session 6; no new DB changes in session 7)
 
 ```sql
 -- admin_actions audit table
