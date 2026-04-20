@@ -82,7 +82,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'competitor-analysis',
       tier: auth.tier,
-      system: 'You are a competitor intelligence analyst for creators. Output only valid JSON.',
       prompt,
       maxTokens: 3000,
     })

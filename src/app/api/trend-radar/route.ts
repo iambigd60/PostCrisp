@@ -57,7 +57,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'trend-radar',
       tier: auth.tier,
-      system: 'You analyze and surface social media trends. Output only valid JSON.',
       prompt,
       maxTokens: 4000,
     })

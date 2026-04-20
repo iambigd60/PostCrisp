@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { validateInputs } from '@/lib/input-limits'
 
 export interface ReplyResult {
   short: string
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
   if (!comment?.trim()) {
     return NextResponse.json({ error: 'Comment is required.' }, { status: 400 })
   }
+
+  const sizeError = validateInputs([[comment, 'comment'], [postContext, 'topic']])
+  if (sizeError) return sizeError
 
   const prompt = `You are an expert at engaging replies that feel authentic and drive algorithm engagement.
 
@@ -46,7 +50,6 @@ Return ONLY valid JSON:
     const { text, totalTokens } = await crispGenerate({
       task: 'comment-reply',
       tier: auth.tier,
-      system: 'You write authentic reply comments that drive engagement. Output only valid JSON.',
       prompt,
       maxTokens: 1200,
     })

@@ -55,7 +55,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'platform-tips',
       tier: auth.tier,
-      system: 'You are a platform-specific social media strategist. Output only valid JSON.',
       prompt,
       maxTokens: 3000,
     })

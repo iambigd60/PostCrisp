@@ -47,7 +47,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'dm-template',
       tier: auth.tier,
-      system: 'You write targeted DMs that actually get replies. Output only valid JSON.',
       prompt,
       maxTokens: 1500,
     })

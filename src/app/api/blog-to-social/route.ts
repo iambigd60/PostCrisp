@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { validateInputs } from '@/lib/input-limits'
 
 export interface BlogSocialPost {
   platform: string
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
   if (!blog?.trim()) {
     return NextResponse.json({ error: 'Blog content is required.' }, { status: 400 })
   }
+
+  const sizeError = validateInputs([[blog, 'blogContent']])
+  if (sizeError) return sizeError
 
   const safeCount = Math.min(Math.max(Number(count) || 5, 3), 10)
   const platforms: string[] = Array.isArray(targetPlatforms) && targetPlatforms.length > 0
@@ -66,7 +70,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'blog-to-social',
       tier: auth.tier,
-      system: 'You extract standalone social posts from long-form content. Output only valid JSON.',
       prompt,
       maxTokens: 3500,
     })

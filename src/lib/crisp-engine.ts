@@ -8,6 +8,7 @@
 
 import { createClient as createSupabaseServer } from '@/utils/supabase/server'
 import { getProvider, type ProviderId } from './providers'
+import { systemPromptFor } from './system-prompts'
 import {
   type CrispTask,
   type PowerProfile,
@@ -89,7 +90,7 @@ export function invalidateOverrideCache() {
 export interface CrispGenerateArgs {
   task: CrispTask
   tier: Tier
-  system: string
+  system?: string           // optional — if omitted, uses systemPromptFor(task)
   prompt: string
   maxTokens: number
 }
@@ -132,7 +133,7 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
 
   const result = await providerImpl.generate({
     model: config.model,
-    system: args.system,
+    system: args.system ?? systemPromptFor(args.task),
     prompt: args.prompt,
     maxTokens: args.maxTokens,
   })

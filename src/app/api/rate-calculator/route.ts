@@ -72,7 +72,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'rate-calculator',
       tier: auth.tier,
-      system: 'You are an influencer rate-card expert. Output only valid JSON.',
       prompt,
       maxTokens: 2000,
     })

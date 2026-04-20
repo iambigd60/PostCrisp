@@ -71,7 +71,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'collab-finder',
       tier: auth.tier,
-      system: 'You are a creator collaboration strategist. Output only valid JSON.',
       prompt,
       maxTokens: 3000,
     })

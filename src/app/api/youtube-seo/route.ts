@@ -62,7 +62,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'youtube-seo',
       tier: auth.tier,
-      system: 'You are a YouTube SEO specialist. Output only valid JSON.',
       prompt,
       maxTokens: 2500,
     })

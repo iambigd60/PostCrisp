@@ -183,12 +183,15 @@ Current visual design is functional but conservative. Refresh before launch so t
 
 ---
 
-## Step 6.5 — Cost optimization pre-launch (~half day)
+## Step 6.5 — Cost optimization pre-launch (~half day) ✅ DONE 2026-04-19
 
-Token economics levers worth pulling before real traffic hits:
+Token economics levers pulled:
 
-- [ ] **Re-map FAST tier default** in `crisp-engine-config.ts` from `claude-haiku-4-5` → `gpt-4o-mini` (~5× cheaper at $0.15/$0.60 per 1M vs Haiku's $0.80/$4)
-- [ ] **Prompt caching** — current system prompts are ~12 tokens; caching requires 1,024+. Restructure by relocating stable guidance (platform char limits, content-type guidance, tone definitions, JSON schema examples, output formatting rules) OUT of the user prompt and INTO a bulked-up system prompt. Once over threshold, OpenAI's prefix caching kicks in automatically; Anthropic requires explicit `cache_control` hints in the adapter. Expected 20-40% savings on input tokens at scale.
+- [x] **FAST tier default** swapped from `claude-haiku-4-5` → `gpt-4o-mini` (~5× cheaper at $0.15/$0.60 per 1M vs Haiku's $1/$5)
+- [x] **Prompt caching infrastructure** — new `src/lib/system-prompts.ts` with ~1,000-token `CONTEXT_BASE` (platforms, tones, formats, algorithm principles, output rules, anti-patterns) + per-task role addendums (200-500 tokens each). Every feature's system prompt now crosses 1,200+ tokens = cacheable on both OpenAI (automatic prefix caching) and Anthropic (explicit `cache_control` hint added to adapter). Shared `CONTEXT_BASE` means cross-feature cache hits as users hop between tools. Expected ~30-50% savings on input tokens at scale.
+- [x] **System prompt auto-fill in crispGenerate** — routes pass only `task`; system is built from the shared library. 20 routes simplified.
+- [x] **Anthropic adapter** sends system as structured block with `cache_control: { type: 'ephemeral' }` when ≥4,000 chars; exposes cache hit/creation/read stats in token accounting.
+- [x] **Input size limits** (`src/lib/input-limits.ts`) — validate source content on Repurpose (12k char cap), Blog-to-Social (15k cap), Comment Reply (2k cap). Returns 400 INPUT_TOO_LONG with clear error instead of silently burning tokens.
 - [ ] **Token-cost-per-feature dashboard** (part of admin Phase 2 analytics) — so we can see which features are actually expensive and tune per-feature overrides
 
 ## Step 6.75 — Fair use + abuse prevention (~1-2 days) — Credit system ✅ DONE 2026-04-19

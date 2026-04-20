@@ -63,7 +63,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'hashtags',
       tier: auth.tier,
-      system: 'You are a hashtag research expert. Output only valid JSON.',
       prompt,
       maxTokens: 1500,
     })

@@ -137,7 +137,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'viral-ideas',
       tier: auth.tier,
-      system: 'You are a viral content expert. Output only valid JSON, no markdown.',
       prompt,
       maxTokens,
     })

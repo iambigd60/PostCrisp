@@ -72,7 +72,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'brand-pitch',
       tier: auth.tier,
-      system: 'You are a brand partnership specialist for creators. Output only valid JSON.',
       prompt,
       maxTokens: 2500,
     })

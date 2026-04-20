@@ -76,7 +76,6 @@ Return ONLY valid JSON with this structure — no markdown:
     const { text, totalTokens } = await crispGenerate({
       task: 'captions',
       tier: auth.tier,
-      system: 'You are a social media expert. Output only valid JSON.',
       prompt,
       maxTokens: 2000,
     })

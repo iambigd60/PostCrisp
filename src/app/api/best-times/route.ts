@@ -65,7 +65,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'posting-times',
       tier: auth.tier,
-      system: 'You are a social media timing expert. Output only valid JSON.',
       prompt,
       maxTokens: 2500,
     })

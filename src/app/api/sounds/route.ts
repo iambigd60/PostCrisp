@@ -55,7 +55,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'sound-tracker',
       tier: auth.tier,
-      system: 'You track short-form video audio trends. Output only valid JSON.',
       prompt,
       maxTokens: 3500,
     })

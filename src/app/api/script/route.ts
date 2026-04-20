@@ -62,7 +62,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'script',
       tier: auth.tier,
-      system: 'You are a professional video scriptwriter. Output only valid JSON.',
       prompt,
       maxTokens: 3000,
     })

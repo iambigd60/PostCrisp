@@ -94,7 +94,9 @@ export interface ProfileConfig {
 }
 
 export const DEFAULT_PROFILE_CONFIG: Record<PowerProfile, ProfileConfig> = {
-  FAST:     { provider: 'anthropic', model: 'claude-haiku-4-5-20251001' },
+  // GPT-4o-mini is ~5× cheaper than Haiku 4.5 ($0.15/$0.60 vs $1/$5 per 1M)
+  // at equivalent quality for classification / short-output tasks.
+  FAST:     { provider: 'openai',    model: 'gpt-4o-mini' },
   STANDARD: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
   PREMIUM:  { provider: 'anthropic', model: 'claude-opus-4-7' },
 }

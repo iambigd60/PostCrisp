@@ -79,7 +79,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'bio-optimizer',
       tier: auth.tier,
-      system: 'You optimize platform bios for discoverability and conversion. Output only valid JSON.',
       prompt,
       maxTokens: 1800,
     })

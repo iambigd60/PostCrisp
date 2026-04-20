@@ -54,7 +54,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'polls',
       tier: auth.tier,
-      system: 'You design Story polls that drive interactions. Output only valid JSON.',
       prompt,
       maxTokens: 2500,
     })

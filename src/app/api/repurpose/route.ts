@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { validateInputs } from '@/lib/input-limits'
 
 export interface RepurposedItem {
   targetPlatform: string
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   if (!source?.trim() || !Array.isArray(targetPlatforms) || targetPlatforms.length === 0) {
     return NextResponse.json({ error: 'Source content and at least one target platform are required.' }, { status: 400 })
   }
+
+  const sizeError = validateInputs([[source, 'longFormSource']])
+  if (sizeError) return sizeError
 
   const prompt = `You are a content-repurposing expert. Transform the same idea into native content for each target platform — never just truncate or reformat.
 
@@ -57,7 +61,6 @@ Rules:
     const { text, totalTokens } = await crispGenerate({
       task: 'repurpose',
       tier: auth.tier,
-      system: 'You are a multi-platform content specialist. Output only valid JSON.',
       prompt,
       maxTokens: 4000,
     })
