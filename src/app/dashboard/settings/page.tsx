@@ -78,6 +78,12 @@ export default function SettingsPage() {
   const [usageReminders, setUsageReminders] = useState(true)
   const [savingPrefs, setSavingPrefs] = useState(false)
 
+  // Channel URLs
+  const [channels, setChannels] = useState({
+    instagram: '', tiktok: '', youtube: '', x: '', facebook: '', threads: '', linkedin: '', website: '',
+  })
+  const [savingChannels, setSavingChannels] = useState(false)
+
   // Delete account modal
   const [showDelete, setShowDelete] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -109,6 +115,17 @@ export default function SettingsPage() {
         setDefaultAudience(prefs.default_audience ?? '')
         setEmailNotifications(prefs.email_notifications ?? true)
         setUsageReminders(prefs.usage_reminders ?? true)
+        const savedChannels = (prefs.channels as Record<string, string> | undefined) ?? {}
+        setChannels({
+          instagram: savedChannels.instagram ?? '',
+          tiktok:    savedChannels.tiktok    ?? '',
+          youtube:   savedChannels.youtube   ?? '',
+          x:         savedChannels.x         ?? '',
+          facebook:  savedChannels.facebook  ?? '',
+          threads:   savedChannels.threads   ?? '',
+          linkedin:  savedChannels.linkedin  ?? '',
+          website:   savedChannels.website   ?? '',
+        })
       }
       setLoading(false)
     })
@@ -148,6 +165,21 @@ export default function SettingsPage() {
       addToast(err instanceof ApiError ? err.message : 'Failed to save preferences', 'error')
     } finally {
       setSavingPrefs(false)
+    }
+  }
+
+  const handleSaveChannels = async () => {
+    setSavingChannels(true)
+    try {
+      await apiFetch('/api/user/preferences', {
+        method: 'PUT',
+        body: JSON.stringify({ channels }),
+      })
+      addToast('Channel URLs saved', 'success')
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : 'Failed to save channels', 'error')
+    } finally {
+      setSavingChannels(false)
     }
   }
 
@@ -329,6 +361,38 @@ export default function SettingsPage() {
 
         <Button onClick={handleSavePreferences} loading={savingPrefs}>
           Save Preferences
+        </Button>
+      </SectionCard>
+
+      {/* Channel URLs */}
+      <SectionCard
+        title="Your Channel URLs"
+        description="Saved here once, used automatically by YouTube SEO, Brand Pitch, and other features that reference your channels."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {([
+            { key: 'instagram', label: 'Instagram',    placeholder: 'https://instagram.com/yourhandle' },
+            { key: 'tiktok',    label: 'TikTok',       placeholder: 'https://tiktok.com/@yourhandle' },
+            { key: 'youtube',   label: 'YouTube',      placeholder: 'https://youtube.com/@yourchannel' },
+            { key: 'x',         label: 'X',            placeholder: 'https://x.com/yourhandle' },
+            { key: 'facebook',  label: 'Facebook',     placeholder: 'https://facebook.com/yourpage' },
+            { key: 'threads',   label: 'Threads',      placeholder: 'https://threads.net/@yourhandle' },
+            { key: 'linkedin',  label: 'LinkedIn',     placeholder: 'https://linkedin.com/in/yourprofile' },
+            { key: 'website',   label: 'Website / link-in-bio', placeholder: 'https://yoursite.com' },
+          ] as const).map((c) => (
+            <div key={c.key}>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">{c.label}</label>
+              <input
+                value={channels[c.key]}
+                onChange={(e) => setChannels({ ...channels, [c.key]: e.target.value })}
+                placeholder={c.placeholder}
+                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              />
+            </div>
+          ))}
+        </div>
+        <Button onClick={handleSaveChannels} loading={savingChannels}>
+          Save Channel URLs
         </Button>
       </SectionCard>
 

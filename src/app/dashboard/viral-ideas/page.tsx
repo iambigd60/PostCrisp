@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { apiFetch, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { CopyButton } from '@/components/ui/CopyButton'
+import { EngineBadge } from '@/components/ui/EngineBadge'
 import { GenerationLoader } from '@/components/ui/GenerationLoader'
 import { InlineError } from '@/components/ui/ErrorBoundary'
 import { UpgradePrompt } from '@/components/ui/UpgradePrompt'
@@ -350,8 +351,11 @@ export default function ViralIdeasPage() {
       {/* Results */}
       {ideas.length > 0 && !loading && (
         <div className="space-y-4 stagger-children">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-200">{ideas.length} ideas generated</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-zinc-200">{ideas.length} ideas generated</h2>
+              <EngineBadge />
+            </div>
           </div>
           {ideas.map((idea, i) => (
             <IdeaCard key={i} idea={idea} index={i} />

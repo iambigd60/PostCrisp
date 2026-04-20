@@ -74,7 +74,7 @@ function extractIdeas(content: string): ViralIdea[] {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage()
+  const auth = await checkAuthAndUsage('viral-ideas')
   if (!auth.ok) return auth.response
 
   const body = await request.json()
@@ -135,6 +135,7 @@ Rules:
   try {
     const { text, totalTokens } = await crispGenerate({
       task: 'viral-ideas',
+      tier: auth.tier,
       system: 'You are a viral content expert. Output only valid JSON, no markdown.',
       prompt,
       maxTokens,

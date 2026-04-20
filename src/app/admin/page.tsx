@@ -18,7 +18,23 @@ export default function AdminOverviewPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">AI Engine Config</h3>
               <p className="text-sm text-zinc-500 mt-1">
-                Route each feature to a provider + model. Swap Anthropic ↔ OpenAI, change tiers, roll back bad models.
+                Route each feature × tier to a provider + model. Swap Anthropic ↔ OpenAI, change tiers, roll back bad models.
+              </p>
+            </div>
+            <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/feature-access"
+          className="p-5 rounded-xl border border-amber-500/20 bg-surface-secondary hover:border-amber-500/40 hover:bg-surface-elevated transition-all group"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🔐</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Feature Access</h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                Control which tier unlocks each feature. Move Brand Pitch to Elite-only, disable experimental tools, adjust as you grow.
               </p>
             </div>
             <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
@@ -30,7 +46,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl opacity-50">👥</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-400">User Management</h3>
-              <p className="text-sm text-zinc-600 mt-1">List users, grant Pro, flag/ban. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
+              <p className="text-sm text-zinc-600 mt-1">List users, grant tiers, flag/ban. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { PLATFORMS } from "@/lib/constants";
 import { apiFetch, ApiError } from "@/lib/api";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { Button } from "@/components/ui/Button";
@@ -254,11 +255,14 @@ export default function HashtagsPage() {
         <div className="space-y-5 animate-fade-in">
           {/* Action bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-secondary border border-brand-500/10">
-            <div className="text-sm">
-              <span className="font-semibold text-zinc-200">{hashtags.length}</span>
-              <span className="text-zinc-500"> hashtags · </span>
-              <span className="font-semibold text-brand-300">{selected.size}</span>
-              <span className="text-zinc-500"> selected</span>
+            <div className="flex items-center gap-3">
+              <div className="text-sm">
+                <span className="font-semibold text-zinc-200">{hashtags.length}</span>
+                <span className="text-zinc-500"> hashtags · </span>
+                <span className="font-semibold text-brand-300">{selected.size}</span>
+                <span className="text-zinc-500"> selected</span>
+              </div>
+              <EngineBadge />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={selectOptimalMix}>

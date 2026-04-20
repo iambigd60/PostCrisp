@@ -37,7 +37,7 @@ Runtime-configurable AI provider/model per task so we can swap providers (Anthro
 
 ## Step 3 — Pricing tier & feature-gating + AI-quality-per-tier (~1-2 days)
 
-**New strategic decision (2026-04-19):** Each subscription tier maps to a different AI quality tier in the Crisp Engine. This becomes a core product differentiator, not just an internal cost optimization.
+**New strategic decision (2026-04-19):** Each subscription tier maps to a different AI quality tier in the PostCrisp Engine. This becomes a core product differentiator, not just an internal cost optimization.
 
 **Locked tier names: Starter / Creator / Elite** (+ Team as a seat-count variant of Creator).
 
@@ -58,39 +58,55 @@ Implementation:
 - [ ] **Add Elite tier** ($59-99/mo — price TBD after internal cost modeling): Stripe product, billing page card, landing page column
 - [ ] **Add Team tier** ($49/mo, up to 5 members): Stripe product + either `team_members` table or `team_id` column on profiles. AI quality = Creator.
 - [ ] **Per-feature gating**: helper in `auth-usage.ts` for `requireTier('creator' | 'team' | 'elite')` for tier-locked features (e.g., Brand Pitch is Creator+, Competitor Analysis is Elite-only)
-- [ ] **User-facing "powered by" badges**: subtle tag on generation results — "🧠 Crisp Engine" (Starter) / "🧠 Crisp Engine Pro" (Creator) / "🧠 Crisp Engine Elite" (Elite). Never expose underlying provider names.
+- [ ] **User-facing "powered by" badges**: subtle tag on generation results — "🧠 PostCrisp Engine" (Starter) / "🧠 PostCrisp Engine Pro" (Creator) / "🧠 PostCrisp Engine Elite" (Elite). Never expose underlying provider names.
 - [ ] **Rename UI strings**: search and replace "Pro" / "Upgrade to Pro" → "Creator" / "Upgrade to Creator" across `billing/page.tsx`, `UpgradePrompt.tsx`, `dashboard/page.tsx`, landing page, etc. (~15-20 locations)
 
 ---
 
-## Step 4 — New AI-text features (15 features, ~2 weeks)
+## Step 4 — New AI-text features (15 features, ~2 weeks) ✅ DONE 2026-04-19
 
-All follow the same pattern as existing captions/hashtags: dashboard page + API route calling Claude. Ordered by user value:
+All 15 PRD features shipped + one bonus (Channel Analysis). Each has: page + API route + engine task + sidebar nav entry + EngineBadge + save to library + generation-history detail page.
 
-**Monetization first (fastest revenue-relevant features):**
-- [ ] 3.1 Brand Pitch Generator (`/dashboard/brand-pitch` + `/api/brand-pitch`)
-- [ ] 3.2 Rate Calculator (`/dashboard/rate-calculator` + `/api/rate-calculator`)
-- [ ] 3.3 Competitor Analysis (`/dashboard/competitor-analysis` + `/api/competitor-analysis`)
+**Infrastructure added:**
+- `feature_access` table + `/admin/feature-access` admin UI with per-feature tier min + enabled toggle
+- Grouped sidebar with 5 collapsible sections (Create / Optimize / Grow / Monetize / Library), localStorage persistence, auto-expand on active route
+- Shared `FeatureGate` component: ghosts locked pages for under-tier users, overlays upgrade CTA with 4 value props per feature
+- `/dashboard/generations/[id]` detail page with generic JSON-to-UI renderer for any feature output
+- `getUserChannels()` helper + channel URLs section in Settings → auto-filled in YouTube SEO and Channel Analysis
 
-**Content creation power tools:**
-- [ ] 3.4 Script Generator (`/dashboard/scripts` + `/api/script`)
-- [ ] 3.5 Content Repurposer (`/dashboard/repurpose` + `/api/repurpose`)
-- [ ] 3.6 Blog-to-Social Converter (`/dashboard/blog-to-social` + `/api/blog-to-social`)
+**16 new features shipped:**
 
-**Platform optimization:**
-- [ ] 3.7 YouTube SEO (`/dashboard/youtube-seo` + `/api/youtube-seo`)
-- [ ] 3.8 Bio Optimizer (`/dashboard/bio-optimizer` + `/api/bio`)
-- [ ] 3.9 Platform Tips Engine (`/dashboard/platform-tips` + `/api/platform-tips`)
+Monetize (Creator+ gated, Premium AI default):
+- Brand Pitch Generator
+- Rate Calculator
+- Competitor Analysis
 
-**Engagement & community:**
-- [ ] 3.10 Comment Reply Generator (`/dashboard/comment-replies` + `/api/comment-reply`)
-- [ ] 3.11 DM Template Library (`/dashboard/dm-templates` + `/api/dm-template`)
-- [ ] 3.12 Poll/Question Generator (`/dashboard/polls` + `/api/polls`)
+Create (all tiers):
+- Script Generator
+- Content Repurposer
+- Blog-to-Social Converter
+- Comment Reply Generator
+- DM Template Library
+- Poll/Question Generator
 
-**Growth:**
-- [ ] 3.13 Trend Radar (`/dashboard/trends` + `/api/trends`)
-- [ ] 3.14 Sound/Audio Trend Tracker (`/dashboard/sounds` + `/api/sounds`)
-- [ ] 3.15 Collaboration Finder (`/dashboard/collab-finder` + `/api/collab-finder`)
+Optimize (all tiers, + one Creator-gated):
+- YouTube SEO
+- Bio Optimizer
+- Platform Tips Engine
+- **Channel Analysis** (Creator+ gated, bonus add — honest audit of your own channel)
+
+Grow (all tiers):
+- Trend Radar
+- Sound/Audio Trend Tracker
+- Collaboration Finder
+
+**Minor polish in same step:**
+- Split Log In / Sign Up on landing page header (was single "Get Started")
+- Custom-niche free-text input option on Polls
+- Recent Generations links → generation detail page instead of feature home
+- `parseLooseJson` upgraded to handle raw control chars inside string literals
+
+---
 
 ---
 

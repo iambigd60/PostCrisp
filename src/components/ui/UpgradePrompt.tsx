@@ -33,7 +33,7 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
         </div>
         <h3 className="text-xl font-bold text-zinc-100">You&apos;ve hit today&apos;s limit</h3>
         <p className="text-zinc-400 mt-2 text-sm">
-          Free plan includes {FREE_DAILY_LIMIT} AI generations per day. Upgrade to Pro for unlimited access.
+          Starter includes {FREE_DAILY_LIMIT} AI generations per day. Upgrade to Creator for unlimited access and better AI quality.
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
           href="/dashboard/billing"
           className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all hover:shadow-glow text-center"
         >
-          Upgrade to Pro — $19/mo
+          Upgrade to Creator — $19/mo
         </Link>
         <p className="text-xs text-zinc-600 self-center">Resets at midnight</p>
       </div>

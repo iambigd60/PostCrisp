@@ -43,15 +43,21 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Link
               href="/demo"
-              className="px-4 py-2 text-zinc-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] hidden sm:flex items-center"
+              className="px-3 sm:px-4 py-2 text-zinc-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] hidden sm:flex items-center"
             >
               View Demo
             </Link>
             <Link
-              href="/dashboard"
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-glow min-h-[44px] flex items-center"
+              href="/login"
+              className="px-3 sm:px-4 py-2 text-zinc-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] flex items-center"
             >
-              Get Started
+              Log In
+            </Link>
+            <Link
+              href="/signup"
+              className="px-3 sm:px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-glow min-h-[44px] flex items-center"
+            >
+              Sign Up
             </Link>
           </div>
         </div>
@@ -83,7 +89,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/dashboard"
+              href="/signup"
               className="px-8 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all hover:shadow-glow-lg hover:scale-[1.02] active:scale-[0.98] text-base min-h-[48px] flex items-center justify-center"
             >
               Start Creating — It&apos;s Free

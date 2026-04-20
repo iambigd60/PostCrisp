@@ -31,10 +31,30 @@ interface DashboardStats {
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
-  captions: { icon: '✍️', label: 'Captions', href: '/dashboard/generate' },
-  hashtags: { icon: '🏷️', label: 'Hashtags', href: '/dashboard/hashtags' },
-  posting_times: { icon: '⏰', label: 'Posting Times', href: '/dashboard/best-times' },
-  viral_ideas: { icon: '🚀', label: 'Viral Ideas', href: '/dashboard/viral-ideas' },
+  // Create
+  captions:       { icon: '✍️', label: 'Captions',         href: '/dashboard/generate' },
+  hashtags:       { icon: '🏷️', label: 'Hashtags',         href: '/dashboard/hashtags' },
+  script:         { icon: '🎬', label: 'Scripts',          href: '/dashboard/scripts' },
+  repurpose:      { icon: '♻️', label: 'Repurpose',        href: '/dashboard/repurpose' },
+  blog_to_social: { icon: '📰', label: 'Blog → Social',    href: '/dashboard/blog-to-social' },
+  polls:          { icon: '📊', label: 'Polls',            href: '/dashboard/polls' },
+  dm_template:    { icon: '✉️', label: 'DM Templates',     href: '/dashboard/dm-templates' },
+  comment_reply:  { icon: '💬', label: 'Comment Replies',  href: '/dashboard/comment-replies' },
+  // Optimize
+  posting_times:    { icon: '⏰', label: 'Posting Times',    href: '/dashboard/best-times' },
+  youtube_seo:      { icon: '📺', label: 'YouTube SEO',      href: '/dashboard/youtube-seo' },
+  bio_optimizer:    { icon: '🧬', label: 'Bio Optimizer',    href: '/dashboard/bio-optimizer' },
+  platform_tips:    { icon: '💡', label: 'Platform Tips',    href: '/dashboard/platform-tips' },
+  channel_analysis: { icon: '🪞', label: 'Channel Analysis', href: '/dashboard/channel-analysis' },
+  // Grow
+  viral_ideas:   { icon: '🚀', label: 'Viral Ideas',     href: '/dashboard/viral-ideas' },
+  trend_radar:   { icon: '📡', label: 'Trend Radar',     href: '/dashboard/trends' },
+  sound_tracker: { icon: '🎵', label: 'Sound Tracker',   href: '/dashboard/sounds' },
+  collab_finder: { icon: '🤝', label: 'Collab Finder',   href: '/dashboard/collab-finder' },
+  // Monetize
+  brand_pitch:          { icon: '📧', label: 'Brand Pitch',         href: '/dashboard/brand-pitch' },
+  rate_calculator:      { icon: '💵', label: 'Rate Calculator',     href: '/dashboard/rate-calculator' },
+  competitor_analysis:  { icon: '🔍', label: 'Competitor Analysis', href: '/dashboard/competitor-analysis' },
 }
 
 function timeAgo(dateStr: string): string {
@@ -49,22 +69,90 @@ function timeAgo(dateStr: string): string {
 
 function getPreview(gen: Generation): string {
   if (!gen.output_data) return '—'
+  const d = gen.output_data as Record<string, unknown>
+  const trim = (s: string, n = 80) => s.length > n ? s.slice(0, n) + '…' : s
   try {
-    if (gen.feature === 'captions') {
-      const captions = (gen.output_data.captions as string[]) ?? []
-      return captions[0]?.slice(0, 80) + (captions[0]?.length > 80 ? '…' : '') || '—'
-    }
-    if (gen.feature === 'hashtags') {
-      const tags = (gen.output_data.hashtags as Array<{ tag: string }>) ?? []
-      return tags.slice(0, 5).map((h) => h.tag).join(' ') || '—'
-    }
-    if (gen.feature === 'viral_ideas') {
-      const ideas = (gen.output_data.ideas as Array<{ title: string }>) ?? []
-      return ideas[0]?.title || '—'
-    }
-    if (gen.feature === 'posting_times') {
-      const slots = (gen.output_data.topSlots as Array<{ day: string; time: string }>) ?? []
-      return slots[0] ? `Best: ${slots[0].day} at ${slots[0].time}` : '—'
+    switch (gen.feature) {
+      case 'captions': {
+        const captions = (d.captions as string[]) ?? []
+        return captions[0] ? trim(captions[0]) : '—'
+      }
+      case 'hashtags': {
+        const tags = (d.hashtags as Array<{ tag: string }>) ?? []
+        return tags.slice(0, 5).map((h) => h.tag).join(' ') || '—'
+      }
+      case 'viral_ideas': {
+        const ideas = (d.ideas as Array<{ title: string }>) ?? []
+        return ideas[0]?.title || '—'
+      }
+      case 'posting_times': {
+        const slots = (d.topSlots as Array<{ day: string; time: string }>) ?? []
+        return slots[0] ? `Best: ${slots[0].day} at ${slots[0].time}` : '—'
+      }
+      case 'script': {
+        const hook = d.hook as string | undefined
+        return hook ? trim(hook) : '—'
+      }
+      case 'repurpose': {
+        const items = (d.items as Array<{ targetPlatform: string }>) ?? []
+        return items.length ? `Repurposed for ${items.map((i) => i.targetPlatform).join(', ')}` : '—'
+      }
+      case 'blog_to_social': {
+        const posts = (d.posts as Array<{ platform: string }>) ?? []
+        return posts.length ? `${posts.length} posts extracted for ${Array.from(new Set(posts.map((p) => p.platform))).join(', ')}` : '—'
+      }
+      case 'polls': {
+        const polls = (d.polls as Array<{ question: string }>) ?? []
+        return polls[0]?.question ? trim(polls[0].question) : '—'
+      }
+      case 'dm_template': {
+        const body = d.body as string | undefined
+        return body ? trim(body) : '—'
+      }
+      case 'comment_reply': {
+        const s = d.short as string | undefined
+        return s ? trim(s) : '—'
+      }
+      case 'youtube_seo': {
+        const titles = (d.titles as Array<{ text: string }>) ?? []
+        return titles[0]?.text ? trim(titles[0].text) : '—'
+      }
+      case 'bio_optimizer': {
+        const options = (d.options as Array<{ text: string }>) ?? []
+        return options[0]?.text ? trim(options[0].text) : '—'
+      }
+      case 'platform_tips': {
+        const tips = (d.tips as Array<{ title: string }>) ?? []
+        return tips[0]?.title || `${tips.length} tips`
+      }
+      case 'channel_analysis': {
+        const assessment = d.overallAssessment as string | undefined
+        return assessment ? trim(assessment) : '—'
+      }
+      case 'trend_radar': {
+        const trending = (d.trending as Array<{ name: string }>) ?? []
+        return trending[0]?.name ? `Top: ${trending[0].name}` : '—'
+      }
+      case 'sound_tracker': {
+        const trending = (d.trending as Array<{ name: string }>) ?? []
+        return trending[0]?.name ? `🎵 ${trending[0].name}` : '—'
+      }
+      case 'collab_finder': {
+        const profiles = (d.partnerProfiles as Array<{ description: string }>) ?? []
+        return profiles[0]?.description ? trim(profiles[0].description) : '—'
+      }
+      case 'brand_pitch': {
+        const formal = d.formal as { subject?: string } | undefined
+        return formal?.subject ? trim(formal.subject) : '—'
+      }
+      case 'rate_calculator': {
+        const rate = d.suggestedRate as { mid?: number } | undefined
+        return rate?.mid ? `Suggested: $${rate.mid}` : '—'
+      }
+      case 'competitor_analysis': {
+        const strategy = d.contentStrategy as string | undefined
+        return strategy ? trim(strategy) : '—'
+      }
     }
   } catch { /* empty */ }
   return '—'
@@ -109,11 +197,11 @@ function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
           {isPro ? 'Unlimited plan' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
         </p>
         <p className="text-xs text-zinc-500 mt-0.5">
-          {isPro ? 'Pro — all features unlocked' : 'Free plan · resets at midnight'}
+          {isPro ? 'All features unlocked' : 'Starter · resets at midnight'}
         </p>
         {!isPro && (
           <Link href="/dashboard/billing" className="text-xs text-brand-400 hover:text-brand-300 font-medium mt-1 inline-block">
-            Upgrade to Pro →
+            Upgrade →
           </Link>
         )}
       </div>
@@ -210,7 +298,7 @@ export default function DashboardPage() {
             href="/dashboard/billing"
             className="flex-shrink-0 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-medium rounded-lg transition-colors"
           >
-            ⚡ Upgrade to Pro
+            ⚡ Upgrade
           </Link>
         )}
       </div>
@@ -270,7 +358,7 @@ export default function DashboardPage() {
               return (
                 <Link
                   key={gen.id}
-                  href={meta.href}
+                  href={`/dashboard/generations/${gen.id}`}
                   className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/20 hover:bg-surface-elevated transition-all group"
                 >
                   <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>

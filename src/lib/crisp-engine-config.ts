@@ -11,6 +11,52 @@
 
 import type { ProviderId } from './providers/types'
 
+// ─── Subscription tiers ─────────────────────────────────────────────────────
+// DB values in profiles.subscription_tier map to these engine tiers.
+// 'team' runs the same AI quality as 'creator' — Team tier adds seats, not better AI.
+
+export type Tier = 'starter' | 'creator' | 'team' | 'elite'
+
+// Tiers that have their own engine configuration. Team tier is deliberately
+// NOT configurable — it mirrors Creator's AI quality (Team value is seats).
+export type ConfigurableTier = 'starter' | 'creator' | 'elite'
+export const CONFIGURABLE_TIERS: ConfigurableTier[] = ['starter', 'creator', 'elite']
+
+export const TIER_LABELS: Record<Tier, string> = {
+  starter: 'Starter',
+  creator: 'Creator',
+  team:    'Team',
+  elite:   'Elite',
+}
+
+// Resolve Team tier to its effective config tier (Creator).
+export function effectiveTier(tier: Tier): ConfigurableTier {
+  return tier === 'team' ? 'creator' : tier
+}
+
+// Pretty-label for the engine badge shown to users on generation results
+export const TIER_BADGE_LABEL: Record<Tier, string> = {
+  starter: 'PostCrisp Engine',
+  creator: 'PostCrisp Engine Pro',
+  team:    'PostCrisp Engine Pro',
+  elite:   'PostCrisp Engine Elite',
+}
+
+// Map legacy DB values → engine Tier. Keeps old profiles working while the
+// subscription_tier enum is in transition.
+export function tierFromDbValue(dbValue: string | null | undefined): Tier {
+  switch (dbValue) {
+    case 'free':     return 'starter'
+    case 'starter':  return 'starter'
+    case 'pro':      return 'creator'  // legacy — pre-rename
+    case 'creator':  return 'creator'
+    case 'team':     return 'team'
+    case 'business': return 'elite'    // legacy — pre-rename
+    case 'elite':    return 'elite'
+    default:         return 'starter'
+  }
+}
+
 export type CrispTask =
   // Content creation
   | 'captions'
@@ -37,6 +83,8 @@ export type CrispTask =
   | 'rate-calculator'
   | 'competitor-analysis'
   | 'media-kit-bio'
+  // Self-analysis
+  | 'channel-analysis'
 
 export type PowerProfile = 'FAST' | 'STANDARD' | 'PREMIUM'
 
@@ -51,27 +99,44 @@ export const DEFAULT_PROFILE_CONFIG: Record<PowerProfile, ProfileConfig> = {
   PREMIUM:  { provider: 'anthropic', model: 'claude-opus-4-7' },
 }
 
-export const TASK_PROFILE: Record<CrispTask, PowerProfile> = {
-  captions:        'STANDARD',
-  hashtags:        'STANDARD',
-  'posting-times': 'STANDARD',
-  'viral-ideas':   'STANDARD',
-  script:          'STANDARD',
-  repurpose:       'STANDARD',
-  'blog-to-social':'STANDARD',
-  'comment-reply': 'STANDARD',
-  'dm-template':   'STANDARD',
-  polls:           'FAST',
-  'youtube-seo':   'STANDARD',
-  'bio-optimizer': 'STANDARD',
-  'platform-tips': 'STANDARD',
-  'trend-radar':   'STANDARD',
-  'sound-tracker': 'STANDARD',
-  'collab-finder': 'STANDARD',
-  'brand-pitch':          'PREMIUM',
-  'rate-calculator':      'PREMIUM',
-  'competitor-analysis':  'PREMIUM',
-  'media-kit-bio':        'PREMIUM',
+// ─── Per-tier task routing ──────────────────────────────────────────────────
+// Each task has a default PowerProfile per tier. Starter pays cheapest, Creator
+// standard quality, Elite premium — with premium Opus-class on monetization
+// features even at Creator where the quality affects the user's real-world
+// outcome (pitch emails, rate cards, etc).
+//
+// Admin can override any cell at runtime via `/admin/ai-config`.
+
+export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, PowerProfile>> = {
+  // Content creation
+  captions:        { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  hashtags:        { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'posting-times': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'viral-ideas':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  script:          { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  repurpose:       { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'blog-to-social':{ starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  // Engagement
+  'comment-reply': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  'dm-template':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  polls:           { starter: 'FAST', creator: 'FAST',     elite: 'STANDARD' },
+  // Platform optimization
+  'youtube-seo':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'bio-optimizer': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'platform-tips': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  // Growth / discovery
+  'trend-radar':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'sound-tracker': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  'collab-finder': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  // Monetization — Creator already gets PREMIUM here because these are where
+  // real-world outcome (brand deals, pricing) depends on AI quality.
+  'brand-pitch':          { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  'rate-calculator':      { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  'competitor-analysis':  { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  'media-kit-bio':        { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  // Channel analysis — users benefit most from premium quality here since
+  // it's a strategic self-assessment. Premium even at Creator tier.
+  'channel-analysis':     { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
 }
 
 export const TASK_LABELS: Record<CrispTask, string> = {
@@ -95,9 +160,10 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'rate-calculator':     'Rate Calculator',
   'competitor-analysis': 'Competitor Analysis',
   'media-kit-bio':       'Media Kit Bio Optimizer',
+  'channel-analysis':    'Channel Analysis',
 }
 
-export const ALL_TASKS: CrispTask[] = Object.keys(TASK_PROFILE) as CrispTask[]
+export const ALL_TASKS: CrispTask[] = Object.keys(TASK_TIER_PROFILE) as CrispTask[]
 
 export const MODEL_CATALOG: Record<ProviderId, { id: string; label: string; notes?: string }[]> = {
   anthropic: [

@@ -4,16 +4,73 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊", id: "nav-dashboard" },
-  { href: "/dashboard/generate", label: "Caption Generator", icon: "✍️", id: "nav-generate" },
-  { href: "/dashboard/hashtags", label: "Hashtag Finder", icon: "🏷️", id: "nav-hashtags" },
-  { href: "/dashboard/best-times", label: "Best Times", icon: "⏰", id: "nav-best-times" },
-  { href: "/dashboard/viral-ideas", label: "Viral Ideas", icon: "🚀", id: "nav-viral-ideas" },
-  { href: "/dashboard/saved", label: "Saved Content", icon: "💾", id: "nav-saved" },
-  { href: "/dashboard/settings", label: "Settings", icon: "⚙️", id: "nav-settings" },
-  { href: "/dashboard/billing", label: "Billing", icon: "💳", id: "nav-billing" },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+// Top-level link (rendered above groups)
+const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: "📊" };
+
+// Grouped feature navigation. Fixed order: Create · Optimize · Grow · Monetize · Library.
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Create",
+    items: [
+      { href: "/dashboard/generate",       label: "Captions",         icon: "✍️" },
+      { href: "/dashboard/hashtags",       label: "Hashtags",         icon: "🏷️" },
+      { href: "/dashboard/scripts",        label: "Scripts",          icon: "🎬" },
+      { href: "/dashboard/repurpose",      label: "Repurpose",        icon: "♻️" },
+      { href: "/dashboard/blog-to-social", label: "Blog → Social",    icon: "📰" },
+      { href: "/dashboard/polls",          label: "Polls",            icon: "📊" },
+      { href: "/dashboard/dm-templates",   label: "DM Templates",     icon: "✉️" },
+      { href: "/dashboard/comment-replies",label: "Comment Replies",  icon: "💬" },
+    ],
+  },
+  {
+    label: "Optimize",
+    items: [
+      { href: "/dashboard/best-times",        label: "Best Times",       icon: "⏰" },
+      { href: "/dashboard/youtube-seo",       label: "YouTube SEO",      icon: "📺" },
+      { href: "/dashboard/bio-optimizer",     label: "Bio Optimizer",    icon: "🧬" },
+      { href: "/dashboard/platform-tips",     label: "Platform Tips",    icon: "💡" },
+      { href: "/dashboard/channel-analysis",  label: "Channel Analysis", icon: "🪞" },
+    ],
+  },
+  {
+    label: "Grow",
+    items: [
+      { href: "/dashboard/viral-ideas",    label: "Viral Ideas",      icon: "🚀" },
+      { href: "/dashboard/trends",         label: "Trend Radar",      icon: "📡" },
+      { href: "/dashboard/sounds",         label: "Sound Tracker",    icon: "🎵" },
+      { href: "/dashboard/collab-finder",  label: "Collab Finder",    icon: "🤝" },
+    ],
+  },
+  {
+    label: "Monetize",
+    items: [
+      { href: "/dashboard/brand-pitch",        label: "Brand Pitch",         icon: "📧" },
+      { href: "/dashboard/rate-calculator",    label: "Rate Calculator",     icon: "💵" },
+      { href: "/dashboard/competitor-analysis",label: "Competitor Analysis", icon: "🔍" },
+    ],
+  },
+  {
+    label: "Library",
+    items: [
+      { href: "/dashboard/saved",          label: "Saved Content",    icon: "💾" },
+      { href: "/dashboard/settings",       label: "Settings",         icon: "⚙️" },
+      { href: "/dashboard/billing",        label: "Billing",          icon: "💳" },
+    ],
+  },
 ];
+
+const GROUPS_STORAGE_KEY = "postcrisp.sidebar.groups";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -21,6 +78,10 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Which groups are expanded. Default: all expanded (better discoverability).
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(NAV_GROUPS.map((g) => g.label))
+  );
   const supabase = createClient();
 
   useEffect(() => {
@@ -39,6 +100,46 @@ export function Sidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Hydrate expanded groups from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as string[];
+        if (Array.isArray(saved)) setExpandedGroups(new Set(saved));
+      }
+    } catch { /* localStorage unavailable — keep defaults */ }
+  }, []);
+
+  // Auto-expand the group containing the current active route (never hide where you are)
+  useEffect(() => {
+    const activeGroup = NAV_GROUPS.find((g) =>
+      g.items.some((item) =>
+        item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href)
+      )
+    );
+    if (activeGroup) {
+      setExpandedGroups((prev) => {
+        if (prev.has(activeGroup.label)) return prev;
+        const next = new Set(prev);
+        next.add(activeGroup.label);
+        return next;
+      });
+    }
+  }, [pathname]);
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      try {
+        localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -46,6 +147,13 @@ export function Sidebar() {
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+
+  const linkClass = (href: string) =>
+    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[38px] group ${
+      isActive(href)
+        ? "bg-brand-600/20 text-brand-300 border border-brand-500/20"
+        : "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
+    }`;
 
   const navContent = (
     <>
@@ -61,26 +169,55 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            id={item.id}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] group ${
-              isActive(item.href)
-                ? "bg-brand-600/20 text-brand-300 border border-brand-500/20 shadow-glow"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
-            }`}
-          >
-            <span className={`text-lg flex-shrink-0 ${isActive(item.href) ? "" : "group-hover:scale-110 transition-transform"}`}>
-              {item.icon}
-            </span>
-            {!collapsed && <span>{item.label}</span>}
-          </Link>
-        ))}
+      <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
+        {/* Dashboard (top-level) */}
+        <Link
+          href={DASHBOARD_ITEM.href}
+          onClick={() => setMobileOpen(false)}
+          className={linkClass(DASHBOARD_ITEM.href)}
+        >
+          <span className="text-lg flex-shrink-0">{DASHBOARD_ITEM.icon}</span>
+          {!collapsed && <span>{DASHBOARD_ITEM.label}</span>}
+        </Link>
+
+        {/* Grouped feature nav */}
+        {NAV_GROUPS.map((group) => {
+          const isOpen = expandedGroups.has(group.label);
+          return (
+            <div key={group.label}>
+              {!collapsed ? (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-zinc-500 hover:text-zinc-300 transition-colors group"
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? "Collapse" : "Expand"} ${group.label}`}
+                >
+                  <span>{group.label}</span>
+                  <span className={`text-zinc-600 group-hover:text-zinc-400 transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}>▾</span>
+                </button>
+              ) : (
+                <div className="h-px bg-brand-500/10 mx-3 my-2" />
+              )}
+              {/* In collapsed-sidebar mode, always show items (icons only). In expanded-sidebar mode, respect group toggle. */}
+              {(collapsed || isOpen) && (
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={linkClass(item.href)}
+                    >
+                      <span className="text-lg flex-shrink-0">{item.icon}</span>
+                      {!collapsed && <span>{item.label}</span>}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="mt-auto px-3 py-4 border-t border-brand-500/10 space-y-2">
@@ -88,20 +225,20 @@ export function Sidebar() {
           <Link
             href="/admin"
             onClick={() => setMobileOpen(false)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 text-sm transition-colors min-h-[44px]"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 text-sm transition-colors min-h-[40px]"
           >
             {collapsed ? "🛡️" : "🛡️ Admin"}
           </Link>
         )}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-sm transition-colors min-h-[44px]"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-sm transition-colors min-h-[40px]"
         >
           {collapsed ? "🚪" : "🚪 Logout"}
         </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover text-sm transition-colors min-h-[44px]"
+          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover text-sm transition-colors min-h-[40px]"
         >
           {collapsed ? "→" : "← Collapse"}
         </button>
@@ -111,7 +248,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-surface-secondary border border-brand-500/10 text-zinc-300 hover:text-white transition-colors"
@@ -122,7 +258,6 @@ export function Sidebar() {
         </svg>
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -130,7 +265,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Mobile sidebar */}
       <aside
         className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-surface-secondary border-r border-brand-500/10 flex flex-col transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -146,7 +280,6 @@ export function Sidebar() {
         {navContent}
       </aside>
 
-      {/* Desktop sidebar */}
       <aside
         className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-surface-secondary border-r border-brand-500/10 transition-all duration-300 ${
           collapsed ? "w-[72px]" : "w-[260px]"

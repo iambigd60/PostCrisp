@@ -11,38 +11,76 @@ export function getStripe(): Stripe {
   return _stripe
 }
 
+// Stripe price IDs — env-driven so they can be swapped between dev/staging/prod
+// without code changes. Legacy `STRIPE_PRO_*` vars map to Creator tier.
 export const PRICES = {
-  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID!,
-  pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID!,
+  creator_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID!,
+  creator_yearly:  process.env.STRIPE_PRO_YEARLY_PRICE_ID  || process.env.STRIPE_CREATOR_YEARLY_PRICE_ID!,
+  team_monthly:    process.env.STRIPE_TEAM_MONTHLY_PRICE_ID!,
+  team_yearly:     process.env.STRIPE_TEAM_YEARLY_PRICE_ID!,
+  elite_monthly:   process.env.STRIPE_ELITE_MONTHLY_PRICE_ID!,
+  elite_yearly:    process.env.STRIPE_ELITE_YEARLY_PRICE_ID!,
 } as const
 
 export const PLANS = {
-  free: {
-    name: 'Free',
+  starter: {
+    name: 'Starter',
+    tagline: 'Try the full toolkit',
     price: 0,
     dailyLimit: 10,
+    engine: 'PostCrisp Engine',
     features: [
       '10 AI generations per day',
-      'Caption generator',
-      'Hashtag finder',
-      'Best posting times',
-      'Viral ideas generator',
+      'All 4 core tools — captions, hashtags, best times, viral ideas',
+      'Save up to 25 pieces of content',
     ],
-    missing: ['Unlimited generations', 'Save content library', 'Priority support'],
+    missing: ['Unlimited generations', 'Premium AI quality', 'Priority support'],
   },
-  pro: {
-    name: 'Pro',
+  creator: {
+    name: 'Creator',
+    tagline: 'For serious creators',
     monthlyPrice: 19,
     yearlyPrice: 190,
     dailyLimit: Infinity,
+    engine: 'PostCrisp Engine Pro',
     features: [
       'Unlimited AI generations',
-      'Caption generator',
-      'Hashtag finder',
-      'Best posting times',
-      'Viral ideas generator',
-      'Save content library',
+      'PostCrisp Engine Pro — balanced quality',
+      'Premium AI on monetization features (brand pitch, rate calc, competitor analysis)',
+      'Unlimited saved library',
       'Priority support',
+    ],
+    missing: ['Premium AI across all features', 'Team seats'],
+  },
+  team: {
+    name: 'Team',
+    tagline: 'For small teams and agencies',
+    monthlyPrice: 49,
+    yearlyPrice: 490,
+    dailyLimit: Infinity,
+    seats: 5,
+    engine: 'PostCrisp Engine Pro',
+    features: [
+      'Everything in Creator',
+      'Up to 5 team seats',
+      'Shared content library',
+      'Team-level admin controls',
+    ],
+    missing: ['Premium AI across all features'],
+  },
+  elite: {
+    name: 'Elite',
+    tagline: 'Maximum quality, no limits',
+    monthlyPrice: 79,
+    yearlyPrice: 790,
+    dailyLimit: Infinity,
+    engine: 'PostCrisp Engine Elite',
+    features: [
+      'Everything in Creator',
+      'PostCrisp Engine Elite — premium quality across every feature',
+      'Highest-tier AI on brand pitches, competitor analysis, and media kits',
+      'Early access to new features',
+      'Concierge onboarding + white-glove support',
     ],
     missing: [],
   },

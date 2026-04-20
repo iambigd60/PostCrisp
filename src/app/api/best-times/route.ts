@@ -13,7 +13,7 @@ const contentTypeLabels: Record<string, string> = {
 }
 
 export async function GET(request: Request) {
-  const auth = await checkAuthAndUsage()
+  const auth = await checkAuthAndUsage('posting-times')
   if (!auth.ok) return auth.response
 
   const { searchParams } = new URL(request.url)
@@ -63,6 +63,7 @@ Rules:
   try {
     const { text, totalTokens } = await crispGenerate({
       task: 'posting-times',
+      tier: auth.tier,
       system: 'You are a social media timing expert. Output only valid JSON.',
       prompt,
       maxTokens: 2500,

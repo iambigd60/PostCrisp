@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
-
-export type SubscriptionTier = 'free' | 'pro' | 'business'
+import { tierFromDbValue, type Tier } from '@/lib/crisp-engine-config'
 
 export function useSubscription() {
-  const [tier, setTier] = useState<SubscriptionTier>('free')
+  const [tier, setTier] = useState<Tier>('starter')
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
@@ -20,7 +19,7 @@ export function useSubscription() {
       .eq('id', user.id)
       .single()
 
-    if (data) setTier(data.subscription_tier as SubscriptionTier)
+    if (data) setTier(tierFromDbValue(data.subscription_tier))
     setLoading(false)
   }, [])
 
@@ -44,5 +43,19 @@ export function useSubscription() {
     if (url) window.location.href = url
   }
 
-  return { tier, loading, isPro: tier !== 'free', upgrade, manage, refresh }
+  const isPaid = tier !== 'starter'
+
+  return {
+    tier,
+    loading,
+    isPaid,
+    isCreator: tier === 'creator',
+    isTeam: tier === 'team',
+    isElite: tier === 'elite',
+    // Back-compat alias — some components still check `isPro`. "Pro" now means "any paid tier."
+    isPro: isPaid,
+    upgrade,
+    manage,
+    refresh,
+  }
 }

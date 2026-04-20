@@ -103,11 +103,11 @@ function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
           {isPro ? 'Unlimited plan' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
         </p>
         <p className="text-xs text-zinc-500 mt-0.5">
-          {isPro ? 'Pro — all features unlocked' : 'Free plan · resets at midnight'}
+          {isPro ? 'All features unlocked' : 'Starter · resets at midnight'}
         </p>
         {!isPro && (
           <span className="text-xs text-brand-400 font-medium mt-1 inline-block">
-            Upgrade to Pro →
+            Upgrade →
           </span>
         )}
       </div>
@@ -138,7 +138,7 @@ export default function DemoDashboardPage() {
         </div>
         {!isPro && (
           <div className="flex-shrink-0 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-medium rounded-lg">
-            ⚡ Upgrade to Pro
+            ⚡ Upgrade
           </div>
         )}
       </div>

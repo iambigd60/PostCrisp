@@ -18,7 +18,7 @@ function splitCounts(total: number, mix: number): { high: number; medium: number
 }
 
 export async function GET(request: Request) {
-  const auth = await checkAuthAndUsage()
+  const auth = await checkAuthAndUsage('hashtags')
   if (!auth.ok) return auth.response
 
   const { searchParams } = new URL(request.url)
@@ -61,6 +61,7 @@ Rules:
   try {
     const { text, totalTokens } = await crispGenerate({
       task: 'hashtags',
+      tier: auth.tier,
       system: 'You are a hashtag research expert. Output only valid JSON.',
       prompt,
       maxTokens: 1500,

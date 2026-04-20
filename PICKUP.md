@@ -1,138 +1,126 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-19 (session 3)
-**Build status:** ✅ compiling clean via HMR
-**Dev server:** `npm run dev` (currently on port 3001 — stale ports held 3000)
+**Last updated:** 2026-04-19 (session 5 — Step 3 + Step 4 + paywall teasers shipped)
+**Build status:** ✅ HMR running clean last time we checked
+**Dev server:** `npm run dev` (port 3000 or next available)
 
 ---
 
-## Session 3 progress — huge session
+## What this session shipped (it was a big one)
 
-### ✅ Step 1 complete (PRD-aligned polish for all 4 core features)
+### Step 3 — Tier architecture (locked)
+- Tier names: **Starter / Creator / Team / Elite** (Team mirrors Creator AI)
+- `TASK_TIER_PROFILE` 2D matrix: every task × tier has its own PowerProfile
+- `crispGenerate({ task, tier, ... })` threads tier through the engine
+- `ai_config_overrides` table now composite-keyed `(task, tier)` — admin can route each cell independently
+- `/admin/ai-config` shows a 3-column grid (Starter / Creator / Elite) with bulk edit + tier multi-select
+- "Pro" → "Creator" renamed throughout billing, upgrade prompts, landing, dashboard
+- 4-tier pricing cards on `/dashboard/billing` + feature comparison matrix
+- `EngineBadge` component on every feature result header ("🧠 PostCrisp Engine" / "Pro" / "Elite" based on tier)
 
-- **Best Times** got content-type pills, audience region dropdown, 25-niche dropdown, 45s timeout, and a full heatmap redesign: ice-blue→red gradient, responsive cell sizing (14–32px), in-cell score readouts, legend now says Cold/Hot
-- **Viral Ideas** got range slider (5–15), robust JSON parsing that survives mid-array truncation and JS-style comments, dedicated `viral_idea` save type, **full-content save** (title, meta tags, why-viral, hook, outline, hashtags, best time)
-- Centralized `VIRAL_FORMATS` (11 options including Short/Reel/TikTok, Podcast, Meme) and `VIRAL_ANGLES` (15 options including Humor/Comedy) in constants
-- Generations table inserts added to all 4 AI routes
+### Step 4 — 16 new features
+- **Monetize:** Brand Pitch · Rate Calculator · Competitor Analysis (Creator+ gated)
+- **Create:** Script Generator · Content Repurposer · Blog-to-Social · Comment Reply · DM Templates · Polls
+- **Optimize:** YouTube SEO · Bio Optimizer · Platform Tips · **Channel Analysis** (Creator+)
+- **Grow:** Trend Radar · Sound Tracker · Collab Finder
 
-### ✅ Step 2 complete — Admin Dashboard Phase 1
+### Platform infrastructure
+- **Feature access admin** — `/admin/feature-access` lets you change per-feature min tier + enabled toggle at runtime
+- **FeatureGate component** — locked pages render ghosted+blurred with centered upgrade CTA overlay (value props per feature). Admins bypass.
+- **Grouped sidebar** — 5 sections (Create / Optimize / Grow / Monetize / Library), collapsible with chevron, localStorage persistence, auto-expand on active route
+- **Channel URLs in Settings** — stored in `preferences.channels` JSONB, no schema change. Auto-filled in YouTube SEO + Channel Analysis. Extensible to other features.
+- **`/dashboard/generations/[id]`** — detail page with generic JSON-to-UI renderer for any feature's output. Supports Save-to-library, Delete, and Run-again.
+- **Dashboard Recent Generations** — every feature type gets icon + meaningful preview line
 
-- **Crisp Engine** abstraction: single entry point `crispGenerate({ task, ... })`, provider-agnostic
-- **Provider adapters**: `anthropicProvider` (existing) + `openaiProvider` (new, with auto JSON mode)
-- **Runtime config**: admin can change AI provider/model per task from `/admin/ai-config`, no code push needed; 60s cache invalidation
-- **Bulk edit**: checkboxes + sticky action bar to change multiple features at once
-- **Admin account**: `captain@postcrisp.com` created via bootstrap SQL; `role=admin` column on profiles; middleware gates `/admin/*`
-- **File split** for client/server safety: `crisp-engine.ts` (server) vs `crisp-engine-config.ts` (client), `providers/types.ts` (client-safe) vs `providers/index.ts` (server-only registry)
-
-### ✅ Saved Content overhauled
-
-- `viral_idea` type added as first-class filter tab (alongside Captions, Hashtags)
-- Count badges on each filter tab
-- Emerald-green card styling for viral ideas
-- **Expand/Collapse** — long saved content gets a "▼ Show more" button
-- Full-content save format for viral ideas
-
-### ✅ Whitelabel the AI
-
-- All `Claude`/`Anthropic` references removed from user-visible contexts
-- Crisp Engine is the product-facing name; Anthropic/OpenAI are internal implementation detail
-- Admin UI shows provider names in the dropdowns (admin-only, not user-facing)
-
-### ✅ Other polish
-
-- `iambigd@gmail.com` promoted to Pro tier
-- `saved_content` schema patched with `type`, `content`, `platform`, `topic` columns
-- Brand icons via `react-icons` (Simple Icons + FontAwesome for LinkedIn)
-- Added Facebook, YouTube, Threads; renamed Twitter → X everywhere
-- Tones expanded: +Humorous, +Controversial, +Storytelling
-- `stagger-children` CSS fix so animations don't leave elements stuck invisible
-- `@import` moved above `@tailwind` in `globals.css` so Inter font loads
-- `FREE_DAILY_LIMIT` raised to 100 temporarily (for dev)
+### Misc polish
+- Landing page: Log In and Sign Up split into separate buttons in header
+- Hero "Start Creating" CTA now goes to `/signup` directly
+- Polls page: toggle between preset niche dropdown and free-text custom niche
+- "PostCrisp Engine" renamed from "Crisp Engine" (brand collision with real "Crisp AI" company)
+- `parseLooseJson` hardened: handles control chars inside string literals (GPT occasionally returns raw newlines inside values)
+- OpenAI adapter auto-enables `response_format: json_object` when JSON is requested
+- Preferences API now merges instead of overwrites (so saving channels doesn't wipe platform/tone defaults)
 
 ---
 
-## Roadmap status after this session
+## Status snapshot
 
 | Step | Status |
 |---|---|
 | Step 1 — Polish existing | ✅ Done |
 | Step 2 — Admin Phase 1 (AI config) | ✅ Done |
-| Step 3 — Pricing + feature gating | ⏳ Next |
-| Step 4 — 15 new AI-text features | ⏳ |
-| Step 5 — Moderate features (Calendar, Media Kit, Analytics) | ⏳ |
+| Step 3 — Tiers (Starter/Creator/Team/Elite) | ✅ Done |
+| Step 4 — 16 new features + paywalls | ✅ Done |
+| Step 5 — Moderate features (Calendar, Media Kit, Analytics) | ⏳ Next option |
 | Step 6 — Landing page polish | ⏳ |
-| Step 7 — Launch prep (MFA, Stripe, deploy) | ⏳ |
-| Post-launch Phase 2 — Full admin (users/billing/analytics/moderation) | 📋 planned |
-| Post-launch Phase 3 — Media generation (image/video/logo) | 📋 deferred |
+| Step 6.5 — Cost optimization (prompt caching, FAST→4o-mini) | ⏳ |
+| Step 7 — Launch prep (MFA, Stripe prod, Vercel) | ⏳ |
+| Post-launch Phase 2 — Full admin | 📋 Planned |
+| Post-launch Phase 3 — Media generation | 📋 Deferred |
 
 ---
 
-## Next session — start here
+## Next session — decision point
 
-**Step 3 in [ROADMAP.md](ROADMAP.md) — Pricing tiers + AI quality routing:**
+Two paths:
 
-### 🔒 Locked product decisions (2026-04-19):
-- **Tier names: Starter / Creator / Elite** (+ Team as a seat-count variant of Creator)
-- **Each tier maps to a Crisp Engine quality level:**
-  - Starter (Free) → Haiku / GPT-4o-mini
-  - Creator ($19-29/mo) → Sonnet / GPT-4o
-  - Team ($49/mo, 5 seats) → same AI as Creator
-  - Elite ($59-99/mo) → Opus / top OpenAI, + forced Opus on premium features
-- **Never expose model names to users** — whitelabel everything as "Crisp Engine" / "Crisp Engine Pro" / "Crisp Engine Elite"
-- **Per-feature badges** in the UI so users see which engine tier is running
+**A. Ship sooner** (3-4 days): Step 6 (landing) → 6.5 (cost) → 7 (deploy). Content Calendar / Media Kit / Analytics become post-launch roadmap. Get real users faster.
 
-### Implementation checklist:
-- Extend `TASK_PROFILE` → `TASK_TIER_PROFILE` (2D matrix: task × tier → model)
-- Update `resolveTaskConfig(task, tier)` signature, thread tier through `crispGenerate()`
-- Admin UI: 3-column grid per task with per-tier provider+model dropdowns
-- Add Elite + Team Stripe products (price Elite at $59, $79, or $99 — decide after cost modeling)
-- `requireTier('creator' | 'team' | 'elite')` helper
-- UI string rename: "Pro" → "Creator" across billing, upgrade prompts, landing, dashboard (~15-20 spots)
-- "Powered by" badge component on feature results
+**B. Feature-rich launch** (10-14 days): Step 5 first. Content Calendar (drag-drop + AI auto-fill week), Media Kit Builder (PDF export), Analytics Dashboard (charts). Then 6-7.
 
-OR we can pivot to **Step 4** (new AI features) if you'd rather keep building visible features before doing the tier rework. Both are unblocked.
+Pick one when you come back.
 
 ---
 
-## SQL changes you've run this session (for your records)
+## SQL migrations run this session (for your records)
 
 ```sql
--- saved_content patch
-ALTER TABLE public.saved_content
-  ADD COLUMN IF NOT EXISTS type     TEXT NOT NULL DEFAULT 'caption',
-  ADD COLUMN IF NOT EXISTS content  TEXT NOT NULL DEFAULT '',
-  ADD COLUMN IF NOT EXISTS platform TEXT,
-  ADD COLUMN IF NOT EXISTS topic    TEXT;
-
--- Admin role column
+-- Step 3: Tier values + composite-keyed AI config overrides
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_subscription_tier_check;
+UPDATE public.profiles SET subscription_tier = 'creator' WHERE subscription_tier = 'pro';
+UPDATE public.profiles SET subscription_tier = 'elite'   WHERE subscription_tier = 'business';
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'
-  CHECK (role IN ('user', 'admin'));
+  ADD CONSTRAINT profiles_subscription_tier_check
+  CHECK (subscription_tier IN ('free', 'creator', 'team', 'elite'));
 
--- ai_config_overrides table + RLS (admins-only)
-CREATE TABLE public.ai_config_overrides (...);
-ENABLE ROW LEVEL SECURITY; (two admin-only policies)
+DROP TABLE IF EXISTS public.ai_config_overrides;
+CREATE TABLE public.ai_config_overrides (
+  task TEXT NOT NULL, tier TEXT NOT NULL CHECK (tier IN ('starter','creator','elite')),
+  provider TEXT NOT NULL, model TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  PRIMARY KEY (task, tier)
+);
+ALTER TABLE public.ai_config_overrides ENABLE ROW LEVEL SECURITY;
+-- + admin-only RLS policies
 
--- Captain admin bootstrap (full script in the earlier message)
--- Creates auth.users row + auth.identities + sets role=admin
-
--- Set captain to Pro
-UPDATE public.profiles SET subscription_tier = 'pro' WHERE email = 'captain@postcrisp.com';
-
--- Set your personal account to Pro
-UPDATE public.profiles SET subscription_tier = 'pro' WHERE email = 'iambigd@gmail.com';
+-- Step 4: Feature access
+CREATE TABLE IF NOT EXISTS public.feature_access (
+  feature TEXT PRIMARY KEY,
+  min_tier TEXT NOT NULL CHECK (min_tier IN ('starter','creator','team','elite')),
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+ALTER TABLE public.feature_access ENABLE ROW LEVEL SECURITY;
+-- + admin-only RLS policies
 ```
+
+No new SQL needed next session unless Step 5 adds schema (Content Calendar would need a `scheduled_posts` table).
 
 ---
 
-## Known issues to flag
-- `FREE_DAILY_LIMIT` is 100 in `src/lib/auth-usage.ts` (dev only) — drop back to 10 before launch
-- Admin account password `SH@Q5150` is temporary — rotate before launch
-- Azure OpenAI provider shows in dropdowns but falls back to Anthropic — wire up when needed
-- `MOCK_BEST_TIMES` in constants.ts is dead code — clean up at some point
+## Known issues / punchlist
+- `FREE_DAILY_LIMIT = 100` in `src/lib/auth-usage.ts` — drop to 10 before launch
+- Admin password `SH@Q5150` — rotate before launch
+- Azure provider shows in admin dropdowns but falls back to Anthropic (not yet wired)
+- `MOCK_BEST_TIMES` constant is dead code, safe to delete
+- Feature rename: Step 7 punchlist includes turning code references of `crisp-engine*` → `postcrisp-engine*` if we ever care (not user-facing, low priority)
 
-## Manual setup still pending (for production launch, not dev)
-- Stripe products (Pro Monthly, Pro Annual, **Team**) + webhook + portal
-- Google OAuth provider in Supabase
-- Vercel deploy + production env vars
-- MFA enrollment for admin accounts
+## Manual setup still pending (for production, not dev)
+- Create Stripe products: Creator Monthly/Yearly, Team Monthly/Yearly, Elite Monthly/Yearly (6 price IDs total)
+- Configure Stripe Billing Portal
+- Register webhook endpoint for production
+- Google OAuth in Supabase Auth settings
+- Vercel project + production env vars
+- MFA enrollment for `captain@postcrisp.com`

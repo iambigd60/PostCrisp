@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+// Whitelist of keys that clients can write under `preferences`. Any other keys
+// are ignored to prevent arbitrary writes.
+const ALLOWED_KEYS = new Set([
+  'default_platform',
+  'default_tone',
+  'default_audience',
+  'email_notifications',
+  'usage_reminders',
+  'channels',
+])
+
 export async function PUT(request: Request) {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -10,23 +21,31 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const { default_platform, default_tone, default_audience, email_notifications, usage_reminders } = body
 
-  const preferences: Record<string, unknown> = {}
-  if (default_platform !== undefined) preferences.default_platform = default_platform
-  if (default_tone !== undefined) preferences.default_tone = default_tone
-  if (default_audience !== undefined) preferences.default_audience = default_audience
-  if (email_notifications !== undefined) preferences.email_notifications = email_notifications
-  if (usage_reminders !== undefined) preferences.usage_reminders = usage_reminders
+  // Load current preferences so we merge instead of overwrite
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('preferences')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const current: Record<string, unknown> = (profile?.preferences as Record<string, unknown>) ?? {}
+  const next: Record<string, unknown> = { ...current }
+
+  for (const [key, value] of Object.entries(body)) {
+    if (!ALLOWED_KEYS.has(key)) continue
+    if (value === undefined) continue
+    next[key] = value
+  }
 
   const { error } = await supabase
     .from('profiles')
-    .update({ preferences })
+    .update({ preferences: next })
     .eq('id', user.id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ message: 'Preferences saved' })
+  return NextResponse.json({ message: 'Preferences saved', preferences: next })
 }

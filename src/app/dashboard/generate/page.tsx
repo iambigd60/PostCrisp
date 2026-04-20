@@ -4,6 +4,7 @@ import { PLATFORMS, TONES, CONTENT_TYPES, GENERATION_MESSAGES, PLATFORM_LIMITS, 
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
@@ -241,7 +242,10 @@ export default function GeneratePage() {
       {/* Results */}
       {captions.length > 0 && !loading && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-zinc-200">Generated Captions</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-zinc-200">Generated Captions</h2>
+            <EngineBadge />
+          </div>
           {captions.map((caption, i) => {
             const isRegenerating = regeneratingIdx === i;
             return (

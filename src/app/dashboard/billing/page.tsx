@@ -5,55 +5,80 @@ import { useSearchParams } from 'next/navigation'
 import { useSubscription } from '@/hooks/useSubscription'
 import { PLANS, PRICES } from '@/lib/stripe'
 import { useToast } from '@/components/ui/Toast'
+import { TIER_LABELS, type Tier } from '@/lib/crisp-engine-config'
 
-const FEATURES_COMPARE = [
-  { label: 'AI generations / day', free: '10', pro: 'Unlimited' },
-  { label: 'Caption generator', free: true, pro: true },
-  { label: 'Hashtag finder', free: true, pro: true },
-  { label: 'Best posting times', free: true, pro: true },
-  { label: 'Viral ideas generator', free: true, pro: true },
-  { label: 'Save content library', free: false, pro: true },
-  { label: 'Priority support', free: false, pro: true },
+type PaidTier = 'creator' | 'team' | 'elite'
+
+const FEATURES_COMPARE: { label: string; starter: boolean | string; creator: boolean | string; team: boolean | string; elite: boolean | string }[] = [
+  { label: 'AI generations / day',         starter: '10',           creator: 'Unlimited',    team: 'Unlimited',      elite: 'Unlimited' },
+  { label: 'PostCrisp Engine tier',            starter: 'Starter',      creator: 'Pro',          team: 'Pro',            elite: 'Elite' },
+  { label: 'Caption generator',            starter: true,           creator: true,           team: true,             elite: true },
+  { label: 'Hashtag finder',               starter: true,           creator: true,           team: true,             elite: true },
+  { label: 'Best posting times',           starter: true,           creator: true,           team: true,             elite: true },
+  { label: 'Viral ideas generator',        starter: true,           creator: true,           team: true,             elite: true },
+  { label: 'Premium AI on monetization',   starter: false,          creator: true,           team: true,             elite: true },
+  { label: 'Premium AI on all features',   starter: false,          creator: false,          team: false,            elite: true },
+  { label: 'Saved content library',        starter: '25 items',     creator: 'Unlimited',    team: 'Unlimited',      elite: 'Unlimited' },
+  { label: 'Team seats',                   starter: '1',            creator: '1',            team: 'Up to 5',        elite: '1' },
+  { label: 'Priority support',             starter: false,          creator: true,           team: true,             elite: 'Concierge' },
 ]
 
 function Check({ ok }: { ok: boolean | string }) {
-  if (typeof ok === 'string') return <span className="text-zinc-300 font-medium">{ok}</span>
+  if (typeof ok === 'string') return <span className="text-zinc-200 font-medium text-xs">{ok}</span>
   return ok
     ? <span className="text-emerald-400">✓</span>
     : <span className="text-zinc-600">—</span>
 }
 
+const tierTheme: Record<Tier, { ring: string; glow: string; accent: string; icon: string }> = {
+  starter: { ring: 'border-brand-500/10', glow: '', accent: 'text-zinc-300', icon: '🆓' },
+  creator: { ring: 'border-brand-500/40', glow: 'shadow-glow', accent: 'text-brand-300', icon: '⚡' },
+  team:    { ring: 'border-sky-500/40',   glow: '',            accent: 'text-sky-300',   icon: '👥' },
+  elite:   { ring: 'border-amber-500/40', glow: 'shadow-glow', accent: 'text-amber-300', icon: '👑' },
+}
+
 export default function BillingPage() {
-  const { loading, isPro, upgrade, manage } = useSubscription()
+  const { tier, loading, isPaid, upgrade, manage } = useSubscription()
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
-  const [working, setWorking] = useState(false)
+  const [working, setWorking] = useState<PaidTier | null>(null)
   const searchParams = useSearchParams()
   const { addToast } = useToast()
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
-      addToast('🎉 Welcome to Pro! Your subscription is active.', 'success')
+      addToast('🎉 Welcome to PostCrisp! Your subscription is active.', 'success')
     }
   }, [searchParams, addToast])
 
-  const handleUpgrade = async () => {
-    setWorking(true)
+  const priceIdFor = (target: PaidTier): string | undefined => {
+    if (target === 'creator') return billing === 'monthly' ? PRICES.creator_monthly : PRICES.creator_yearly
+    if (target === 'team')    return billing === 'monthly' ? PRICES.team_monthly    : PRICES.team_yearly
+    if (target === 'elite')   return billing === 'monthly' ? PRICES.elite_monthly   : PRICES.elite_yearly
+    return undefined
+  }
+
+  const handleUpgrade = async (target: PaidTier) => {
+    const priceId = priceIdFor(target)
+    if (!priceId) {
+      addToast(`${TIER_LABELS[target]} is not yet configured in Stripe.`, 'warning')
+      return
+    }
+    setWorking(target)
     try {
-      const priceId = billing === 'monthly' ? PRICES.pro_monthly : PRICES.pro_yearly
       await upgrade(priceId)
     } catch {
       addToast('Failed to start checkout. Please try again.', 'error')
-      setWorking(false)
+      setWorking(null)
     }
   }
 
   const handleManage = async () => {
-    setWorking(true)
+    setWorking('creator')
     try {
       await manage()
     } catch {
       addToast('Failed to open billing portal. Please try again.', 'error')
-      setWorking(false)
+      setWorking(null)
     }
   }
 
@@ -66,48 +91,52 @@ export default function BillingPage() {
     )
   }
 
+  const currentPlan = PLANS[tier]
+  const theme = tierTheme[tier]
+
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Billing & Subscription</h1>
-        <p className="text-zinc-500 mt-1">Manage your PostCrisp subscription.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Billing &amp; Subscription</h1>
+        <p className="text-zinc-500 mt-1">Manage your PostCrisp plan.</p>
       </div>
 
       {/* Current plan */}
-      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className={`rounded-xl border bg-surface-secondary p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${theme.ring}`}>
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
-            isPro ? 'bg-gradient-to-br from-brand-500 to-brand-700 shadow-glow' : 'bg-surface-elevated'
-          }`}>
-            {isPro ? '⚡' : '🆓'}
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br ${
+            tier === 'starter' ? 'from-zinc-700 to-zinc-800' :
+            tier === 'creator' ? 'from-brand-500 to-brand-700' :
+            tier === 'team'    ? 'from-sky-500 to-sky-700' :
+                                 'from-amber-500 to-amber-700'
+          } ${theme.glow}`}>
+            {theme.icon}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-zinc-100">{isPro ? 'Pro' : 'Free'} Plan</h2>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                isPro ? 'bg-brand-500/20 text-brand-300' : 'bg-zinc-700/50 text-zinc-400'
-              }`}>
-                {isPro ? 'Active' : 'Free tier'}
+              <h2 className="text-lg font-semibold text-zinc-100">{currentPlan.name} Plan</h2>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isPaid ? `bg-opacity-20 ${theme.accent}` : 'bg-zinc-700/50 text-zinc-400'}`} style={isPaid ? { backgroundColor: 'rgba(139,92,246,0.15)' } : undefined}>
+                {isPaid ? 'Active' : 'Free tier'}
               </span>
             </div>
             <p className="text-sm text-zinc-500 mt-0.5">
-              {isPro ? 'Unlimited generations · All features' : '10 generations / day · Core features'}
+              {currentPlan.tagline} · {currentPlan.engine}
             </p>
           </div>
         </div>
-        {isPro && (
+        {isPaid && (
           <button
             onClick={handleManage}
-            disabled={working}
-            className="flex-shrink-0 px-4 py-2 rounded-lg border border-brand-500/30 text-brand-300 hover:bg-brand-500/10 text-sm font-medium transition-colors disabled:opacity-50"
+            disabled={!!working}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg border hover:bg-opacity-10 text-sm font-medium transition-colors disabled:opacity-50 ${theme.ring} ${theme.accent}`}
           >
             {working ? 'Opening...' : 'Manage Subscription'}
           </button>
         )}
       </div>
 
-      {/* Upgrade section — only show for free users */}
-      {!isPro && (
+      {/* Upgrade section — only for non-Elite users (can always upgrade) */}
+      {tier !== 'elite' && (
         <>
           {/* Billing toggle */}
           <div className="flex items-center justify-center gap-4">
@@ -124,85 +153,69 @@ export default function BillingPage() {
             </span>
           </div>
 
-          {/* Pricing cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Free card */}
-            <div className="rounded-2xl border border-brand-500/10 bg-surface-secondary p-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-zinc-100">Free</h3>
-                <div className="mt-2 flex items-end gap-1">
-                  <span className="text-3xl font-extrabold text-zinc-100">$0</span>
-                  <span className="text-zinc-500 mb-1">/ month</span>
-                </div>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {PLANS.free.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-zinc-400">
-                    <span className="text-emerald-400">✓</span> {f}
-                  </li>
-                ))}
-                {PLANS.free.missing.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-zinc-600">
-                    <span>—</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="w-full py-2.5 rounded-xl bg-surface-elevated text-center text-sm text-zinc-500 font-medium">
-                Current plan
-              </div>
-            </div>
+          {/* Pricing cards — 4 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Starter */}
+            <PricingCard
+              planKey="starter"
+              billing={billing}
+              isCurrent={tier === 'starter'}
+              cta={tier === 'starter' ? 'Current plan' : undefined}
+              disabled
+            />
 
-            {/* Pro card */}
-            <div className="rounded-2xl border border-brand-500/40 bg-gradient-to-b from-brand-900/20 to-surface-secondary p-6 relative overflow-hidden">
-              <div className="absolute top-3 right-3 bg-brand-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                POPULAR
-              </div>
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-zinc-100">Pro</h3>
-                <div className="mt-2 flex items-end gap-1">
-                  <span className="text-3xl font-extrabold text-zinc-100">
-                    ${billing === 'monthly' ? PLANS.pro.monthlyPrice : Math.round(PLANS.pro.yearlyPrice / 12)}
-                  </span>
-                  <span className="text-zinc-500 mb-1">/ month</span>
-                </div>
-                {billing === 'yearly' && (
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    ${PLANS.pro.yearlyPrice} billed annually
-                  </p>
-                )}
-              </div>
-              <ul className="space-y-2 mb-6">
-                {PLANS.pro.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                    <span className="text-brand-400">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={handleUpgrade}
-                disabled={working}
-                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition-all hover:shadow-glow disabled:opacity-50"
-              >
-                {working ? 'Redirecting...' : `Upgrade to Pro`}
-              </button>
-            </div>
+            {/* Creator — POPULAR */}
+            <PricingCard
+              planKey="creator"
+              billing={billing}
+              isCurrent={tier === 'creator'}
+              popular
+              cta={tier === 'creator' ? 'Current plan' : 'Upgrade to Creator'}
+              onClick={tier === 'creator' ? undefined : () => handleUpgrade('creator')}
+              working={working === 'creator'}
+            />
+
+            {/* Team */}
+            <PricingCard
+              planKey="team"
+              billing={billing}
+              isCurrent={tier === 'team'}
+              cta={tier === 'team' ? 'Current plan' : 'Upgrade to Team'}
+              onClick={tier === 'team' ? undefined : () => handleUpgrade('team')}
+              working={working === 'team'}
+            />
+
+            {/* Elite */}
+            <PricingCard
+              planKey="elite"
+              billing={billing}
+              isCurrent={false}
+              premium
+              cta="Upgrade to Elite"
+              onClick={() => handleUpgrade('elite')}
+              working={working === 'elite'}
+            />
           </div>
 
           {/* Feature comparison */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-            <div className="grid grid-cols-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary">
+          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-zinc-500 uppercase tracking-wider px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary min-w-[720px]">
               <span>Feature</span>
-              <span className="text-center">Free</span>
-              <span className="text-center text-brand-400">Pro</span>
+              <span className="text-center">Starter</span>
+              <span className="text-center text-brand-400">Creator</span>
+              <span className="text-center text-sky-400">Team</span>
+              <span className="text-center text-amber-400">Elite</span>
             </div>
             {FEATURES_COMPARE.map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-3 items-center px-5 py-3 text-sm ${i % 2 === 0 ? '' : 'bg-surface-tertiary/30'}`}
+                className={`grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center px-5 py-3 text-sm min-w-[720px] ${i % 2 === 0 ? '' : 'bg-surface-tertiary/30'}`}
               >
                 <span className="text-zinc-400">{row.label}</span>
-                <span className="text-center"><Check ok={row.free} /></span>
-                <span className="text-center"><Check ok={row.pro} /></span>
+                <span className="text-center"><Check ok={row.starter} /></span>
+                <span className="text-center"><Check ok={row.creator} /></span>
+                <span className="text-center"><Check ok={row.team} /></span>
+                <span className="text-center"><Check ok={row.elite} /></span>
               </div>
             ))}
           </div>
@@ -213,21 +226,97 @@ export default function BillingPage() {
         </>
       )}
 
-      {/* Pro management section */}
-      {isPro && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-6 space-y-4">
-          <h3 className="text-base font-semibold text-zinc-200">Subscription Details</h3>
+      {/* Elite management section (you're at the top — nothing to upgrade to) */}
+      {tier === 'elite' && (
+        <div className="rounded-xl border border-amber-500/20 bg-surface-secondary p-6 space-y-4">
+          <h3 className="text-base font-semibold text-amber-200">👑 You&apos;re on Elite — highest tier</h3>
           <p className="text-sm text-zinc-500">
-            Manage your payment method, download invoices, or cancel your subscription through the Stripe billing portal.
+            You have access to every feature at PostCrisp Engine Elite quality. Manage payment method, download invoices, or cancel through the Stripe billing portal.
           </p>
           <button
             onClick={handleManage}
-            disabled={working}
-            className="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-xl text-sm transition-all hover:shadow-glow disabled:opacity-50"
+            disabled={!!working}
+            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-xl text-sm transition-all disabled:opacity-50"
           >
             {working ? 'Opening portal...' : 'Open Billing Portal →'}
           </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Pricing card component ─────────────────────────────────────────────────
+
+interface PricingCardProps {
+  planKey: Tier
+  billing: 'monthly' | 'yearly'
+  isCurrent?: boolean
+  popular?: boolean
+  premium?: boolean
+  disabled?: boolean
+  cta?: string
+  onClick?: () => void
+  working?: boolean
+}
+
+function PricingCard({ planKey, billing, isCurrent, popular, premium, disabled, cta, onClick, working }: PricingCardProps) {
+  const plan = PLANS[planKey]
+  const isPaid = 'monthlyPrice' in plan
+  const monthlyPrice = isPaid ? (billing === 'monthly' ? plan.monthlyPrice : Math.round(plan.yearlyPrice / 12)) : 0
+  const yearlyPrice = isPaid ? plan.yearlyPrice : 0
+
+  const cardClasses = premium
+    ? 'border-amber-500/40 bg-gradient-to-b from-amber-900/20 to-surface-secondary'
+    : popular
+    ? 'border-brand-500/40 bg-gradient-to-b from-brand-900/20 to-surface-secondary'
+    : 'border-brand-500/10 bg-surface-secondary'
+
+  const ctaClasses = premium
+    ? 'bg-amber-600 hover:bg-amber-500 text-white hover:shadow-glow'
+    : popular
+    ? 'bg-brand-600 hover:bg-brand-500 text-white hover:shadow-glow'
+    : 'bg-surface-elevated hover:bg-surface-hover text-zinc-200 border border-brand-500/20'
+
+  return (
+    <div className={`rounded-2xl border p-6 relative overflow-hidden flex flex-col ${cardClasses}`}>
+      {popular && (
+        <div className="absolute top-3 right-3 bg-brand-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+          POPULAR
+        </div>
+      )}
+      {premium && (
+        <div className="absolute top-3 right-3 bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+          PREMIUM
+        </div>
+      )}
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-zinc-100">{plan.name}</h3>
+        <p className="text-xs text-zinc-500 mt-0.5">{plan.tagline}</p>
+        <div className="mt-3 flex items-end gap-1">
+          <span className="text-3xl font-extrabold text-zinc-100">${monthlyPrice}</span>
+          <span className="text-zinc-500 mb-1">/ mo</span>
+        </div>
+        {isPaid && billing === 'yearly' && (
+          <p className="text-xs text-zinc-500 mt-0.5">${yearlyPrice} billed annually</p>
+        )}
+      </div>
+      <ul className="space-y-2 mb-6 flex-1">
+        {plan.features.map((f) => (
+          <li key={f} className="flex items-start gap-2 text-sm text-zinc-300">
+            <span className={premium ? 'text-amber-400' : popular ? 'text-brand-400' : 'text-emerald-400'}>✓</span>
+            <span className="flex-1">{f}</span>
+          </li>
+        ))}
+      </ul>
+      {cta && (
+        <button
+          onClick={onClick}
+          disabled={disabled || isCurrent || !onClick || working}
+          className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isCurrent ? 'bg-surface-elevated text-zinc-400' : ctaClasses}`}
+        >
+          {working ? 'Redirecting...' : cta}
+        </button>
       )}
     </div>
   )

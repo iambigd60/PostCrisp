@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
+import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
 
 export const FREE_DAILY_LIMIT = 100
 
@@ -8,6 +10,8 @@ type ServerClient = ReturnType<typeof createClient>
 type AuthUsageOk = {
   ok: true
   userId: string
+  tier: Tier
+  role: 'user' | 'admin'
   dailyUsed: number
   supabase: ServerClient
 }
@@ -17,7 +21,7 @@ type AuthUsageDenied = {
   response: NextResponse
 }
 
-export async function checkAuthAndUsage(): Promise<AuthUsageOk | AuthUsageDenied> {
+export async function checkAuthAndUsage(task?: CrispTask): Promise<AuthUsageOk | AuthUsageDenied> {
   const supabase = createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -47,20 +51,33 @@ export async function checkAuthAndUsage(): Promise<AuthUsageOk | AuthUsageDenied
     dailyUsed = 0
   }
 
-  // Admins and paid tiers bypass the daily cap
-  const isUnlimited = profile.role === 'admin' || profile.subscription_tier !== 'free'
+  const tier = tierFromDbValue(profile.subscription_tier)
+  const role: 'user' | 'admin' = profile.role === 'admin' ? 'admin' : 'user'
 
+  // Admins bypass every gate (tier + usage cap + feature access)
+  const isAdmin = role === 'admin'
+
+  // Feature access (tier gating) — admins bypass
+  if (task && !isAdmin) {
+    const access = await resolveFeatureAccess(task, tier)
+    if (!access.allowed) {
+      return { ok: false, response: featureBlockedResponse(access) }
+    }
+  }
+
+  // Daily usage cap — admins + paid tiers bypass
+  const isUnlimited = isAdmin || tier !== 'starter'
   if (!isUnlimited && dailyUsed >= FREE_DAILY_LIMIT) {
     return {
       ok: false,
       response: NextResponse.json(
-        { error: 'Daily generation limit reached. Upgrade to Pro for unlimited access.', code: 'LIMIT_REACHED' },
+        { error: 'Daily generation limit reached. Upgrade for unlimited access.', code: 'LIMIT_REACHED' },
         { status: 429 }
       ),
     }
   }
 
-  return { ok: true, userId: user.id, dailyUsed, supabase }
+  return { ok: true, userId: user.id, tier, role, dailyUsed, supabase }
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {

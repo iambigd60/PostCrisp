@@ -22,7 +22,7 @@ const contentTypeGuidance: Record<string, string> = {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage()
+  const auth = await checkAuthAndUsage('captions')
   if (!auth.ok) return auth.response
 
   const body = await request.json()
@@ -74,6 +74,7 @@ Return ONLY valid JSON with this structure — no markdown:
   try {
     const { text, totalTokens } = await crispGenerate({
       task: 'captions',
+      tier: auth.tier,
       system: 'You are a social media expert. Output only valid JSON.',
       prompt,
       maxTokens: 2000,

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role                       TEXT NOT NULL DEFAULT 'user'
                                CHECK (role IN ('user', 'admin')),
   subscription_tier          TEXT NOT NULL DEFAULT 'free'
-                               CHECK (subscription_tier IN ('free', 'pro', 'business')),
+                               CHECK (subscription_tier IN ('free', 'creator', 'team', 'elite')),
   stripe_customer_id         TEXT UNIQUE,
   stripe_subscription_id     TEXT UNIQUE,
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -22,15 +22,38 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ai_config_overrides — admin-editable runtime config for Crisp Engine task routing
--- When a row exists for a task, it overrides the code defaults in crisp-engine.ts.
--- Engine falls back to code defaults if row is missing.
+-- feature_access — admin-editable runtime config for per-feature tier gating
+-- When a row exists for a feature, it overrides the code defaults in
+-- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.
+CREATE TABLE IF NOT EXISTS public.feature_access (
+  feature    TEXT PRIMARY KEY,
+  min_tier   TEXT NOT NULL CHECK (min_tier IN ('starter', 'creator', 'team', 'elite')),
+  enabled    BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE public.feature_access ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins read feature_access"
+  ON public.feature_access FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+CREATE POLICY "Admins write feature_access"
+  ON public.feature_access FOR ALL
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- ai_config_overrides — admin-editable runtime config for PostCrisp Engine task routing
+-- Scoped per (task, tier) so each subscription tier can route to a different
+-- provider/model. Engine falls back to code defaults if a row is missing.
 CREATE TABLE IF NOT EXISTS public.ai_config_overrides (
-  task       TEXT PRIMARY KEY,
+  task       TEXT NOT NULL,
+  tier       TEXT NOT NULL CHECK (tier IN ('starter', 'creator', 'elite')),
   provider   TEXT NOT NULL,
   model      TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  PRIMARY KEY (task, tier)
 );
 
 ALTER TABLE public.ai_config_overrides ENABLE ROW LEVEL SECURITY;

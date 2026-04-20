@@ -10,6 +10,7 @@ import {
 } from "@/lib/constants";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 
@@ -191,6 +192,9 @@ export default function BestTimesPage() {
 
       {data && !loading && !error && (
         <div className="space-y-6 animate-fade-in">
+          <div className="flex justify-end">
+            <EngineBadge />
+          </div>
           {/* Tips */}
           <div className="space-y-2">
             {data.tips.map((tip, i) => (

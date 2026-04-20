@@ -10,7 +10,7 @@ export function UsageBar() {
   if (isPro) {
     return (
       <div className="px-3 py-2 rounded-lg bg-brand-500/10 border border-brand-500/20">
-        <p className="text-xs text-brand-400 font-medium">Pro — Unlimited</p>
+        <p className="text-xs text-brand-400 font-medium">Unlimited</p>
       </div>
     )
   }
