@@ -82,7 +82,7 @@ ALTER TABLE public.profiles
 
 ## Known issues / punchlist
 - `FREE_DAILY_LIMIT = 100` in `src/lib/auth-usage.ts` — drop to 10 before launch
-- Admin password `SH@Q5150` — rotate before launch
+- Admin password was rotated on 2026-04-20 via `scripts/rotate-admin-password.mjs`. Rotate again on a schedule (quarterly or after any suspected exposure).
 - Azure provider shows in admin dropdowns but falls back to Anthropic (not yet wired)
 - Generations don't log `provider` + `model` — blocks real $ cost tracking
 - Anthropic cache-read tokens count at full value in analytics but bill at ~10%; cost totals skew high when caching is hot

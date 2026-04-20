@@ -246,7 +246,7 @@ Token economics levers pulled:
 - [ ] Stripe products + webhook pointed at production domain
 - [ ] Stripe Billing Portal configured
 - [ ] Google OAuth enabled in Supabase
-- [ ] Rotate temp admin password (`captain@postcrisp.com` is using `SH@Q5150` during dev)
+- [x] ✅ 2026-04-20 — Rotated `captain@postcrisp.com` password via `scripts/rotate-admin-password.mjs`. Future rotations use the same script.
 
 ---
 
