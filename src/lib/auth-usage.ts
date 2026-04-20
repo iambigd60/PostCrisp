@@ -5,7 +5,7 @@ import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
 import { ensureCreditsCurrent, creditCostFor } from './credits'
 
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
-export const FREE_DAILY_LIMIT = 100
+export const FREE_DAILY_LIMIT = 10
 
 type ServerClient = ReturnType<typeof createClient>
 

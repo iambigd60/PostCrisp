@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
-import { tierFromDbValue, type Tier } from '@/lib/crisp-engine-config'
+import {
+  tierFromDbValue,
+  TASK_TIER_PROFILE,
+  DEFAULT_PROFILE_CONFIG,
+  type Tier,
+  type CrispTask,
+} from '@/lib/crisp-engine-config'
 
 // Monthly prices in USD. Mirror of values in src/lib/stripe.ts — kept local
 // so this route doesn't pull in Stripe SDK server deps.
@@ -9,6 +15,35 @@ const TIER_MRR: Record<Tier, number> = {
   creator: 19,
   team:    49,
   elite:   79,
+}
+
+// ─── Model pricing ($ per 1M tokens) ─────────────────────────────────────
+// Blended rate = (input + 3*output) / 4 — output dominates for generative tasks,
+// and Anthropic cache reads reduce input cost further. Update when pricing shifts.
+const MODEL_BLENDED_PRICE_PER_1M: Record<string, number> = {
+  'gpt-4o-mini':      (0.15  + 3 * 0.60) / 4,  // ≈ $0.49
+  'gpt-4o':           (2.50  + 3 * 10)    / 4, // ≈ $8.13
+  'claude-sonnet-4-6':(3     + 3 * 15)    / 4, // ≈ $12
+  'claude-opus-4-7':  (15    + 3 * 75)    / 4, // ≈ $60
+}
+
+// Feature names stored in `generations.feature` use underscores; CrispTask uses
+// hyphens. Normalize both directions.
+function featureToTask(feature: string): CrispTask | null {
+  const hyphenated = feature.replace(/_/g, '-') as CrispTask
+  return (hyphenated in TASK_TIER_PROFILE) ? hyphenated : null
+}
+
+// Estimated $ cost for a given feature + total tokens, using CURRENT creator-tier
+// routing config. This is an approximation — it does not account for the tier the
+// user was on at generation time, nor for routing changes mid-window.
+function estimateCostUSD(feature: string, totalTokens: number): number {
+  const task = featureToTask(feature)
+  if (!task) return 0
+  const profile = TASK_TIER_PROFILE[task].creator
+  const { model } = DEFAULT_PROFILE_CONFIG[profile]
+  const ratePerMillion = MODEL_BLENDED_PRICE_PER_1M[model] ?? 0
+  return (totalTokens / 1_000_000) * ratePerMillion
 }
 
 export async function GET() {
@@ -71,14 +106,18 @@ export async function GET() {
     dailyMap[key] = { date: key, count: 0, tokens: 0 }
   }
 
-  const featureMap: Record<string, { feature: string; count: number; tokens: number }> = {}
-  const userUsageMap: Record<string, { user_id: string; count: number; tokens: number }> = {}
+  const featureMap: Record<string, { feature: string; count: number; tokens: number; estCostUsd: number }> = {}
+  const userUsageMap: Record<string, { user_id: string; count: number; tokens: number; estCostUsd: number }> = {}
+  let totalEstCostUsd30d = 0
 
   for (const g of gens) {
     const created = new Date(g.created_at)
     const tokens = g.tokens_used ?? 0
+    const feat = g.feature ?? 'unknown'
+    const rowCost = estimateCostUSD(feat, tokens)
     totalTokens30d += tokens
     totalGenerations30d += 1
+    totalEstCostUsd30d += rowCost
     monthUserIds.add(g.user_id)
     if (created >= dayStart) todayUserIds.add(g.user_id)
 
@@ -88,14 +127,15 @@ export async function GET() {
       dailyMap[dayKey].tokens += tokens
     }
 
-    const feat = g.feature ?? 'unknown'
-    if (!featureMap[feat]) featureMap[feat] = { feature: feat, count: 0, tokens: 0 }
+    if (!featureMap[feat]) featureMap[feat] = { feature: feat, count: 0, tokens: 0, estCostUsd: 0 }
     featureMap[feat].count += 1
     featureMap[feat].tokens += tokens
+    featureMap[feat].estCostUsd += rowCost
 
-    if (!userUsageMap[g.user_id]) userUsageMap[g.user_id] = { user_id: g.user_id, count: 0, tokens: 0 }
+    if (!userUsageMap[g.user_id]) userUsageMap[g.user_id] = { user_id: g.user_id, count: 0, tokens: 0, estCostUsd: 0 }
     userUsageMap[g.user_id].count += 1
     userUsageMap[g.user_id].tokens += tokens
+    userUsageMap[g.user_id].estCostUsd += rowCost
   }
 
   // ─── Top 10 users by tokens — join against profiles for display ────
@@ -103,7 +143,7 @@ export async function GET() {
     .sort((a, b) => b.tokens - a.tokens)
     .slice(0, 10)
 
-  let topUsers: { user_id: string; email: string; full_name: string | null; tier: Tier; count: number; tokens: number }[] = []
+  let topUsers: { user_id: string; email: string; full_name: string | null; tier: Tier; count: number; tokens: number; estCostUsd: number }[] = []
   if (topUserIds.length > 0) {
     const ids = topUserIds.map((u) => u.user_id)
     const { data: topProfiles } = await auth.supabaseAdmin
@@ -120,6 +160,7 @@ export async function GET() {
         tier: tierFromDbValue(prof?.subscription_tier),
         count: u.count,
         tokens: u.tokens,
+        estCostUsd: u.estCostUsd,
       }
     })
   }
@@ -138,6 +179,7 @@ export async function GET() {
       mau: monthUserIds.size,
       totalGenerations30d,
       totalTokens30d,
+      totalEstCostUsd30d,
       creditsConsumed30d,
       tierCounts,
     },

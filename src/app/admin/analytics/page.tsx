@@ -16,12 +16,21 @@ interface AnalyticsResponse {
     mau: number;
     totalGenerations30d: number;
     totalTokens30d: number;
+    totalEstCostUsd30d: number;
     creditsConsumed30d: number;
     tierCounts: Record<Tier, number>;
   };
   daily: { date: string; count: number; tokens: number }[];
-  featureBreakdown: { feature: string; count: number; tokens: number }[];
-  topUsers: { user_id: string; email: string; full_name: string | null; tier: Tier; count: number; tokens: number }[];
+  featureBreakdown: { feature: string; count: number; tokens: number; estCostUsd: number }[];
+  topUsers: { user_id: string; email: string; full_name: string | null; tier: Tier; count: number; tokens: number; estCostUsd: number }[];
+}
+
+function formatUsd(n: number): string {
+  if (n >= 100) return `$${n.toFixed(0)}`;
+  if (n >= 1) return `$${n.toFixed(2)}`;
+  if (n >= 0.01) return `$${n.toFixed(2)}`;
+  if (n > 0) return `<$0.01`;
+  return `$0`;
 }
 
 const FEATURE_LABEL: Record<string, { icon: string; label: string }> = {
@@ -170,7 +179,7 @@ export default function AdminAnalyticsPage() {
         <KpiTile label="Paid users" value={kpi.paidUsers.toLocaleString()} sub={`of ${kpi.totalUsers.toLocaleString()} total`} />
         <KpiTile label="Est. MRR" value={`$${kpi.mrrEstimate.toLocaleString()}`} sub="tier counts × list price" />
         <KpiTile label="Generations" value={compactNumber(kpi.totalGenerations30d)} sub="last 30d" />
-        <KpiTile label="Tokens" value={compactNumber(kpi.totalTokens30d)} sub="last 30d" />
+        <KpiTile label="Tokens" value={compactNumber(kpi.totalTokens30d)} sub={`${formatUsd(kpi.totalEstCostUsd30d)} est. cost`} />
         <KpiTile label="Credits used" value={compactNumber(kpi.creditsConsumed30d)} sub="last 30d" />
       </div>
 
@@ -211,7 +220,7 @@ export default function AdminAnalyticsPage() {
                         {meta.label}
                       </span>
                       <span className="text-zinc-500 font-mono">
-                        {f.count.toLocaleString()} gens · {compactNumber(f.tokens)} tk
+                        {f.count.toLocaleString()} gens · {compactNumber(f.tokens)} tk · <span className="text-amber-400/80">{formatUsd(f.estCostUsd)}</span>
                       </span>
                     </div>
                     <div className="h-2 bg-surface-tertiary rounded-full overflow-hidden">
@@ -230,9 +239,12 @@ export default function AdminAnalyticsPage() {
 
       {/* Top users by tokens */}
       <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-        <div className="px-5 py-4 border-b border-brand-500/10">
-          <h2 className="text-sm font-semibold text-zinc-200">Top users by token consumption</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Last {data.window.days} days — spot your power users and cost drivers</p>
+        <div className="px-5 py-4 border-b border-brand-500/10 flex items-end justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-200">Top users by token consumption</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Last {data.window.days} days — spot your power users and cost drivers</p>
+          </div>
+          <p className="text-xs text-zinc-600 italic">Cost est. via current Creator-tier routing</p>
         </div>
         {topUsers.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-zinc-500">No usage yet.</p>
@@ -245,6 +257,7 @@ export default function AdminAnalyticsPage() {
                 <th className="px-4 py-2.5 font-medium">Tier</th>
                 <th className="px-4 py-2.5 font-medium text-right">Gens</th>
                 <th className="px-4 py-2.5 font-medium">Tokens</th>
+                <th className="px-4 py-2.5 font-medium text-right">Est. cost</th>
                 <th className="px-4 py-2.5 font-medium text-right"></th>
               </tr>
             </thead>
@@ -277,6 +290,7 @@ export default function AdminAnalyticsPage() {
                         <span className="font-mono text-xs text-zinc-400 tabular-nums">{compactNumber(u.tokens)}</span>
                       </div>
                     </td>
+                    <td className="px-4 py-2.5 text-right font-mono text-amber-400/80 tabular-nums text-xs">{formatUsd(u.estCostUsd)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <Link href={`/admin/users/${u.user_id}`} className="text-xs text-brand-400 hover:text-brand-300 font-medium">
                         View →

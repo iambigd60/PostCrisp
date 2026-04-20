@@ -1,12 +1,20 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-19 (session 6 — Admin Phase 2: Users + Analytics)
-**Build status:** ✅ Working, user confirmed both pages render correctly
+**Last updated:** 2026-04-20 (session 7 — GitHub backup, admin password rotation, cost tracking)
+**Build status:** ✅ Working
 **Dev server:** `npm run dev` (port 3000 or next available)
 
 ---
 
-## What this session shipped
+## What session 7 shipped (short ~30-min session)
+
+- **GitHub backup** — pushed to private `iambigd60/PostCrisp` repo; `origin/HEAD` set to `main`
+- **`/save` slash command + `scripts/backup.sh`** — project-scoped, travels with repo (via `.gitignore` whitelist of `.claude/commands/`)
+- **`scripts/rotate-admin-password.mjs`** — interactive Supabase admin password rotation via service role; masks input, enforces ≥12 chars, confirmation match, explicit `yes` to execute. Used it to rotate `captain@postcrisp.com`.
+- **FREE_DAILY_LIMIT 100 → 10** — legacy const dropped back; credits are the real cap anyway
+- **Analytics cost tracking** — added `MODEL_BLENDED_PRICE_PER_1M` pricing table in analytics API and an `estimateCostUSD(feature, tokens)` helper. KPI "Tokens" tile now shows est. cost, Feature Breakdown adds $ per feature, Top Users table adds Est. cost column. Labeled as estimate (uses current Creator-tier routing — doesn't know historical tier or mid-window routing changes).
+
+## What session 6 shipped
 
 ### Admin Phase 2: User Management
 - `/admin/users` list — search by email, filter tier/role, sort newest/oldest/credits/usage, paginated 50/page, colored avatars, tier badges
@@ -81,7 +89,7 @@ ALTER TABLE public.profiles
 ---
 
 ## Known issues / punchlist
-- `FREE_DAILY_LIMIT = 100` in `src/lib/auth-usage.ts` — drop to 10 before launch
+- ~~`FREE_DAILY_LIMIT = 100` — drop to 10 before launch~~ ✅ Done 2026-04-20 (and it was legacy anyway; credits are the real cap)
 - Admin password was rotated on 2026-04-20 via `scripts/rotate-admin-password.mjs`. Rotate again on a schedule (quarterly or after any suspected exposure).
 - Azure provider shows in admin dropdowns but falls back to Anthropic (not yet wired)
 - Generations don't log `provider` + `model` — blocks real $ cost tracking

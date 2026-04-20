@@ -235,7 +235,7 @@ Token economics levers pulled:
 
 
 - [ ] Delete orphaned `src/app/login/actions.ts`
-- [ ] Lower `FREE_DAILY_LIMIT` back to 10 (currently 100 for dev)
+- [x] ✅ 2026-04-20 — Lowered `FREE_DAILY_LIMIT` back to 10 (in `src/lib/auth-usage.ts`; was legacy anyway — credits are the primary cap)
 - [ ] Fix `api/viral-ideas` JSON parse error (Claude sometimes returns malformed arrays)
 - [ ] **MFA for admin accounts** — required before launch. Any account with `role = 'admin'` must enroll in Supabase Auth MFA (TOTP). Block `/admin/*` access if admin hasn't enrolled. Use Supabase Auth's built-in MFA flow.
 - [ ] Error boundary audit on all new pages
@@ -262,7 +262,7 @@ Token economics levers pulled:
 - `PLATFORM_LIMITS` helper with optimal/max numeric values
 - `CONTENT_TYPES` constant (Post / Reel Hook / Story / Thread Opener / Script Hook)
 - `saved_content` table patched with `type`, `content`, `platform`, `topic` columns
-- `FREE_DAILY_LIMIT` raised to 100 temporarily (for dev testing) — **remember to drop back to 10 before launch**
+- ~~`FREE_DAILY_LIMIT` raised to 100 temporarily~~ ✅ Restored to 10 on 2026-04-20
 
 ---
 
