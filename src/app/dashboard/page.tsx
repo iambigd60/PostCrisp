@@ -5,13 +5,15 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { SkeletonDashboard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { FREE_DAILY_LIMIT } from '@/hooks/useUsage'
+import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
 
 interface Profile {
   full_name: string | null
   subscription_tier: string
   daily_generations_used: number
   daily_generations_reset_at: string
+  credits_balance: number
+  credits_reset_at: string
 }
 
 interface Generation {
@@ -158,55 +160,69 @@ function getPreview(gen: Generation): string {
   return '—'
 }
 
-function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
+function CreditMeter({ balance, allowance, resetAt, cycleLabel }: { balance: number; allowance: number; resetAt: string | null; cycleLabel: string }) {
   const r = 32
   const circumference = 2 * Math.PI * r
-  const pct = isPro ? 0 : Math.min(1, used / FREE_DAILY_LIMIT)
+  const pct = allowance > 0 ? Math.min(1, balance / allowance) : 0
   const offset = circumference * (1 - pct)
-  const color = pct >= 0.9 ? '#ef4444' : pct >= 0.6 ? '#f59e0b' : '#8b5cf6'
+  // Invert threshold: low balance = red
+  const color = pct <= 0.1 ? '#ef4444' : pct <= 0.3 ? '#f59e0b' : '#10b981'
+  const low = pct <= 0.1
+
+  const resetIn = resetAt ? formatResetDistance(new Date(resetAt)) : cycleLabel
 
   return (
     <div className="flex items-center gap-4">
       <div className="relative w-20 h-20 flex-shrink-0">
         <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
           <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(139,92,246,0.1)" strokeWidth="7" />
-          {!isPro && (
-            <circle
-              cx="40" cy="40" r={r} fill="none"
-              stroke={color} strokeWidth="7"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              strokeLinecap="round"
-              className="transition-all duration-700"
-            />
-          )}
+          <circle
+            cx="40" cy="40" r={r} fill="none"
+            stroke={color} strokeWidth="7"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-700"
+          />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {isPro ? (
-            <span className="text-lg text-brand-400 font-bold">∞</span>
-          ) : (
-            <>
-              <span className="text-lg font-bold text-zinc-100 leading-none">{used}</span>
-              <span className="text-2xs text-zinc-600 leading-none">/{FREE_DAILY_LIMIT}</span>
-            </>
-          )}
+          <span className="text-lg font-bold text-zinc-100 leading-none">{balance}</span>
+          <span className="text-2xs text-zinc-600 leading-none">/{allowance}</span>
         </div>
       </div>
       <div>
         <p className="text-sm font-medium text-zinc-200">
-          {isPro ? 'Unlimited plan' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
+          {balance} credits left
         </p>
         <p className="text-xs text-zinc-500 mt-0.5">
-          {isPro ? 'All features unlocked' : 'Starter · resets at midnight'}
+          Resets {resetIn}
         </p>
-        {!isPro && (
+        {low ? (
+          <Link href="/dashboard/billing" className="text-xs text-red-400 hover:text-red-300 font-medium mt-1 inline-block">
+            Low balance — top up →
+          </Link>
+        ) : (
           <Link href="/dashboard/billing" className="text-xs text-brand-400 hover:text-brand-300 font-medium mt-1 inline-block">
-            Upgrade →
+            Buy more credits →
           </Link>
         )}
       </div>
     </div>
   )
+}
+
+function formatResetDistance(d: Date): string {
+  const ms = d.getTime() - Date.now()
+  if (ms <= 0) return 'now'
+  const hours = Math.floor(ms / 3_600_000)
+  if (hours < 1) {
+    const mins = Math.max(1, Math.floor(ms / 60_000))
+    return `in ${mins}m`
+  }
+  if (hours < 24) return `in ${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `in ${days}d`
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const QUICK_ACTIONS = [
@@ -230,7 +246,7 @@ export default function DashboardPage() {
 
         const [profileRes, generationsRes, savedRes, recentRes] = await Promise.all([
           supabase.from('profiles')
-            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at')
+            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at')
             .eq('id', user.id)
             .maybeSingle(),
           supabase.from('generations')
@@ -309,7 +325,7 @@ export default function DashboardPage() {
           { icon: '✍️', label: 'This week', value: stats?.weekGenerations ?? 0, sub: 'generations' },
           { icon: '📊', label: 'All time', value: stats?.totalGenerations ?? 0, sub: 'generations' },
           { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0, sub: 'pieces of content' },
-          { icon: '🔥', label: 'Today', value: profile?.daily_generations_used ?? 0, sub: isPro ? 'unlimited' : `of ${FREE_DAILY_LIMIT}` },
+          { icon: '🔥', label: 'Today', value: profile?.daily_generations_used ?? 0, sub: 'generations today' },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all">
             <span className="text-xl block mb-2">{stat.icon}</span>
@@ -338,10 +354,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Daily usage */}
+        {/* Credits */}
         <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
-          <h2 className="text-base font-semibold text-zinc-200 mb-4">Daily Usage</h2>
-          <UsageRing used={profile?.daily_generations_used ?? 0} isPro={isPro} />
+          <h2 className="text-base font-semibold text-zinc-200 mb-4">Credits</h2>
+          <CreditMeter
+            balance={profile?.credits_balance ?? 0}
+            allowance={TIER_ALLOWANCE[tierFromDbValue(profile?.subscription_tier)].credits}
+            resetAt={profile?.credits_reset_at ?? null}
+            cycleLabel={TIER_ALLOWANCE[tierFromDbValue(profile?.subscription_tier)].cycle === 'daily' ? 'daily' : 'monthly'}
+          />
         </div>
       </div>
 

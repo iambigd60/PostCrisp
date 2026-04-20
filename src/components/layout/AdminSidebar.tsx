@@ -6,7 +6,8 @@ import { useState } from "react";
 const NAV_ITEMS = [
   { href: "/admin",                  label: "Overview",          icon: "🛡️",  enabled: true },
   { href: "/admin/ai-config",        label: "AI Engine Config",  icon: "⚙️",  enabled: true },
-  { href: "/admin/feature-access",   label: "Feature Access",    icon: "🔐",  enabled: true },
+  { href: "/admin/feature-access",      label: "Feature Access",      icon: "🔐",  enabled: true },
+  { href: "/admin/credit-adjustments",  label: "Credit Adjustments",  icon: "🪙",  enabled: true },
   { href: "/admin/users",            label: "Users",             icon: "👥",  enabled: false },
   { href: "/admin/billing",          label: "Billing",           icon: "💳",  enabled: false },
   { href: "/admin/analytics",        label: "Analytics",         icon: "📈",  enabled: false },

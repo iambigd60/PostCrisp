@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 export interface BlogSocialPost {
   platform: string
@@ -83,6 +84,8 @@ Rules:
       output_data: { posts },
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'blog-to-social')
 
     return NextResponse.json({ posts })
   } catch (error) {

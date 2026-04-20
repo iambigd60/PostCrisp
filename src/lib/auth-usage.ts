@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
+import { ensureCreditsCurrent, creditCostFor } from './credits'
 
+// Legacy — kept for admin feature access UI only. Credits are now the primary cap.
 export const FREE_DAILY_LIMIT = 100
 
 type ServerClient = ReturnType<typeof createClient>
@@ -13,6 +15,8 @@ type AuthUsageOk = {
   tier: Tier
   role: 'user' | 'admin'
   dailyUsed: number
+  creditCost: number        // how many credits this task costs (0 for admins)
+  creditsBalance: number    // user's balance AFTER the preflight / allowance refresh
   supabase: ServerClient
 }
 
@@ -54,7 +58,7 @@ export async function checkAuthAndUsage(task?: CrispTask): Promise<AuthUsageOk |
   const tier = tierFromDbValue(profile.subscription_tier)
   const role: 'user' | 'admin' = profile.role === 'admin' ? 'admin' : 'user'
 
-  // Admins bypass every gate (tier + usage cap + feature access)
+  // Admins bypass every gate (tier + usage cap + feature access + credits)
   const isAdmin = role === 'admin'
 
   // Feature access (tier gating) — admins bypass
@@ -65,19 +69,31 @@ export async function checkAuthAndUsage(task?: CrispTask): Promise<AuthUsageOk |
     }
   }
 
-  // Daily usage cap — admins + paid tiers bypass
-  const isUnlimited = isAdmin || tier !== 'starter'
-  if (!isUnlimited && dailyUsed >= FREE_DAILY_LIMIT) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: 'Daily generation limit reached. Upgrade for unlimited access.', code: 'LIMIT_REACHED' },
-        { status: 429 }
-      ),
+  // Credit preflight — ensure allowance is current, then check balance
+  let creditCost = 0
+  let creditsBalance = 0
+  if (task) {
+    const { balance } = await ensureCreditsCurrent(supabase, user.id, tier)
+    creditsBalance = balance
+    creditCost = isAdmin ? 0 : creditCostFor(task)
+
+    if (!isAdmin && balance < creditCost) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: `Not enough credits. This action costs ${creditCost} credits and you have ${balance}.`,
+            code: 'INSUFFICIENT_CREDITS',
+            creditCost,
+            creditsBalance: balance,
+          },
+          { status: 402 }
+        ),
+      }
     }
   }
 
-  return { ok: true, userId: user.id, tier, role, dailyUsed, supabase }
+  return { ok: true, userId: user.id, tier, role, dailyUsed, creditCost, creditsBalance, supabase }
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {

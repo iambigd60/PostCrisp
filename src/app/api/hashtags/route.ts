@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 // Split N hashtags across 3 categories based on mix (0=popular-heavy, 1=niche-heavy)
 function splitCounts(total: number, mix: number): { high: number; medium: number; low: number } {
@@ -80,6 +81,8 @@ Rules:
       output_data: { hashtags },
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'hashtags')
 
     return NextResponse.json({ hashtags, query, platform, count, mix })
   } catch (error) {

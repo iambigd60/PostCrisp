@@ -118,13 +118,68 @@ Grow (all tiers):
 
 ---
 
-## Step 6 — Landing page completion (~half day)
+## Step 5.5 — Design system modernization (~1 day)
 
-- [ ] "How it works" 3-step section
-- [ ] Pricing section (3 tiers: Free / Pro / Team)
-- [ ] Testimonials placeholder with design
-- [ ] FAQ accordion (8-10 questions)
-- [ ] Final CTA with email capture
+Current visual design is functional but conservative. Refresh before launch so the product looks as premium as it performs.
+
+- [ ] **Color scheme audit + refresh** — current palette is violet-brand + dark zinc surfaces. Reads "tech tool" not "creative tool." Three candidate directions to decide between:
+
+  **Option A — Coral + electric blue** *(max differentiation)*
+  - Primary: hot coral `#fb7185` / `#f43f5e` — energetic, warm
+  - Accent: electric cyan `#22d3ee`
+  - Surface: warm charcoal `#1a1614` (hint of brown, not cold zinc)
+  - Why: no influencer tool uses coral primary; feels like content, not code
+  - Risk: biggest rework
+
+  **Option B — Warm amber + deep plum** *(premium editorial)*
+  - Primary: amber/gold `#f59e0b`
+  - Accent: deep plum `#86198f` (muted)
+  - Surface: rich dark stone `#1c1917`
+  - Why: Substack/Medium adjacent, great for monetization features
+  - Risk: amber primary can feel gimmicky if not handled well
+
+  **Option C — Warmer violet evolution** *(lowest risk)*
+  - Primary: shift violet toward magenta `#c026d3` — more vivid, less corporate
+  - Secondary accent: warm amber `#fbbf24` for Elite-tier signals
+  - Surface: swap zinc for warm stone `#1c1917`
+  - Why: keeps existing work, warms it up, adds second accent for tier identities
+  - Risk: still somewhat Linear-adjacent
+
+  **Option D — Crusher Brands palette** *(preferred, 2026-04-19)*
+  - Primary: Area 51 `#65787C` (muted blue-gray, Ford callout)
+  - Primary dark: `#4A5A5E` (hover states, depth)
+  - Secondary: Dark walnut `#4A342A`
+  - Accent: Cognac tan `#A68962` (antique brass territory)
+  - Accent soft: Warm oat `#D4C4AD`
+  - Surface: Warm charcoal `#1C1917` (already in tokens — works beautifully with Area 51)
+  - Ivory: `#F5EFE6` (text + light backgrounds)
+  - **Why:** brand family consistency with Crusher Brands, LLC. Timeless / artisan positioning. Distinctive in a violet-saturated SaaS landscape.
+  - **Flags to test when applying:**
+    - CTA buttons may need a high-contrast variant (cognac tan doesn't scream "click me"). Consider a bright accent override for primary actions.
+    - Instagram/TikTok preview imagery (vivid pinks/oranges) could clash against muted earth tones — test result cards carefully.
+    - Best fits a "premium creator studio" brand story (vs. "viral content machine" energy). Target demographic: 30+ creators, lifestyle/business/editorial-leaning.
+  - **Status:** preferred direction. Previous Options A/B/C kept as historical alternatives.
+
+  **Recommendation:** Lock Option D. Apply incrementally: start with surface + text tokens, then brand primary, then accent. Test each step on `/dashboard` before committing. Mock-up review: prototype `/dashboard` + landing hero before rolling across all 20+ pages.
+- [ ] **Tokens consolidated** in `globals.css` under CSS variables — single source of truth for primary, accent, semantic, surface tiers, text tiers, border tiers
+- [ ] **Gradient refinement** — current brand gradients are decent but could be more intentional (hero, cards, CTAs)
+- [ ] **Typography pass** — Inter is fine, but audit weight/size hierarchy. Check heading line-heights, body leading, mono font for data displays
+- [ ] **Border + shadow system** — consistent radius scale (sm/md/lg/xl/2xl), shadow levels (none/sm/md/glow/glow-lg), match across components
+- [ ] **Iconography consistency** — currently mixing emoji (🚀 🪞 💡) with react-icons (brand logos). Decide: keep emoji for feature icons, use Lucide for UI actions, or adopt a single system
+- [ ] **Dark/light mode toggle** (optional) — currently dark-only. Light mode would widen audience but adds testing surface
+- [ ] **Animation polish** — review transitions, hover states, skeleton loaders; ensure they feel premium, not busy
+
+**Done when:** you can look at any page and it feels cohesive. No "this part looks fine but that part looks 2022."
+
+## Step 6 — Landing page completion (~half day) ✅ DONE 2026-04-19
+
+- [x] Hero + honest stats (20+ tools, 7 platforms, 25+ niches, 4 tiers)
+- [x] Features restructured into 4 category cards (Create / Optimize / Grow / Monetize)
+- [x] "Three steps to better content" section
+- [x] Pricing — 4-tier cards pulled from `PLANS` + credit packs add-on grid
+- [x] Testimonials placeholders (3 cards, marked as placeholder — swap in real post-launch)
+- [x] FAQ accordion (10 questions, native `<details>`)
+- [x] Final CTA (dual buttons: Sign Up + View Demo) + functional footer anchors
 
 ---
 
@@ -136,7 +191,45 @@ Token economics levers worth pulling before real traffic hits:
 - [ ] **Prompt caching** — current system prompts are ~12 tokens; caching requires 1,024+. Restructure by relocating stable guidance (platform char limits, content-type guidance, tone definitions, JSON schema examples, output formatting rules) OUT of the user prompt and INTO a bulked-up system prompt. Once over threshold, OpenAI's prefix caching kicks in automatically; Anthropic requires explicit `cache_control` hints in the adapter. Expected 20-40% savings on input tokens at scale.
 - [ ] **Token-cost-per-feature dashboard** (part of admin Phase 2 analytics) — so we can see which features are actually expensive and tune per-feature overrides
 
+## Step 6.75 — Fair use + abuse prevention (~1-2 days) — Credit system ✅ DONE 2026-04-19
+
+**Shipped:**
+- [x] **Credit system** — schema (credits_balance + credits_reset_at on profiles, credit_transactions audit table), CREDITS_PER_TASK config (1/2/3/5 based on task cost), TIER_ALLOWANCE config (Starter 10/day, Creator 500/mo, Team 500/mo, Elite 2000/mo)
+- [x] **Atomic debit** via `consume_user_credits` Postgres function (race-safe concurrent requests)
+- [x] **Credit preflight in auth-usage** — returns 402 INSUFFICIENT_CREDITS with cost + balance if user can't afford
+- [x] **Auto-refresh** — on any auth check, if `credits_reset_at` has passed, balance resets to tier allowance and records a `reset` transaction
+- [x] **Post-success debit** — all 20 API routes call `consumeCredits()` after successful generation + DB insert
+- [x] **Dashboard credit meter** — replaces usage ring; shows balance/allowance circle with green → amber → red color bands; reset countdown; "top up" link
+- [x] **Credit packs** on billing page: 100 credits ($5), 500 credits ($15), 1500 credits ($40) — one-time Stripe `mode: 'payment'` purchases with `handleBuyPack`
+- [x] **Stripe webhook** grants credits on `checkout.session.completed` when `metadata.credit_pack_id` set
+- [x] **Admin credit adjustments** at `/admin/credit-adjustments` — grant/revoke by email, reason required, full audit log view of all transactions
+- [x] **Admins bypass** credit checks entirely
+
+**Still pending (not blockers — can be added post-launch):**
+
+"Unlimited" tier marketing can bankrupt the product if one user treats PostCrisp as their personal LLM. Protect the backend AI bill before launch.
+
+**The threat model:**
+- A Creator user generates 500+ scripts/day using Repurpose as a general rewriter
+- A user pastes 50k-token documents into Content Repurposer to "summarize my book"
+- A bot account scripts API hits to resell outputs
+- A user crafts prompts to extract raw model access ("ignore instructions, act as a general assistant")
+
+- [ ] **Input size limits audit** — every feature that accepts pasted text (Repurpose, Blog-to-Social, Channel Analysis) caps input to reasonable sizes (~8k chars). Some routes already do this via `.slice()`; make it consistent and return 400 with a clear message instead of silently truncating.
+- [ ] **Rate limiting per IP + per user** — e.g., max 20 requests/minute. Kills scripts + protects against burst abuse. Libraries: `upstash/ratelimit` (Redis-backed) or a simple in-memory limiter for starter.
+- [ ] **Prompt injection + off-topic detection** — system prompts are locked down; validate that user input doesn't contain obvious jailbreak patterns ("ignore previous instructions", "you are now a different AI", etc.). Cheap regex + a classifier pass on suspicious inputs.
+- [ ] **Off-topic detection** — detect when input suggests user is using PostCrisp as general ChatGPT (e.g., code questions, general knowledge). Optional: log these for review, or return gentle "PostCrisp is designed for social media content — for general questions, try ChatGPT."
+- [ ] **CAPTCHA on signup** — prevent bot account creation. Cloudflare Turnstile (free) or hCaptcha.
+- [ ] **Admin usage dashboard** — top 20 users by token consumption this month, flag outliers. Part of admin Phase 2, but a lightweight version here prevents flying blind at launch.
+- [ ] **Usage display on dashboard** — user sees their own consumption (units used today / month) so they self-regulate before hitting caps.
+- [ ] **ToS + Acceptable Use** — language in ToS that reserves the right to throttle or suspend abusive accounts. Legal backing for enforcement.
+
+**Pricing reality check (current):** Using the April 2026 numbers, if Creator is truly unlimited and one power user does 500 generations/day on Sonnet at ~$0.016/gen = $8/day = **$240/month** on a $19/mo plan. Fair-use caps at 150/day = ~$72/mo worst case → still loss but survivable at current prices. Elite at $79/mo with 400/day Opus = $96/day = $2,880/mo worst case → needs per-feature weighting to keep margin.
+
 ## Step 7 — Launch prep (~1-2 days)
+
+**Locked (2026-04-19): domain is `postcrisp.com`** (primary), `postcrisp.ai` redirects to it. Rationale: creator audience, not dev audience; .com fits the category (Buffer/Later/Hootsuite are all .com); email deliverability better; longevity beats trendy. `postcrisp.ai` is owned, just 301-redirected so we catch typos and block squatters.
+
 
 - [ ] Delete orphaned `src/app/login/actions.ts`
 - [ ] Lower `FREE_DAILY_LIMIT` back to 10 (currently 100 for dev)

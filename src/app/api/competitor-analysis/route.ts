@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 export interface CompetitorAnalysisResult {
   contentStrategy: string
@@ -98,6 +99,8 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'competitor-analysis')
 
     return NextResponse.json(parsed)
   } catch (error) {

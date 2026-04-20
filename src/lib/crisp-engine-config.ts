@@ -165,6 +165,63 @@ export const TASK_LABELS: Record<CrispTask, string> = {
 
 export const ALL_TASKS: CrispTask[] = Object.keys(TASK_TIER_PROFILE) as CrispTask[]
 
+// ─── Credit system ──────────────────────────────────────────────────────────
+// Each generation debits a fixed number of credits from the user's balance.
+// Credits are the user-facing unit (simple mental model) — internally we still
+// track real token usage. Credit costs are tuned to approximate token cost
+// differences across tasks so our margin holds even on premium features.
+
+export const CREDITS_PER_TASK: Record<CrispTask, number> = {
+  // FAST tier (cheap, short outputs) — 1 credit
+  captions:        1,
+  hashtags:        1,
+  'comment-reply': 1,
+  polls:           1,
+  // STANDARD tier (normal outputs) — 2 credits
+  'posting-times': 2,
+  script:          2,
+  'dm-template':   2,
+  'platform-tips': 2,
+  'bio-optimizer': 2,
+  // HEAVY tier (large or multi-part outputs) — 3 credits
+  'viral-ideas':   3,
+  repurpose:       3,
+  'blog-to-social':3,
+  'youtube-seo':   3,
+  'collab-finder': 3,
+  'trend-radar':   3,
+  'sound-tracker': 3,
+  // PREMIUM tier (Opus-class + strategic outputs) — 5 credits
+  'brand-pitch':          5,
+  'rate-calculator':      5,
+  'competitor-analysis':  5,
+  'media-kit-bio':        5,
+  'channel-analysis':     5,
+}
+
+// Monthly (or daily for Starter) credit allowance per tier.
+// When the user's credits_reset_at passes, balance resets to this number.
+export const TIER_ALLOWANCE: Record<Tier, { credits: number; cycle: 'daily' | 'monthly' }> = {
+  starter: { credits: 10,   cycle: 'daily' },
+  creator: { credits: 500,  cycle: 'monthly' },
+  team:    { credits: 500,  cycle: 'monthly' }, // individual until team pooling ships
+  elite:   { credits: 2000, cycle: 'monthly' },
+}
+
+// Credit packs users can buy as one-time Stripe purchases. Price IDs live in env.
+export interface CreditPack {
+  id: 'small' | 'medium' | 'large'
+  credits: number
+  priceDollars: number
+  envVarKey: string  // env var holding the Stripe price ID
+}
+
+export const CREDIT_PACKS: CreditPack[] = [
+  { id: 'small',  credits: 100,  priceDollars: 5,  envVarKey: 'STRIPE_CREDIT_PACK_SMALL_PRICE_ID' },
+  { id: 'medium', credits: 500,  priceDollars: 15, envVarKey: 'STRIPE_CREDIT_PACK_MEDIUM_PRICE_ID' },
+  { id: 'large',  credits: 1500, priceDollars: 40, envVarKey: 'STRIPE_CREDIT_PACK_LARGE_PRICE_ID' },
+]
+
 export const MODEL_CATALOG: Record<ProviderId, { id: string; label: string; notes?: string }[]> = {
   anthropic: [
     { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7',           notes: 'Premium quality' },

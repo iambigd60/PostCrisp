@@ -18,9 +18,39 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
   daily_generations_used     INTEGER NOT NULL DEFAULT 0,
   daily_generations_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  credits_balance            INTEGER NOT NULL DEFAULT 10,  -- starter default
+  credits_reset_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- credit_transactions — audit log of every credit grant / consume / purchase / refund / adjust
+CREATE TABLE IF NOT EXISTS public.credit_transactions (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('grant', 'consume', 'purchase', 'refund', 'adjust', 'reset')),
+  amount      INTEGER NOT NULL,  -- positive for grants/purchases/refunds, negative for consumes
+  balance_after INTEGER NOT NULL,
+  reason      TEXT,  -- e.g., "captions (captions)", "monthly reset", "admin grant", "purchase: 500 pack"
+  task        TEXT,  -- CrispTask id when consume, null otherwise
+  generation_id UUID REFERENCES public.generations(id) ON DELETE SET NULL,
+  actor_id    UUID REFERENCES public.profiles(id) ON DELETE SET NULL,  -- admin or user who triggered it
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS credit_transactions_user_id_idx ON public.credit_transactions (user_id, created_at DESC);
+
+ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users read own credit transactions"
+  ON public.credit_transactions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins read all credit transactions"
+  ON public.credit_transactions FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- No INSERT policy — writes go through server-side code with service role
 
 -- feature_access — admin-editable runtime config for per-feature tier gating
 -- When a row exists for a feature, it overrides the code defaults in

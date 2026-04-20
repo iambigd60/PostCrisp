@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 const contentTypeLabels: Record<string, string> = {
   post:     'standard feed posts',
@@ -81,6 +82,8 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'posting-times')
 
     return NextResponse.json({ platform, niche, contentType, region, ...parsed })
   } catch (error) {

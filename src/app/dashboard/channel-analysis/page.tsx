@@ -124,7 +124,7 @@ export default function ChannelAnalysisPage() {
         "Identify the single biggest thing holding your growth back",
         "3 quick-win actions you can execute this week",
         "A 90-day roadmap of strategic moves tied to your niche",
-        "Audit as many channels and platforms as you want — unlimited on Creator",
+        "Re-run the audit anytime your strategy or platform shifts",
       ]}
     >
     <div className="space-y-6">

@@ -29,11 +29,43 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.client_reference_id
         const customerId = session.customer as string
-        const subscriptionId = session.subscription as string
+        const mode = session.mode
+        const meta = session.metadata ?? {}
 
-        if (userId) {
+        if (!userId) break
+
+        if (mode === 'payment' && meta.credit_pack_id) {
+          // One-time credit pack purchase — grant credits
+          const credits = parseInt(meta.credits ?? '0', 10)
+          if (credits > 0) {
+            // Fetch current balance
+            const { data: profile } = await supabaseAdmin
+              .from('profiles')
+              .select('credits_balance')
+              .eq('id', userId)
+              .maybeSingle()
+            const currentBalance = profile?.credits_balance ?? 0
+            const newBalance = currentBalance + credits
+
+            await supabaseAdmin.from('profiles').update({
+              credits_balance: newBalance,
+              stripe_customer_id: customerId,
+            }).eq('id', userId)
+
+            await supabaseAdmin.from('credit_transactions').insert({
+              user_id: userId,
+              type: 'purchase',
+              amount: credits,
+              balance_after: newBalance,
+              reason: `Credit pack: ${meta.credit_pack_id} (${credits} credits)`,
+              actor_id: userId,
+            })
+          }
+        } else if (mode === 'subscription') {
+          // Subscription checkout — set tier (legacy still maps to 'pro' → creator)
+          const subscriptionId = session.subscription as string
           await supabaseAdmin.from('profiles').update({
-            subscription_tier: 'pro',
+            subscription_tier: 'creator',
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
           }).eq('id', userId)
@@ -54,7 +86,7 @@ export async function POST(request: Request) {
 
         if (profile) {
           await supabaseAdmin.from('profiles').update({
-            subscription_tier: isActive ? 'pro' : 'free',
+            subscription_tier: isActive ? 'creator' : 'free',
             stripe_subscription_id: subscription.id,
           }).eq('id', profile.id)
         }

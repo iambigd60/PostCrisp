@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 export interface PlatformTip {
   title: string
@@ -72,6 +73,8 @@ Rules:
       output_data: { tips },
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'platform-tips')
 
     return NextResponse.json({ tips })
   } catch (error) {

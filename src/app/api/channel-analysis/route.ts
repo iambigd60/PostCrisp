@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
+import { consumeCredits } from '@/lib/credits'
 
 export interface ChannelAnalysisResult {
   overallAssessment: string
@@ -122,6 +123,8 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'channel-analysis')
 
     return NextResponse.json(parsed)
   } catch (error) {

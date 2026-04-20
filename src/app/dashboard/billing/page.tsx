@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useSubscription } from '@/hooks/useSubscription'
 import { PLANS, PRICES } from '@/lib/stripe'
 import { useToast } from '@/components/ui/Toast'
-import { TIER_LABELS, type Tier } from '@/lib/crisp-engine-config'
+import { TIER_LABELS, CREDIT_PACKS, type Tier, type CreditPack } from '@/lib/crisp-engine-config'
 
 type PaidTier = 'creator' | 'team' | 'elite'
 
@@ -44,11 +44,34 @@ export default function BillingPage() {
   const searchParams = useSearchParams()
   const { addToast } = useToast()
 
+  const [buyingPack, setBuyingPack] = useState<string | null>(null)
+
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       addToast('🎉 Welcome to PostCrisp! Your subscription is active.', 'success')
     }
+    const creditsAdded = searchParams.get('credits_added')
+    if (creditsAdded) {
+      addToast(`🎉 ${creditsAdded} credits added to your account!`, 'success')
+    }
   }, [searchParams, addToast])
+
+  const handleBuyPack = async (pack: CreditPack) => {
+    setBuyingPack(pack.id)
+    try {
+      const res = await fetch('/api/stripe/credit-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packId: pack.id }),
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      if (url) window.location.href = url
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to start checkout', 'error')
+      setBuyingPack(null)
+    }
+  }
 
   const priceIdFor = (target: PaidTier): string | undefined => {
     if (target === 'creator') return billing === 'monthly' ? PRICES.creator_monthly : PRICES.creator_yearly
@@ -225,6 +248,46 @@ export default function BillingPage() {
           </p>
         </>
       )}
+
+      {/* Credit packs — always visible, top up any tier */}
+      <div className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-zinc-100">Top up credits</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">One-time credit packs. Never expire.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {CREDIT_PACKS.map((pack) => {
+            const dollarsPerCredit = (pack.priceDollars / pack.credits).toFixed(3)
+            const isBest = pack.id === 'large'
+            return (
+              <div
+                key={pack.id}
+                className={`rounded-xl border p-5 ${isBest ? 'border-brand-500/40 bg-gradient-to-b from-brand-900/10 to-surface-secondary' : 'border-brand-500/10 bg-surface-secondary'} relative`}
+              >
+                {isBest && (
+                  <span className="absolute top-3 right-3 bg-brand-600 text-white text-2xs font-bold px-2 py-0.5 rounded-full">BEST VALUE</span>
+                )}
+                <div className="text-3xl font-extrabold text-zinc-100">{pack.credits}</div>
+                <div className="text-xs text-zinc-500 mt-0.5">credits</div>
+                <div className="text-xl font-bold text-brand-300 mt-3">${pack.priceDollars}</div>
+                <div className="text-2xs text-zinc-600">${dollarsPerCredit} / credit</div>
+                <button
+                  onClick={() => handleBuyPack(pack)}
+                  disabled={buyingPack !== null}
+                  className={`w-full mt-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-60 ${isBest ? 'bg-brand-600 hover:bg-brand-500 text-white' : 'bg-surface-elevated hover:bg-surface-hover text-zinc-200 border border-brand-500/20'}`}
+                >
+                  {buyingPack === pack.id ? 'Redirecting...' : 'Buy now'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-xs text-zinc-600">
+          💡 Credit packs stack on top of your monthly allowance and never expire. Great for heavy project months.
+        </p>
+      </div>
 
       {/* Elite management section (you're at the top — nothing to upgrade to) */}
       {tier === 'elite' && (

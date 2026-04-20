@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
+import { consumeCredits } from '@/lib/credits'
 
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
@@ -93,6 +94,8 @@ Return ONLY valid JSON with this structure — no markdown:
       output_data: { captions },
       tokens_used: totalTokens,
     })
+
+    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'captions')
 
     return NextResponse.json({ captions, platform, tone, contentType, generatedAt: new Date().toISOString() })
   } catch (error) {
