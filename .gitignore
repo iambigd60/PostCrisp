@@ -36,4 +36,6 @@ yarn-error.log*
 next-env.d.ts
 
 # local tool state
-.claude/
+.claude/*
+!.claude/commands/
+.claude/settings.local.json
