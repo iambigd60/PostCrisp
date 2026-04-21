@@ -98,6 +98,22 @@ export default function AdminOverviewPage() {
             <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
           </div>
         </Link>
+
+        <Link
+          href="/admin/access-control"
+          className="p-5 rounded-xl border border-amber-500/20 bg-surface-secondary hover:border-amber-500/40 hover:bg-surface-elevated transition-all group"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🚪</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Access Control</h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                Toggle signups between open / invite-only / closed, and temporarily disable logins for everyone except admins. Useful for alpha rollouts, capacity limits, and maintenance windows.
+              </p>
+            </div>
+            <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+          </div>
+        </Link>
       </div>
     </div>
   );

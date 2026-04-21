@@ -77,6 +77,27 @@ CREATE POLICY "Admins read admin_actions"
 
 -- No INSERT/UPDATE policy — all writes happen server-side via service role or admin API routes
 
+-- platform_settings — key/value store for global platform config (access control, flags, etc.)
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by  UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins read platform_settings"
+  ON public.platform_settings FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- Seed the access_control row with open defaults (only if not already present)
+INSERT INTO public.platform_settings (key, value)
+  VALUES ('access_control', '{"signup_mode":"open","invite_code":null,"login_enabled":true}'::jsonb)
+  ON CONFLICT (key) DO NOTHING;
+
+-- No INSERT/UPDATE RLS — writes go through service role from admin API routes
+
 -- feature_access — admin-editable runtime config for per-feature tier gating
 -- When a row exists for a feature, it overrides the code defaults in
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.

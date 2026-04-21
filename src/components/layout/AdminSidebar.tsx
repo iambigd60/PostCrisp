@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/admin/analytics",        label: "Analytics",         icon: "📈",  enabled: true },
   { href: "/admin/moderation",       label: "Moderation",        icon: "🚧",  enabled: false },
   { href: "/admin/audit",            label: "Audit Log",         icon: "📋",  enabled: true },
+  { href: "/admin/access-control",   label: "Access Control",    icon: "🚪",  enabled: true },
 ];
 
 export function AdminSidebar() {
