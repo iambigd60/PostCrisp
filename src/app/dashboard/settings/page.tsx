@@ -20,6 +20,7 @@ interface Profile {
     default_audience?: string
     email_notifications?: boolean
     usage_reminders?: boolean
+    channels?: Record<string, string>
   } | null
 }
 
