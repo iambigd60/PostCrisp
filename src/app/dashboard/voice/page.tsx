@@ -73,6 +73,8 @@ export default function VoiceTrainerPage() {
   const [sampleLabel, setSampleLabel] = useState("");
   const [samplePlatform, setSamplePlatform] = useState("");
   const [adding, setAdding] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
   const { addToast } = useToast();
 
   const load = async () => {
@@ -88,6 +90,34 @@ export default function VoiceTrainerPage() {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const handleImportFromUrl = async () => {
+    if (!importUrl.trim()) {
+      addToast("Paste a URL first.", "error");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await apiFetch<{ ok: true; sample: { content: string; platform: string | null; label: string | null; warnings: string[] } }>(
+        "/api/voice-profile/samples/import-url",
+        { method: "POST", body: JSON.stringify({ url: importUrl.trim() }) }
+      );
+      setSampleContent(res.sample.content);
+      if (res.sample.platform) setSamplePlatform(res.sample.platform);
+      if (res.sample.label) setSampleLabel(res.sample.label);
+      if (res.sample.warnings && res.sample.warnings.length > 0) {
+        addToast(res.sample.warnings[0], "info");
+      } else {
+        addToast("Imported. Review below, then save.", "success");
+      }
+      setImportUrl("");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Import failed";
+      addToast(msg, "error");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleAddSample = async () => {
     if (!sampleContent.trim()) {
@@ -182,8 +212,14 @@ export default function VoiceTrainerPage() {
           </span>
         </div>
         <p className="text-zinc-500 mt-1">
-          Paste examples of your existing content. PostCrisp learns your distinctive voice and uses it on every
-          caption, script, and post it writes for you.
+          Teach PostCrisp how you write by sharing examples of your existing content. We analyze your writing
+          style — tone, rhythm, signature phrases, openers, closers — and use it on every caption, script, and
+          post we generate for you. The more samples, the sharper the match.
+        </p>
+        <p className="text-zinc-600 text-xs mt-2">
+          <strong className="text-zinc-400">Note:</strong> &ldquo;Voice&rdquo; here means your written voice — the way
+          you write captions, scripts, bios, newsletters. Not audio. YouTube transcript import works now; Instagram,
+          TikTok, X, LinkedIn, Threads, Facebook URL imports + audio/video voice analysis are all coming soon.
         </p>
       </div>
 
@@ -232,12 +268,40 @@ export default function VoiceTrainerPage() {
 
           {addOpen && (
             <div className="rounded-xl border border-brand-500/30 bg-brand-500/5 p-4 space-y-3">
+              {/* YouTube URL import */}
+              <div className="rounded-lg border border-brand-500/20 bg-surface-tertiary/50 p-3">
+                <label className="block text-xs font-semibold text-brand-300 mb-1.5">
+                  Import from a YouTube video
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=... or youtu.be/..."
+                    className="flex-1 rounded-lg bg-surface-primary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40 font-mono"
+                  />
+                  <Button size="sm" variant="secondary" onClick={handleImportFromUrl} loading={importing} disabled={!importUrl.trim()}>
+                    Import transcript
+                  </Button>
+                </div>
+                <p className="text-2xs text-zinc-500 mt-1.5">
+                  We&apos;ll pull your YouTube captions and drop the transcript into the box below. Works on any public video with captions enabled.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-brand-500/10" />
+                <span className="text-2xs text-zinc-600 uppercase tracking-wider">or paste written content</span>
+                <div className="h-px flex-1 bg-brand-500/10" />
+              </div>
+
               <textarea
                 value={sampleContent}
                 onChange={(e) => setSampleContent(e.target.value)}
                 rows={8}
                 maxLength={MAX_SAMPLE_CHARS}
-                placeholder="Paste a caption, script, email, or post you've written. The longer and more natural, the better the analysis."
+                placeholder="Paste a caption, script, email, or post you've written. The longer and more natural, the better."
                 className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
               />
               <div className="flex flex-wrap gap-2">
