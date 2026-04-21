@@ -98,6 +98,39 @@ INSERT INTO public.platform_settings (key, value)
 
 -- No INSERT/UPDATE RLS — writes go through service role from admin API routes
 
+-- feedback — in-app tester/user feedback submissions
+CREATE TABLE IF NOT EXISTS public.feedback (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  message      TEXT NOT NULL,
+  category     TEXT CHECK (category IN ('bug', 'feature', 'general')),
+  url          TEXT,
+  user_agent   TEXT,
+  status       TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'resolved')),
+  admin_notes  TEXT,
+  resolved_at  TIMESTAMPTZ,
+  resolved_by  UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS feedback_status_idx ON public.feedback (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS feedback_user_id_idx ON public.feedback (user_id, created_at DESC);
+
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+-- Users can insert their own feedback
+CREATE POLICY "Users insert own feedback"
+  ON public.feedback FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can read their own feedback (so the app can confirm submission)
+CREATE POLICY "Users read own feedback"
+  ON public.feedback FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Admins read/update everything via service role; no admin RLS needed here
+-- since admin routes use auth.supabaseAdmin (service role bypasses RLS).
+
 -- feature_access — admin-editable runtime config for per-feature tier gating
 -- When a row exists for a feature, it overrides the code defaults in
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SkeletonDashboard } from "@/components/ui/Skeleton";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export const metadata: Metadata = {
   title: {
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Suspense>
         </div>
       </main>
+      <FeedbackButton />
     </div>
   );
 }
