@@ -5,6 +5,42 @@
 
 ---
 
+## 🎯 Current top priority (2026-04-20) — Voice Trainer (IDEA-12)
+
+Next session's work. Full brainstorm lives at [docs/ideas/postcrisp-new-ideas.md](docs/ideas/postcrisp-new-ideas.md).
+
+**Why it's elevated to Phase 1 critical:** it's the foundational personalization layer under every content feature. Without it, output feels generic; with it, every existing feature (captions, hashtags, scripts, SEO, bio, repurpose, etc.) gets dramatically better.
+
+**Rough shape (to be planned properly next session):**
+- New `voice_profiles` table: user_id (PK/FK), source_content (jsonb), analyzed_traits (jsonb), updated_at
+- Claude analyzes: sentence rhythm, vocabulary, tone, signature phrases, emoji/punctuation patterns, openers/closers
+- Onboarding step: paste 3-5 samples of existing content → baseline profile built
+- UI at `/dashboard/voice` to review/edit profile, add samples, see insights
+- Retrofit: every feature's system prompt gets voice profile injected when available; gracefully degrades to current behavior if profile is empty
+- Multiple profiles supported (TikTok voice ≠ newsletter voice) — add later, start with single profile
+
+**Effort estimate:** 2-3 focused sessions solo. Schema + API + onboarding + dashboard UI first, then per-route retrofit.
+
+---
+
+## Strategic decision record (2026-04-20)
+
+After processing the [in-flight brainstorm doc](docs/ideas/postcrisp-new-ideas.md) introducing 12 new feature ideas + a Living Dashboard mockup + new color proposal, three decisions locked in:
+
+1. **Voice Trainer (IDEA-12) is Phase 1 critical — build next.** Everything in the brainstorm that involves generation quality depends on it. Compound value: makes every existing feature better. Not dependent on external APIs.
+2. **Living Dashboard (IDEA-07) — defer full version, build a v1-lite instead.** The full mockup requires connected Instagram/TikTok/YouTube APIs (weeks of app review + rejection risk). v1-lite uses only PostCrisp internal usage data: typed daily briefing ("You've run 47 generations this week"), credits/usage as hero metric, usage-pattern suggestions, recent generations styled as "Recent Content". Ships in days, sets the aesthetic direction, no external deps. Full dashboard = v1.5 after revenue justifies API integration work.
+3. **Color scheme change (#22d3a0 mint + #080c14 midnight) — defer until post-launch.** Current violet/amber palette is coherent and working. Changing pre-launch = 2-3 day rewrite sprint for cosmetic gain. New palette becomes a v2 refresh story post-launch, potentially tied to the logo reveal. Base colors captured for the logo brief (`#22d3a0` primary, `#080c14` canvas).
+4. **Social account integrations (Instagram/TikTok/YouTube APIs)** — deferred to v1.5 post-revenue. Blocks IDEA-05 (Proactive Suggestions full), IDEA-10 (Brand Readiness Score), IDEA-07 (full Living Dashboard). All three get v1-lite versions that work on PostCrisp-internal data.
+
+**Not yet decided (revisit after Voice Trainer ships):**
+- IDEA-01 Support Chatbot (small, probably drop in pre-launch)
+- IDEA-04 Thumbnail Analyzer (new capability vs. existing thumbnail_ideas)
+- IDEA-08 CTA Optimizer (depends on Voice Trainer, so queues naturally after)
+- IDEA-09 Brand Deal Maker — big monetization arc, needs separate scoping session
+- IDEA-10 Brand Readiness Score lite (internal signals only) vs. full (needs social APIs)
+
+---
+
 ## Step 1 — Polish existing features to match PRD spec (~1 day)
 
 Bring the four shipped features in line with the PRD, fix data gaps, add Threads platform.

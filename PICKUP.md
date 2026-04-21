@@ -1,6 +1,6 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-20 (session 7 — GitHub backup, admin password rotation, cost tracking)
+**Last updated:** 2026-04-20 (session 7 — GitHub backup, admin password rotation, cost tracking, audit log, strategic brainstorm ingestion)
 **Build status:** ✅ Working
 **Dev server:** `npm run dev` (port 3000 or next available)
 
@@ -14,6 +14,7 @@
 - **FREE_DAILY_LIMIT 100 → 10** — legacy const dropped back; credits are the real cap anyway
 - **Analytics cost tracking** — added `MODEL_BLENDED_PRICE_PER_1M` pricing table in analytics API and an `estimateCostUSD(feature, tokens)` helper. KPI "Tokens" tile now shows est. cost, Feature Breakdown adds $ per feature, Top Users table adds Est. cost column. Labeled as estimate (uses current Creator-tier routing — doesn't know historical tier or mid-window routing changes).
 - **Audit Log viewer** — new `/admin/audit` page over the existing `admin_actions` table. Filters by action type, target email search, and time window. Shows actor, target (link-through), change (from → to), reason, relative timestamp. Also wired credit grant/adjust into `admin_actions` so they appear in the log.
+- **Strategic brainstorm ingested** — 12 new feature ideas + Living Dashboard mockup archived under `docs/ideas/`. Three decisions locked in (see ROADMAP strategic decision record): Voice Trainer elevated to Phase 1 critical, Living Dashboard deferred to v1-lite (internal data only), color scheme change deferred post-launch.
 
 ## What session 6 shipped
 
@@ -56,16 +57,27 @@
 
 ---
 
-## Next session — options
+## Next session — LOCKED IN
 
-1. **Per-row cost accuracy** — add `provider` + `model` columns to `generations`, update the 20 feature routes to log them on insert, switch analytics to use stored values instead of current-routing inference. Kills the "current routing" caveat on cost estimates.
-2. **Billing admin** — real Stripe subscription overview, real MRR/churn (replacing the list-price estimate), failed payment list, manual refunds, trial extension, coupon management. Biggest remaining Phase 2 item.
-3. **Moderation queue** — reported content queue, bulk delete, pattern-flagged outputs on `saved_content`.
-4. **Step 7 launch push** — MFA enrollment gate on `/admin/*` for any admin who hasn't enrolled, wire real Stripe price IDs for all 6 products, Vercel deploy with production env vars.
-5. **Code hygiene pass** — delete orphaned `src/app/login/actions.ts`, fix `api/viral-ideas` JSON parse error, remove `MOCK_BEST_TIMES` dead code (all flagged in ROADMAP punchlist).
-6. **Step 5.5 design refresh** — waiting on your logo.
+**Build Voice Trainer (IDEA-12).** Full context in [docs/ideas/postcrisp-new-ideas.md](docs/ideas/postcrisp-new-ideas.md). ROADMAP top section has the rough shape. This is the foundational personalization layer under every content feature — elevated to Phase 1 critical after the 2026-04-20 brainstorm processing.
 
-No blockers — pick whichever next session.
+Plan next session:
+1. Schema: `voice_profiles` table + RLS
+2. API: `/api/voice-profile` (POST analyze, GET fetch, PATCH manual edit)
+3. Onboarding: sample-paste step that builds baseline profile on first feature use
+4. UI: `/dashboard/voice` to review/edit/add samples
+5. Retrofit: inject voice-profile summary into system prompts across all 20 feature routes (graceful degrade when profile empty)
+
+Effort: 2-3 focused sessions solo.
+
+## Other open items (after Voice Trainer)
+
+- **Living Dashboard v1-lite** — typed briefing + usage-pattern suggestions using only PostCrisp internal data, no social API deps. Sets new aesthetic tone.
+- **Per-row cost accuracy** — log provider+model on `generations`, switch analytics to stored values.
+- **Billing admin** — real Stripe MRR/churn + refund tooling.
+- **Step 7 launch push** — MFA gate on /admin/*, wire Stripe production price IDs, Vercel deploy.
+- **Code hygiene pass** — orphaned `login/actions.ts`, `api/viral-ideas` JSON parse bug, dead `MOCK_BEST_TIMES`.
+- **Color palette migration** — deferred to post-launch refresh (waiting on logo, palette candidate captured: `#22d3a0` + `#080c14`).
 
 ---
 
