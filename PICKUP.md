@@ -1,39 +1,64 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-20 (session 7 — GitHub backup, admin password rotation, cost tracking, audit log, strategic brainstorm ingestion)
-**Build status:** ✅ Working
+**Last updated:** 2026-04-20 (session 8 — Vercel deploy + access control, alpha-ready)
+**Build status:** ✅ Live on Vercel, invite-only signups via `/admin/access-control`
+**Production URL:** your Vercel project (`postcrisp-*.vercel.app`) — see https://vercel.com/dashboard
 **Dev server:** `npm run dev` (port 3000 or next available)
 
 ---
 
-## What session 7 shipped (short ~30-min session)
+## Session 8 shipped — deployment pipeline + alpha gate
 
-- **GitHub backup** — pushed to private `iambigd60/PostCrisp` repo; `origin/HEAD` set to `main`
-- **`/save` slash command + `scripts/backup.sh`** — project-scoped, travels with repo (via `.gitignore` whitelist of `.claude/commands/`)
-- **`scripts/rotate-admin-password.mjs`** — interactive Supabase admin password rotation via service role; masks input, enforces ≥12 chars, confirmation match, explicit `yes` to execute. Used it to rotate `captain@postcrisp.com`.
-- **FREE_DAILY_LIMIT 100 → 10** — legacy const dropped back; credits are the real cap anyway
-- **Analytics cost tracking** — added `MODEL_BLENDED_PRICE_PER_1M` pricing table in analytics API and an `estimateCostUSD(feature, tokens)` helper. KPI "Tokens" tile now shows est. cost, Feature Breakdown adds $ per feature, Top Users table adds Est. cost column. Labeled as estimate (uses current Creator-tier routing — doesn't know historical tier or mid-window routing changes).
-- **Audit Log viewer** — new `/admin/audit` page over the existing `admin_actions` table. Filters by action type, target email search, and time window. Shows actor, target (link-through), change (from → to), reason, relative timestamp. Also wired credit grant/adjust into `admin_actions` so they appear in the log.
-- **Strategic brainstorm ingested** — 12 new feature ideas + Living Dashboard mockup archived under `docs/ideas/`. Three decisions locked in (see ROADMAP strategic decision record): Voice Trainer elevated to Phase 1 critical, Living Dashboard deferred to v1-lite (internal data only), color scheme change deferred post-launch.
+### 🚀 Production deployment is live
+- **GitHub:** `iambigd60/PostCrisp` (private), auto-deploys on push to `main`
+- **Vercel:** project connected to GitHub, 5 env vars set (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)
+- **Supabase:** Site URL + Redirect URLs updated to point at Vercel subdomain (`https://<project>.vercel.app/**`)
+- **SMTP:** Resend configured via Supabase custom SMTP. Domain `postcrisp.com` verified with SPF + DKIM + MX + DMARC records; sender `noreply@postcrisp.com` (or similar) works end-to-end. Password recovery + signup confirmation both deliver reliably.
 
-## What session 6 shipped
+### 🚪 Access Control feature
+- New admin page at `/admin/access-control` with three signup modes (Open / Invite-only / Closed) plus a separate login-enabled toggle
+- New `platform_settings` table (key/value JSONB, admin-only RLS)
+- `readAccessControl()` helper with 30s in-process cache
+- Constant-time invite-code compare in `matchesInviteCode()`
+- Login gate bypasses admins (role=admin) so you can't lock yourself out
+- Every change logs to `admin_actions` with action=`access_control_change`, visible in the audit viewer
+- **Supabase dashboard setting:** public signups disabled (Auth → Providers → Email) so nobody can bypass the gate by calling Supabase's auth endpoint directly
 
-### Admin Phase 2: User Management
-- `/admin/users` list — search by email, filter tier/role, sort newest/oldest/credits/usage, paginated 50/page, colored avatars, tier badges
-- `/admin/users/[id]` detail — header with tier/role/disabled badges, 4-stat grid (credits/gens/tokens/saved), tier+role change form (reason required, logged), disable/enable via Supabase auth ban, link to credit adjustments, feature breakdown grid, recent generations + credit transactions, audit log
-- New `admin_actions` audit table tracking every tier/role/disable change with actor, reason, before/after values
-- `requireAdmin()` now returns `supabaseAdmin` service-role client alongside user client — needed because `profiles` RLS only allows users to see their own row. Four admin routes (users list, user detail, ban, credit-adjustments) now use `supabaseAdmin` for cross-user reads/writes.
+### 🐛 Bugs fixed for production build
+- `src/app/api/viral-ideas/route.ts` — recovery loop used raw `JSON.parse` on slices, dropped all remaining ideas after first malformed one. Now uses `parseLooseJson` and continues past bad objects.
+- `src/app/dashboard/platform-tips/page.tsx` + `trends/page.tsx` — unused `useToast` imports failed Vercel's strict ESLint; removed
+- `src/app/dashboard/settings/page.tsx` — `Profile.preferences` type missing `channels` field; added
+- `src/lib/providers/anthropic.ts` — SDK's `TextBlockParam` doesn't declare `cache_control` yet; cast through `unknown` to unblock build
+- `src/lib/platform-settings.ts` — `writeAccessControl` was swallowing Supabase errors; now throws with underlying message
+- `src/app/api/access-control/public/route.ts` — Next.js 14 cached the GET at build time, making DB changes invisible. Added `export const dynamic = 'force-dynamic'`.
 
-### Admin Phase 2: Analytics v1
-- `/admin/analytics` — 8 KPI tiles (DAU, MAU, new signups 30d, paid users, est. MRR, 30d generations/tokens/credits), tier distribution strip, generations-per-day SVG bar chart with peak+total footer, feature breakdown (count + tokens, ranked, with progress bars), top-10 users by token consumption (with link-through to user detail)
-- All data aggregated in-process from `profiles` + `generations` + `credit_transactions` — no new schema
-- Est. MRR = `Σ(TIER_MRR[tier] for all profiles)` using list prices (creator=$19, team=$49, elite=$79). To be replaced by real Stripe MRR in the Billing admin phase.
+### 🧪 Alpha flow verified end-to-end
+- Admin toggles signup mode + sets invite code → saves to DB → public endpoint reflects immediately
+- Incognito `/signup` shows invite-code field when invite mode is active
+- Wrong code rejected, right code proceeds with signup flow
+- Confirmation email arrives from postcrisp.com via Resend
+- Tester can now sign up with the shared code; admin can rotate the code any time to revoke access
 
-### Bugfixes along the way
-- Users list showed only the admin's own row — root cause was RLS on `profiles`, fixed by introducing `auth.supabaseAdmin` for cross-user queries
-- 500 error on `/admin/users` — missing `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`; user added it
-- Daily bar chart rendered with zero-height bars — flex children had no defined height for `%` to resolve against; fixed by restructuring into a flex row with `h-full` columns
-- `column profiles.credits_balance does not exist` — DB predated Step 6.75 credits migration; user ran the `ALTER TABLE` migration + `credit_transactions` table + `consume_user_credits` RPC
+### Key gotchas captured for future sessions
+- **Next.js 14 GET route caching:** any API route reading mutable DB state needs `export const dynamic = 'force-dynamic'`. Admin routes that call `requireAdmin()` are automatically dynamic (auth/cookies). Public endpoints are NOT.
+- **Supabase error silent-swallow:** any Supabase query result should destructure `{ data, error }` and throw/return on error. Empty try/catch hides real problems.
+- **Resend sandbox mode:** until your domain is fully verified (all 4 records: SPF, DKIM, MX, DMARC) you can only send to the account owner's email. DMARC is easy to miss — Resend's docs flag the first three clearly but DMARC is a more recent addition.
+
+---
+
+## Session 7 recap
+
+- GitHub backup + `/save` slash command + `scripts/backup.sh`
+- `scripts/rotate-admin-password.mjs` + admin password rotated
+- `FREE_DAILY_LIMIT` 100→10
+- Analytics cost tracking ($ estimates per feature + top users)
+- Audit Log viewer at `/admin/audit`
+- Brainstorm doc ingested (`docs/ideas/`) + strategic decision record
+
+## Session 6 recap
+
+- Admin Phase 2: Users list + detail pages, tier/role change, disable/enable, credit adjust link
+- Admin Phase 2: Analytics v1 (8 KPI tiles, tier distribution, daily chart, feature breakdown, top users)
 
 ---
 
@@ -43,78 +68,72 @@
 |---|---|
 | Step 1 — Polish existing | ✅ Done |
 | Step 2 — Admin Phase 1 (AI config) | ✅ Done |
-| Step 3 — Tiers (Starter/Creator/Team/Elite) | ✅ Done |
+| Step 3 — Tiers | ✅ Done |
 | Step 4 — 16 new features + paywalls | ✅ Done |
-| Step 5 — Moderate features (Calendar, Media Kit, Analytics) | ⏸ Deferred post-launch |
+| Step 5 — Moderate features | ⏸ Deferred post-launch |
 | Step 5.5 — Design refresh | ⏸ Waiting on logo |
 | Step 6 — Landing page | ✅ Done |
 | Step 6.5 — Cost optimization | ✅ Done |
 | Step 6.75 — Credit system | ✅ Done |
 | Admin Phase 2 — Users + Analytics | ✅ Done (session 6) |
-| Admin Phase 2 — Analytics cost tracking + Audit viewer | ✅ Done (session 7) |
-| Admin Phase 2 — Billing admin / Moderation / Support tools | ⏳ Remaining |
-| Step 7 — Launch prep | 🟡 Partial (admin password rotated, FREE_DAILY_LIMIT dropped; MFA + Stripe prod + deploy remain) |
+| Admin Phase 2 — Cost tracking + Audit viewer | ✅ Done (session 7) |
+| Admin Phase 2 — Access Control | ✅ Done (session 8) |
+| Admin Phase 2 — Billing admin / Moderation | ⏳ Remaining |
+| **Alpha deployment** | ✅ **Live on Vercel (session 8)** |
+| Step 7 — Launch prep | 🟡 Partial (alpha live, MFA + Stripe prod + custom domain remain) |
 
 ---
 
-## Next session — LOCKED IN
+## Next session — options
 
-**Build Voice Trainer (IDEA-12).** Full context in [docs/ideas/postcrisp-new-ideas.md](docs/ideas/postcrisp-new-ideas.md). ROADMAP top section has the rough shape. This is the foundational personalization layer under every content feature — elevated to Phase 1 critical after the 2026-04-20 brainstorm processing.
+1. **Voice Trainer (IDEA-12)** — the locked Phase 1 priority per the strategic decision record. Foundational personalization layer under every content feature. Plan is captured at the top of ROADMAP. **Recommended path if no tester feedback is urgent.**
+2. **Triage tester feedback** — once UAT produces real bug reports / feature requests, that becomes top priority over Voice Trainer. Review `/admin/analytics` for usage patterns, act on specific findings.
+3. **Billing admin** — real Stripe MRR/churn/refunds, replacing list-price estimate. Unblocks paywall activation.
+4. **Stripe production setup** — create 6 price IDs for Creator/Team/Elite Monthly/Yearly, wire webhook, test full paywall. Needed before opening signups to paying users.
+5. **Custom domain on Vercel** — point `postcrisp.com` to Vercel, swap Supabase Site URL, update Resend sender. ~15 min.
 
-Plan next session:
-1. Schema: `voice_profiles` table + RLS
-2. API: `/api/voice-profile` (POST analyze, GET fetch, PATCH manual edit)
-3. Onboarding: sample-paste step that builds baseline profile on first feature use
-4. UI: `/dashboard/voice` to review/edit/add samples
-5. Retrofit: inject voice-profile summary into system prompts across all 20 feature routes (graceful degrade when profile empty)
-
-Effort: 2-3 focused sessions solo.
-
-## Other open items (after Voice Trainer)
-
-- **Living Dashboard v1-lite** — typed briefing + usage-pattern suggestions using only PostCrisp internal data, no social API deps. Sets new aesthetic tone.
-- **Per-row cost accuracy** — log provider+model on `generations`, switch analytics to stored values.
-- **Billing admin** — real Stripe MRR/churn + refund tooling.
-- **Step 7 launch push** — MFA gate on /admin/*, wire Stripe production price IDs, Vercel deploy.
-- **Code hygiene pass** — orphaned `login/actions.ts`, `api/viral-ideas` JSON parse bug, dead `MOCK_BEST_TIMES`.
-- **Color palette migration** — deferred to post-launch refresh (waiting on logo, palette candidate captured: `#22d3a0` + `#080c14`).
+Pick whichever is highest-leverage given the tester feedback you get.
 
 ---
 
-## SQL migrations (ran in session 6; no new DB changes in session 7)
+## SQL migrations run this session (for your records)
 
 ```sql
--- admin_actions audit table
-CREATE TABLE IF NOT EXISTS public.admin_actions (
-  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  actor_id        UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  target_user_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  action          TEXT NOT NULL,
-  from_value      TEXT, to_value TEXT, reason TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Session 8: platform_settings for access control
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by  UUID REFERENCES public.profiles(id) ON DELETE SET NULL
 );
--- + target/actor indexes + admin-only SELECT RLS
-
--- Step 6.75 credits (migration for users whose DB predates credit system)
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS credits_balance  INTEGER NOT NULL DEFAULT 10,
-  ADD COLUMN IF NOT EXISTS credits_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
--- + credit_transactions table + RLS + consume_user_credits RPC + tier backfill
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins read platform_settings"
+  ON public.platform_settings FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+INSERT INTO public.platform_settings (key, value)
+  VALUES ('access_control', '{"signup_mode":"open","invite_code":null,"login_enabled":true}'::jsonb)
+  ON CONFLICT (key) DO NOTHING;
 ```
+
+No other DB changes this session.
 
 ---
 
 ## Known issues / punchlist
-- ~~`FREE_DAILY_LIMIT = 100` — drop to 10 before launch~~ ✅ Done 2026-04-20 (and it was legacy anyway; credits are the real cap)
-- Admin password was rotated on 2026-04-20 via `scripts/rotate-admin-password.mjs`. Rotate again on a schedule (quarterly or after any suspected exposure).
+
+- Admin password rotated 2026-04-20. Rotate again on a schedule (quarterly or after any suspected exposure) via `scripts/rotate-admin-password.mjs`.
 - Azure provider shows in admin dropdowns but falls back to Anthropic (not yet wired)
-- Generations don't log `provider` + `model` — blocks real $ cost tracking
+- Generations don't log `provider` + `model` — analytics cost shown is current-routing inference, not historical accuracy
 - Anthropic cache-read tokens count at full value in analytics but bill at ~10%; cost totals skew high when caching is hot
-- Est. MRR uses list prices, ignores yearly discounts and cancellation grace periods — will be replaced by Stripe Billing admin
+- Est. MRR uses list prices, ignores yearly discounts — replaced once Billing admin ships
+- `src/app/login/actions.ts` is orphaned (the real login action is at `src/app/(auth)/login/actions.ts`). Safe to delete.
+- `MOCK_BEST_TIMES` constant still dead code
 
 ## Manual setup still pending (for production)
+
+- Custom domain `postcrisp.com` → Vercel (add in Vercel → Domains, update DNS)
+- Update Supabase Site URL + Resend sender if custom domain ships
 - Create Stripe products: Creator/Team/Elite Monthly/Yearly (6 price IDs)
 - Register Stripe webhook endpoint for production
-- Google OAuth in Supabase Auth settings
-- Vercel project + production env vars
+- Google OAuth in Supabase Auth settings (currently disabled in our invite-only flow anyway)
 - MFA enrollment for `captain@postcrisp.com`

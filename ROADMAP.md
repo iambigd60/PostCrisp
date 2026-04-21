@@ -265,6 +265,22 @@ Token economics levers pulled:
 
 **Pricing reality check (current):** Using the April 2026 numbers, if Creator is truly unlimited and one power user does 500 generations/day on Sonnet at ~$0.016/gen = $8/day = **$240/month** on a $19/mo plan. Fair-use caps at 150/day = ~$72/mo worst case → still loss but survivable at current prices. Elite at $79/mo with 400/day Opus = $96/day = $2,880/mo worst case → needs per-feature weighting to keep margin.
 
+## 🚀 Alpha deployment live (2026-04-20)
+
+PostCrisp is live on Vercel in invite-only mode for alpha UAT.
+
+- **GitHub:** `iambigd60/PostCrisp` (private), auto-deploys on every push to `main`
+- **Vercel:** 5 env vars configured, first deploy required fixing several TypeScript/ESLint errors that production strict mode surfaced (unused imports, untyped JSON fields, SDK cache_control cast)
+- **SMTP:** Resend wired via Supabase custom SMTP; `postcrisp.com` domain verified with SPF, DKIM, MX, DMARC records. Sender `noreply@postcrisp.com` delivers reliably to any address (left sandbox mode once DMARC was added)
+- **Supabase:** Site URL + Redirect URLs updated for Vercel subdomain; public signups disabled at Supabase level so the in-app access-control gate is the only signup path
+- **Alpha tester can self-serve signup** using the invite code set in `/admin/access-control`; admin can rotate the code any time
+
+### Key Next.js 14 gotcha captured
+
+GET route handlers are cached at build time unless they use cookies/auth/headers, so any public API that reads mutable DB state needs `export const dynamic = 'force-dynamic'`. Learned the hard way on `/api/access-control/public` — DB changes weren't surfacing until we added the directive.
+
+---
+
 ## Step 7 — Launch prep (~1-2 days)
 
 **Locked (2026-04-19): domain is `postcrisp.com`** (primary), `postcrisp.ai` redirects to it. Rationale: creator audience, not dev audience; .com fits the category (Buffer/Later/Hootsuite are all .com); email deliverability better; longevity beats trendy. `postcrisp.ai` is owned, just 301-redirected so we catch typos and block squatters.
@@ -320,6 +336,7 @@ Phase 1 shipped AI config editor. Phase 2 is being built piecemeal as needed to 
 - ✅ **Analytics v1** (2026-04-19) — 8 KPI tiles (DAU, MAU, new signups, paid users, est. MRR, 30d generations/tokens/credits), tier distribution, generations-per-day SVG bar chart, feature breakdown (count + tokens) ranked, top-10 users by token consumption with link-through. All aggregated in-process from existing tables — no new schema.
 - ✅ **Analytics cost tracking** (2026-04-20) — estimated $ cost per feature and per top user in analytics, using current Creator-tier routing × blended model pricing. Labeled as estimate; accuracy upgrade path: log provider/model per generation row.
 - ✅ **Audit log viewer** (2026-04-20) — `/admin/audit` reads from `admin_actions` table with filters for action type, target email, and time window (24h/7d/30d/90d/all). Colored badges per action. Link-through from target column to user detail. Credit adjustments route now writes to `admin_actions` in addition to `credit_transactions`, so grants/adjusts appear in audit log.
+- ✅ **Access Control** (2026-04-20) — `/admin/access-control` with three signup modes (Open / Invite-only / Closed) + separate login-enabled toggle. New `platform_settings` table, 30s in-process cache, constant-time invite-code compare, admin bypass on login gate. Every change logs to `admin_actions`. Includes public `/api/access-control/public` endpoint (force-dynamic) that signup page reads to decide whether to show the invite-code field.
 
 **Still to build:**
 
