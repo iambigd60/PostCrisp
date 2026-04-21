@@ -73,6 +73,12 @@ export default function UserDetailPage() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [banning, setBanning] = useState(false);
+
+  // Set temporary password inline form
+  const [tempPwOpen, setTempPwOpen] = useState(false);
+  const [tempPw, setTempPw] = useState("");
+  const [tempPwConfirm, setTempPwConfirm] = useState("");
+  const [tempPwSaving, setTempPwSaving] = useState(false);
   const [resettingPw, setResettingPw] = useState(false);
 
   const { addToast } = useToast();
@@ -149,6 +155,35 @@ export default function UserDetailPage() {
       addToast(err instanceof ApiError ? err.message : "Failed to send reset email", "error");
     } finally {
       setResettingPw(false);
+    }
+  };
+
+  const handleSetTempPassword = async () => {
+    if (!data) return;
+    if (tempPw.length < 12) {
+      addToast("Password must be at least 12 characters.", "error");
+      return;
+    }
+    if (tempPw !== tempPwConfirm) {
+      addToast("Passwords don't match.", "error");
+      return;
+    }
+    if (!window.confirm(`Set a new password for ${data.profile.email}? Make sure you've copied it — it won't be shown again.`)) return;
+    setTempPwSaving(true);
+    try {
+      await apiFetch(`/api/admin/users/${userId}/set-password`, {
+        method: "POST",
+        body: JSON.stringify({ password: tempPw }),
+      });
+      addToast(`Password set for ${data.profile.email}. Share it via a secure channel.`, "success");
+      setTempPw("");
+      setTempPwConfirm("");
+      setTempPwOpen(false);
+      await load();
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Failed to set password", "error");
+    } finally {
+      setTempPwSaving(false);
     }
   };
 
@@ -246,10 +281,55 @@ export default function UserDetailPage() {
             <Button size="sm" variant="secondary" onClick={handleSendPasswordReset} loading={resettingPw}>
               🔑 Send password reset
             </Button>
+            <Button size="sm" variant="secondary" onClick={() => setTempPwOpen((v) => !v)}>
+              🔐 {tempPwOpen ? "Cancel" : "Set temporary password"}
+            </Button>
             <Link href="/admin/credit-adjustments" className="inline-flex items-center px-3 py-1.5 text-sm text-brand-300 hover:text-brand-200">
               🪙 Adjust credits →
             </Link>
           </div>
+
+          {tempPwOpen && (
+            <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+              <div>
+                <p className="text-xs text-amber-200 font-semibold">Set a new password directly</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Use this when the normal email-based reset isn&apos;t reaching the user
+                  (e.g., Outlook SafeLinks consumed the token). Share the password via a
+                  secure channel — Slack DM, text, or phone.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">New password (min 12 chars)</label>
+                  <input
+                    type="text"
+                    value={tempPw}
+                    onChange={(e) => setTempPw(e.target.value)}
+                    placeholder="e.g. Rodney-alpha-2026-test"
+                    className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+                    autoComplete="off"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Confirm password</label>
+                  <input
+                    type="text"
+                    value={tempPwConfirm}
+                    onChange={(e) => setTempPwConfirm(e.target.value)}
+                    placeholder="Re-type to confirm"
+                    className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSetTempPassword} loading={tempPwSaving}>
+                  Set password
+                </Button>
+              </div>
+            </div>
+          )}
           <Button
             size="sm"
             variant={data.isDisabled ? "secondary" : "danger"}

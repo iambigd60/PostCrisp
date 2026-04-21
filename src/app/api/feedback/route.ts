@@ -37,5 +37,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // ─── Notify admin via Resend — fire and log, but never block/fail the response
+  // on an email error. Requires RESEND_API_KEY in env; if missing, skip silently.
+  try {
+    const apiKey = process.env.RESEND_API_KEY
+    if (apiKey) {
+      const adminEmail = process.env.FEEDBACK_NOTIFICATION_EMAIL ?? 'captain@postcrisp.com'
+      const origin = request.headers.get('origin') ||
+        (request.headers.get('host') ? `https://${request.headers.get('host')}` : '')
+      const catLabel = category ? category.toUpperCase() : 'GENERAL'
+      const subject = `[PostCrisp ${catLabel}] feedback from ${user.email}`
+      const text =
+        `${message}\n\n` +
+        `— From: ${user.email}\n` +
+        `— Category: ${category ?? 'general'}\n` +
+        `— Page: ${url ?? 'unknown'}\n` +
+        `— User agent: ${userAgent ?? 'unknown'}\n\n` +
+        `Triage in admin: ${origin}/admin/feedback`
+
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'PostCrisp Feedback <noreply@postcrisp.com>',
+          to: [adminEmail],
+          reply_to: user.email ?? undefined,
+          subject,
+          text,
+        }),
+      })
+    }
+  } catch (notifyErr) {
+    console.error('feedback notification failed (non-fatal):', notifyErr)
+  }
+
   return NextResponse.json({ ok: true })
 }

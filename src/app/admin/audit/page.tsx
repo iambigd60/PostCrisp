@@ -35,6 +35,8 @@ const ACTION_META: Record<string, { label: string; color: string; icon: string }
   credit_adjust: { label: "Credits −",      color: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",    icon: "🪙" },
   impersonate:   { label: "Impersonate",    color: "bg-purple-500/15 text-purple-300 border-purple-500/20", icon: "👤" },
   password_reset:{ label: "Password reset", color: "bg-sky-500/15 text-sky-300 border-sky-500/20",       icon: "🔑" },
+  password_set:  { label: "Password set",   color: "bg-amber-500/15 text-amber-300 border-amber-500/20", icon: "🔐" },
+  access_control_change: { label: "Access control", color: "bg-brand-500/15 text-brand-300 border-brand-500/20", icon: "🚪" },
   note:          { label: "Note",           color: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",    icon: "📝" },
 };
 
@@ -128,7 +130,9 @@ export default function AdminAuditPage() {
             <option value="credit_grant">Credits granted</option>
             <option value="credit_adjust">Credits adjusted</option>
             <option value="impersonate">Impersonations</option>
-            <option value="password_reset">Password resets</option>
+            <option value="password_reset">Password resets (email)</option>
+            <option value="password_set">Password set (direct)</option>
+            <option value="access_control_change">Access control</option>
             <option value="note">Notes</option>
           </select>
           <select value={windowDays} onChange={(e) => { setWindowDays(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
