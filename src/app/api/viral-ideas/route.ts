@@ -60,10 +60,14 @@ function extractIdeas(content: string): ViralIdea[] {
       if (depth === 0 && objStart !== -1) {
         const slice = content.slice(objStart, i + 1)
         try {
-          const obj = JSON.parse(slice)
-          ideas.push(obj)
+          // Use parseLooseJson, not JSON.parse — tolerates trailing commas,
+          // raw newlines inside strings, and JS-style comments that Claude
+          // occasionally emits inside idea objects.
+          const obj = parseLooseJson<ViralIdea>(slice)
+          if (obj) ideas.push(obj)
         } catch {
-          break // stop at the first malformed object
+          // Skip this malformed object but keep trying — don't let one bad
+          // object drop all the good ones after it.
         }
         objStart = -1
       }
