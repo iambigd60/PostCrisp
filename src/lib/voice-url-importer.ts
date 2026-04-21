@@ -1,5 +1,5 @@
 import 'server-only'
-import { YoutubeTranscript } from 'youtube-transcript'
+import { Innertube } from 'youtubei.js'
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -27,11 +27,6 @@ export interface ImportFailure {
 
 // ─── Platform detection ──────────────────────────────────────────────────
 
-/**
- * Detect a supported platform from a URL. Returns `null` for unsupported
- * platforms (Instagram, TikTok, X, etc.) so the caller can give a
- * coming-soon message instead of a generic error.
- */
 export function detectPlatform(url: string): ImportPlatform | 'unsupported' | null {
   try {
     const u = new URL(url)
@@ -41,7 +36,6 @@ export function detectPlatform(url: string): ImportPlatform | 'unsupported' | nu
       return 'youtube'
     }
 
-    // Known-but-not-yet-supported platforms (for coming-soon messaging)
     const knownSocial = [
       'instagram.com',
       'tiktok.com', 'vm.tiktok.com',
@@ -67,17 +61,14 @@ function extractYouTubeVideoId(url: string): string | null {
     const u = new URL(url)
     const host = u.hostname.toLowerCase().replace(/^www\./, '')
 
-    // youtu.be/<id>
     if (host === 'youtu.be') {
       const id = u.pathname.slice(1).split('/')[0]
       return id || null
     }
 
-    // youtube.com/watch?v=<id>
     const v = u.searchParams.get('v')
     if (v) return v
 
-    // youtube.com/shorts/<id>, youtube.com/embed/<id>, youtube.com/live/<id>
     const parts = u.pathname.split('/').filter(Boolean)
     const idx = parts.findIndex((p) => p === 'shorts' || p === 'embed' || p === 'live')
     if (idx !== -1 && parts[idx + 1]) return parts[idx + 1]
@@ -86,6 +77,15 @@ function extractYouTubeVideoId(url: string): string | null {
   } catch {
     return null
   }
+}
+
+// Cached Innertube client — it does a one-time cold bootstrap against YouTube
+// to fetch session keys, so we reuse the instance across requests.
+let _innertube: Innertube | null = null
+async function getInnertube(): Promise<Innertube> {
+  if (_innertube) return _innertube
+  _innertube = await Innertube.create()
+  return _innertube
 }
 
 async function importYouTube(url: string): Promise<ImportResult | ImportFailure> {
@@ -98,69 +98,79 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
     }
   }
 
-  let segments: { text: string }[]
   try {
-    // Default to English; YouTube auto-translates when possible.
-    segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' })
-  } catch {
-    // Retry without locale hint — some videos only have native-language tracks.
-    try {
-      segments = await YoutubeTranscript.fetchTranscript(videoId)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const looksLikeNoCaptions = /transcript|captions|disabled/i.test(msg)
+    const yt = await getInnertube()
+    const info = await yt.getInfo(videoId)
+    const transcriptData = await info.getTranscript()
+
+    // youtubei.js shape: transcriptData.transcript.content.body.initial_segments[].snippet.text
+    // Guard aggressively because this is an unofficial API shape.
+    const segments = transcriptData?.transcript?.content?.body?.initial_segments ?? []
+    if (!Array.isArray(segments) || segments.length === 0) {
       return {
         ok: false,
-        error: looksLikeNoCaptions
-          ? "This video doesn't have captions available. Try a different video or paste the transcript manually."
-          : `Couldn't fetch the transcript: ${msg}`,
+        error: "This video doesn't have a transcript available. YouTube only generates captions for some videos — try one where the 'Show transcript' button works at youtube.com.",
         platform: 'youtube',
-        suggestion: 'Some videos have captions disabled. Try one where the "Show transcript" button works on youtube.com.',
       }
     }
-  }
 
-  if (!Array.isArray(segments) || segments.length === 0) {
+    const content = segments
+      .map((s: { snippet?: { text?: string } }) => s.snippet?.text ?? '')
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    if (!content) {
+      return {
+        ok: false,
+        error: 'The transcript came back empty.',
+        platform: 'youtube',
+      }
+    }
+
+    const warnings: string[] = []
+    if (content.length < 200) {
+      warnings.push('The transcript is quite short — longer samples give a more accurate voice profile.')
+    }
+
+    const title = info?.basic_info?.title ?? `YouTube: ${videoId}`
+
+    return {
+      ok: true,
+      sample: {
+        content,
+        platform: 'youtube',
+        label: title.slice(0, 100),
+        source_url: url,
+        warnings,
+      },
+    }
+  } catch (err) {
+    // Log the real error server-side so we can diagnose via Vercel logs,
+    // but return a user-friendly message that's honest about what we know.
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[voice-url-importer] YouTube fetch failed for ${videoId}:`, message)
+
+    // Classify by the underlying message, not a broad regex.
+    const lower = message.toLowerCase()
+    let userMessage: string
+    if (lower.includes('not found') || lower.includes('transcript is disabled') || lower.includes('transcripts are disabled')) {
+      userMessage = "This video doesn't have a transcript available. Try one where the 'Show transcript' button works at youtube.com."
+    } else if (lower.includes('private') || lower.includes('unavailable')) {
+      userMessage = 'This video is private or unavailable.'
+    } else if (lower.includes('age')) {
+      userMessage = "Age-restricted videos can't be fetched — try a different one."
+    } else {
+      userMessage = `Transcript fetch failed: ${message.slice(0, 200)}`
+    }
+
     return {
       ok: false,
-      error: 'The transcript came back empty.',
+      error: userMessage,
       platform: 'youtube',
     }
   }
-
-  // Flatten segments into a single paragraph. Decode HTML entities
-  // (YouTube returns stuff like &amp;#39; for apostrophes).
-  const content = segments
-    .map((s) => decodeHtmlEntities(s.text))
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const warnings: string[] = []
-  if (content.length < 200) {
-    warnings.push('The transcript is quite short — longer samples give a more accurate voice profile.')
-  }
-
-  return {
-    ok: true,
-    sample: {
-      content,
-      platform: 'youtube',
-      label: `YouTube: ${videoId}`,
-      source_url: url,
-      warnings,
-    },
-  }
-}
-
-function decodeHtmlEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────
