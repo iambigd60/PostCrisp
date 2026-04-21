@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface BioOption {
   text: string
@@ -76,9 +77,11 @@ Rules:
 - Don't just say "creator" or "social media expert" — be specific to the niche`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'bio-optimizer',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 1800,
     })

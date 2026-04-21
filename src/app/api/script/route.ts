@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface ScriptResult {
   hook: string
@@ -59,9 +60,11 @@ Rules:
 - wordCount: actual spoken word count across hook + intro + sections + cta + outro`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'script',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 3000,
     })

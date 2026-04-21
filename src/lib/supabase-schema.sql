@@ -131,6 +131,44 @@ CREATE POLICY "Users read own feedback"
 -- Admins read/update everything via service role; no admin RLS needed here
 -- since admin routes use auth.supabaseAdmin (service role bypasses RLS).
 
+-- voice_profiles — per-user voice profile built from content samples.
+-- One row per user. `samples` is an append-only jsonb array of content
+-- snippets the user pasted in. `traits` is the JSON result of Claude's
+-- analysis of those samples (tone, vocabulary, signature phrases, etc.)
+-- and gets fed into content-generation features' system prompts so
+-- output sounds like the user rather than generic AI.
+CREATE TABLE IF NOT EXISTS public.voice_profiles (
+  user_id          UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  samples          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  traits           JSONB,
+  last_analyzed_at TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.voice_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users read own voice profile"
+  ON public.voice_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users insert own voice profile"
+  ON public.voice_profiles FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own voice profile"
+  ON public.voice_profiles FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users delete own voice profile"
+  ON public.voice_profiles FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE OR REPLACE TRIGGER voice_profiles_updated_at
+  BEFORE UPDATE ON public.voice_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
 -- feature_access — admin-editable runtime config for per-feature tier gating
 -- When a row exists for a feature, it overrides the code defaults in
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.

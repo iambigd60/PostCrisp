@@ -5,21 +5,28 @@
 
 ---
 
-## 🎯 Current top priority (2026-04-20) — Voice Trainer (IDEA-12)
+## ✅ Voice Trainer v1 shipped 2026-04-21 (IDEA-12)
 
-Next session's work. Full brainstorm lives at [docs/ideas/postcrisp-new-ideas.md](docs/ideas/postcrisp-new-ideas.md).
+The foundational personalization layer is live. Per the 2026-04-20 strategic decision
+record, this was locked as Phase 1 priority and now ships — no longer "next session".
 
-**Why it's elevated to Phase 1 critical:** it's the foundational personalization layer under every content feature. Without it, output feels generic; with it, every existing feature (captions, hashtags, scripts, SEO, bio, repurpose, etc.) gets dramatically better.
+**What's in v1:**
+- `voice_profiles` table (1 row per user, samples jsonb + traits jsonb)
+- `/dashboard/voice` UI for adding samples + triggering analysis + viewing traits
+- Claude extracts 11 trait dimensions (tone, rhythm, vocabulary, signature phrases,
+  openers, closers, emoji style, punctuation, energy, avoid patterns, notes)
+- `crispGenerate({ voiceSnippet })` — one-arg retrofit that appends voice profile
+  to the system prompt
+- 5 of 20 feature routes retrofitted: captions, scripts, repurpose, blog→social, bio-optimizer
+- Top-level sidebar entry with "New" badge for discoverability
 
-**Rough shape (to be planned properly next session):**
-- New `voice_profiles` table: user_id (PK/FK), source_content (jsonb), analyzed_traits (jsonb), updated_at
-- Claude analyzes: sentence rhythm, vocabulary, tone, signature phrases, emoji/punctuation patterns, openers/closers
-- Onboarding step: paste 3-5 samples of existing content → baseline profile built
-- UI at `/dashboard/voice` to review/edit profile, add samples, see insights
-- Retrofit: every feature's system prompt gets voice profile injected when available; gracefully degrades to current behavior if profile is empty
-- Multiple profiles supported (TikTok voice ≠ newsletter voice) — add later, start with single profile
-
-**Effort estimate:** 2-3 focused sessions solo. Schema + API + onboarding + dashboard UI first, then per-route retrofit.
+**What v1 deliberately doesn't include:**
+- Retrofit of the other 15 feature routes (trend-radar, viral-ideas, comment-reply,
+  dm-template, brand-pitch, etc.) — one-line change per route, do in next sweep
+- Multiple voice profiles per user (TikTok voice ≠ newsletter voice) — single for v1
+- Voice feedback loop ("this output didn't sound like me, learn from the edit")
+- Auto-trigger analysis after each sample — user must click "Analyze" explicitly to
+  avoid burning credits on every paste
 
 ---
 

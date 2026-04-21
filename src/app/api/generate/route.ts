@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
@@ -73,9 +74,11 @@ Return ONLY valid JSON with this structure — no markdown:
 {"captions": [${Array.from({ length: safeCount }, (_, i) => `"caption ${i + 1}"`).join(', ')}]}`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'captions',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 2000,
     })

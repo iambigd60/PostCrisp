@@ -91,6 +91,7 @@ export interface CrispGenerateArgs {
   task: CrispTask
   tier: Tier
   system?: string           // optional — if omitted, uses systemPromptFor(task)
+  voiceSnippet?: string     // optional — user voice profile, appended to system prompt
   prompt: string
   maxTokens: number
 }
@@ -131,9 +132,16 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   const { config, effective } = await resolveTaskConfig(args.task, args.tier)
   const providerImpl = getProvider(config.provider)
 
+  // Build the final system prompt. Caller can override with `system`; otherwise
+  // we use the task default. Voice snippet (user's analyzed writing style) is
+  // appended when provided so feature output sounds like the user rather than
+  // a generic AI.
+  const baseSystem = args.system ?? systemPromptFor(args.task)
+  const finalSystem = args.voiceSnippet ? `${baseSystem}${args.voiceSnippet}` : baseSystem
+
   const result = await providerImpl.generate({
     model: config.model,
-    system: args.system ?? systemPromptFor(args.task),
+    system: finalSystem,
     prompt: args.prompt,
     maxTokens: args.maxTokens,
   })

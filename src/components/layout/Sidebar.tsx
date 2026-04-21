@@ -15,8 +15,9 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// Top-level link (rendered above groups)
+// Top-level links (rendered above groups)
 const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: "📊" };
+const VOICE_ITEM: NavItem = { href: "/dashboard/voice", label: "Voice Trainer", icon: "🎙️" };
 
 // Grouped feature navigation. Fixed order: Create · Optimize · Grow · Monetize · Library.
 const NAV_GROUPS: NavGroup[] = [
@@ -178,6 +179,23 @@ export function Sidebar() {
         >
           <span className="text-lg flex-shrink-0">{DASHBOARD_ITEM.icon}</span>
           {!collapsed && <span>{DASHBOARD_ITEM.label}</span>}
+        </Link>
+
+        {/* Voice Trainer (top-level) — foundational; set up early */}
+        <Link
+          href={VOICE_ITEM.href}
+          onClick={() => setMobileOpen(false)}
+          className={linkClass(VOICE_ITEM.href)}
+        >
+          <span className="text-lg flex-shrink-0">{VOICE_ITEM.icon}</span>
+          {!collapsed && (
+            <span className="flex items-center gap-1.5">
+              {VOICE_ITEM.label}
+              <span className="text-2xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-300 border border-brand-500/20">
+                New
+              </span>
+            </span>
+          )}
         </Link>
 
         {/* Grouped feature nav */}

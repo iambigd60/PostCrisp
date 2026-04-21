@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface RepurposedItem {
   targetPlatform: string
@@ -58,9 +59,11 @@ Rules:
 - notes: optional 1-sentence reason this version fits the platform`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'repurpose',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 4000,
     })

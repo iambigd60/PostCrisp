@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface BlogSocialPost {
   platform: string
@@ -67,9 +68,11 @@ Rules:
 - sourceSection helps the user remember where it came from`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'blog-to-social',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 3500,
     })

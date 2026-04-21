@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-21 (session 9 — admin password reset + recovery flow fix)
-**Build status:** ✅ Live on Vercel, invite-only signups via `/admin/access-control`
+**Last updated:** 2026-04-21 (session 10 — Voice Trainer v1 shipped)
+**Build status:** ✅ Live on Vercel, Voice Trainer foundation layer active
 **Production URL:** your Vercel project (`postcrisp-*.vercel.app`) — see https://vercel.com/dashboard
 **Dev server:** `npm run dev` (port 3000 or next available)
 
@@ -29,6 +29,76 @@ Three compounding bugs prevented users from completing password recovery in prod
 
 **Flow end-to-end:**
 Email link → Supabase verify → `/auth/callback?next=/auth/reset-password` → code exchange creates recovery session → redirected to reset form → submit updates password → `/dashboard` signed in.
+
+---
+
+## Session 10 shipped — Voice Trainer v1 (IDEA-12 from brainstorm)
+
+The foundational personalization layer is live. Previously locked as the
+Phase 1 priority per the 2026-04-20 strategic decision record.
+
+### Architecture
+- New `voice_profiles` table (one row per user; `samples` jsonb array, `traits` jsonb)
+- `src/lib/voice-profile.ts` — read/write helpers, Claude-driven trait extraction, and
+  `loadVoicePromptSnippet()` that generates a system-prompt fragment from stored traits
+- `crispGenerate()` extended with an optional `voiceSnippet` arg that gets appended to
+  the system prompt when provided — one-line retrofit per feature
+- User control at `/dashboard/voice` — add samples, analyze, view extracted traits,
+  clear profile. Samples are capped at 25 per user, 10k chars each.
+
+### User flow
+1. New user lands on Voice Trainer (top-level nav, tagged "New" badge)
+2. Pastes 3+ content samples with optional platform/label tags
+3. Clicks "Analyze voice" → Claude returns structured traits (tone, rhythm,
+   vocabulary, signature phrases, openers, closers, emoji style, punctuation,
+   energy, avoid patterns, notes)
+4. Traits auto-feed into content-generation features going forward
+
+### Features retrofitted with voice injection (v1)
+- Captions (`/api/generate`) — highest volume
+- Scripts (`/api/script`)
+- Repurpose (`/api/repurpose`)
+- Blog → Social (`/api/blog-to-social`)
+- Bio Optimizer (`/api/bio-optimizer`)
+
+Remaining 15+ routes degrade gracefully — they work without voice injection;
+next session can retrofit them in a sweep since the pattern is now established.
+
+### Things deliberately NOT built in v1
+- Multiple voice profiles per user (TikTok voice ≠ newsletter voice). Single profile
+  for v1; add later when there's demand.
+- Voice-profile feedback loop ("this output didn't sound like me, adjust").
+- Auto-triggered analysis after adding a sample — user must click "Analyze" explicitly
+  so they don't burn credits on every paste.
+
+### Schema migration to run
+```sql
+CREATE TABLE IF NOT EXISTS public.voice_profiles (
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  samples JSONB NOT NULL DEFAULT '[]'::jsonb,
+  traits JSONB,
+  last_analyzed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.voice_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own voice profile" ON public.voice_profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own voice profile" ON public.voice_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own voice profile" ON public.voice_profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own voice profile" ON public.voice_profiles FOR DELETE USING (auth.uid() = user_id);
+CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voice_profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+```
+
+---
+
+## Session 9 shipped (earlier today)
+
+- Feedback system: floating FAB, `/admin/feedback` triage view, overview widget on admin home
+- Email notification to admin on every feedback submission (Resend REST)
+- Admin "Set temporary password" button on user detail — Outlook-safe onboarding
+- Admin "Send password reset" button with working PKCE recovery flow
+- Password recovery flow fixed (routes directly to `/auth/reset-password` to let
+  SDK auto-detect PKCE code; admin-initiated reset uses same plumbing)
 
 ---
 
