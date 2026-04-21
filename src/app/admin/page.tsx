@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FeedbackOverviewWidget } from "@/components/admin/FeedbackOverviewWidget";
 
 export default function AdminOverviewPage() {
   return (
@@ -7,6 +8,9 @@ export default function AdminOverviewPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Admin</h1>
         <p className="text-zinc-500 mt-1">Internal controls for running PostCrisp.</p>
       </div>
+
+      {/* Feedback at-a-glance — what needs your attention */}
+      <FeedbackOverviewWidget />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
