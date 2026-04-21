@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
-import { useToast } from "@/components/ui/Toast";
 
 interface Trend {
   name: string; description: string; platforms: string[]; stage: string;
@@ -29,7 +28,6 @@ export default function TrendsPage() {
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { addToast } = useToast();
 
   const togglePlatform = (p: string) => setSelectedPlatforms((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]);
 

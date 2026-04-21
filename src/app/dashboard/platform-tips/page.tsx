@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
-import { useToast } from "@/components/ui/Toast";
 
 interface Tip {
   title: string;
@@ -42,7 +41,6 @@ export default function PlatformTipsPage() {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { addToast } = useToast();
 
   const fetchTips = async (useNiche = false) => {
     setLoading(true); setError(null);
