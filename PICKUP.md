@@ -1,9 +1,34 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-20 (session 8 — Vercel deploy + access control, alpha-ready)
+**Last updated:** 2026-04-21 (session 9 — admin password reset + recovery flow fix)
 **Build status:** ✅ Live on Vercel, invite-only signups via `/admin/access-control`
 **Production URL:** your Vercel project (`postcrisp-*.vercel.app`) — see https://vercel.com/dashboard
 **Dev server:** `npm run dev` (port 3000 or next available)
+
+---
+
+## Session 9 shipped — admin password reset + recovery flow fix
+
+### 🔑 Admin-initiated password reset
+- New **Send password reset** button on `/admin/users/[id]` (Account actions panel, next to Save changes)
+- POST `/api/admin/users/[id]/reset-password` looks up email via service role, calls `supabase.auth.resetPasswordForEmail()` which fires the email through our Resend SMTP
+- Logs to `admin_actions` with action `password_reset` — visible in `/admin/audit` with a sky-blue 🔑 badge and in the action-type filter dropdown
+- Browser confirm before sending ("Send a password reset email to X?")
+
+### 🛠 Recovery flow actually works now
+Three compounding bugs prevented users from completing password recovery in production:
+
+1. **Missing reset form.** No `/auth/reset-password` page existed. Even if routing worked, users had no UI to set a new password. Created a dedicated page that:
+   - Verifies the recovery session is present (shows "Recovery link invalid" with a request-new-link CTA if not)
+   - Provides a form with new password + confirm
+   - Calls `supabase.auth.updateUser({ password })` and redirects to `/dashboard` on success
+
+2. **Callback ignored `next` param.** `/auth/callback/route.ts` always redirected to `/dashboard` after exchanging the recovery code. Now honors the `next` query param (sanitized to local paths only — refuses `//`, `://`, or absolute URLs to prevent open-redirect).
+
+3. **redirectTo used unset env var.** Both the admin reset route and the self-serve `/forgot-password` action built `redirectTo` using `process.env.NEXT_PUBLIC_SITE_URL ?? ''`, which is unset on Vercel. That produced a relative URL Supabase couldn't use, so it fell back to the Site URL root. Both now derive origin from request headers at runtime — no env var dependency.
+
+**Flow end-to-end:**
+Email link → Supabase verify → `/auth/callback?next=/auth/reset-password` → code exchange creates recovery session → redirected to reset form → submit updates password → `/dashboard` signed in.
 
 ---
 
@@ -78,6 +103,7 @@
 | Admin Phase 2 — Users + Analytics | ✅ Done (session 6) |
 | Admin Phase 2 — Cost tracking + Audit viewer | ✅ Done (session 7) |
 | Admin Phase 2 — Access Control | ✅ Done (session 8) |
+| Admin Phase 2 — Password reset + recovery fix | ✅ Done (session 9) |
 | Admin Phase 2 — Billing admin / Moderation | ⏳ Remaining |
 | **Alpha deployment** | ✅ **Live on Vercel (session 8)** |
 | Step 7 — Launch prep | 🟡 Partial (alpha live, MFA + Stripe prod + custom domain remain) |
