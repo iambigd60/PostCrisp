@@ -51,12 +51,15 @@ export async function readAccessControl(): Promise<AccessControl> {
 
 export async function writeAccessControl(next: AccessControl, actorId: string): Promise<void> {
   const admin = serviceClient()
-  await admin
+  const { error } = await admin
     .from('platform_settings')
     .upsert(
       { key: 'access_control', value: next, updated_by: actorId, updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     )
+  if (error) {
+    throw new Error(`Failed to save access control settings: ${error.message}`)
+  }
   _cache = null
 }
 
