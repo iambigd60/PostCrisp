@@ -23,9 +23,11 @@ export const anthropicProvider: AIProvider = {
       max_tokens: args.maxTokens,
       // When system is large enough, send it as a structured block with
       // cache_control so Anthropic caches and reuses it (up to 90% off
-      // input token cost on cache hits).
+      // input token cost on cache hits). The `as` cast is required because
+      // the SDK's TextBlockParam type doesn't declare cache_control yet,
+      // even though the API accepts it.
       system: shouldCacheSystem
-        ? [{ type: 'text', text: args.system, cache_control: { type: 'ephemeral' } }]
+        ? ([{ type: 'text', text: args.system, cache_control: { type: 'ephemeral' } }] as unknown as string)
         : args.system,
       messages: [{ role: 'user', content: args.prompt }],
     })
