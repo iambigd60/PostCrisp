@@ -73,6 +73,7 @@ export default function UserDetailPage() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [banning, setBanning] = useState(false);
+  const [resettingPw, setResettingPw] = useState(false);
 
   const { addToast } = useToast();
 
@@ -133,6 +134,21 @@ export default function UserDetailPage() {
       addToast(err instanceof ApiError ? err.message : "Failed", "error");
     } finally {
       setBanning(false);
+    }
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!data) return;
+    if (!window.confirm(`Send a password reset email to ${data.profile.email}?`)) return;
+    setResettingPw(true);
+    try {
+      await apiFetch(`/api/admin/users/${userId}/reset-password`, { method: "POST" });
+      addToast(`Password reset email sent to ${data.profile.email}`, "success");
+      await load();
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Failed to send reset email", "error");
+    } finally {
+      setResettingPw(false);
     }
   };
 
@@ -225,8 +241,11 @@ export default function UserDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 justify-between items-center">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Button size="sm" onClick={handleSave} loading={saving} disabled={!isDirty}>Save changes</Button>
+            <Button size="sm" variant="secondary" onClick={handleSendPasswordReset} loading={resettingPw}>
+              🔑 Send password reset
+            </Button>
             <Link href="/admin/credit-adjustments" className="inline-flex items-center px-3 py-1.5 text-sm text-brand-300 hover:text-brand-200">
               🪙 Adjust credits →
             </Link>
