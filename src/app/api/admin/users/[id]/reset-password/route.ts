@@ -35,10 +35,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
     ''
 
   // Trigger the recovery email via user-scoped client (which respects the
-  // configured SMTP — Resend in our case).
+  // configured SMTP — Resend in our case). Supabase appends its PKCE code
+  // to the redirectTo URL; the browser SDK on /auth/reset-password
+  // auto-exchanges it and establishes the recovery session. Routing through
+  // /auth/callback doesn't work for recovery because of query-string
+  // mangling (our ?next= + Supabase's ?code= don't combine cleanly).
   const supabase = createClient()
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(target.email, {
-    redirectTo: `${origin}/auth/callback?next=/auth/reset-password`,
+    redirectTo: `${origin}/auth/reset-password`,
   })
 
   if (resetError) {

@@ -17,15 +17,37 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  // The /auth/callback route exchanged the recovery code for a session before
-  // redirecting here. Verify that session exists — if it doesn't, the link is
-  // invalid or expired and we send the user back to /forgot-password.
+  // Supabase's PKCE recovery flow drops a `?code=xxx` on this URL when the
+  // user arrives from the email link. The browser SDK auto-exchanges that
+  // code for a recovery session on init (detectSessionInUrl: true by default).
+  // We listen for both: (a) an existing session on mount (already exchanged
+  // in a prior tick, or returning user) and (b) the PASSWORD_RECOVERY event
+  // firing as the exchange completes.
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setHasRecoverySession(!!session)
+    let settled = false
+    const settle = (hasSession: boolean) => {
+      if (settled) return
+      settled = true
+      setHasRecoverySession(hasSession)
       setCheckingSession(false)
-    })()
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || session) settle(true)
+    })
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) settle(true)
+    })
+
+    // Give the async PKCE exchange a few seconds, then give up so the user
+    // sees the "invalid link" state rather than a permanent spinner.
+    const timeout = setTimeout(() => settle(false), 4000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
