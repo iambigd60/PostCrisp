@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-21 (session 10 — Voice Trainer v1 shipped)
-**Build status:** ✅ Live on Vercel, Voice Trainer foundation layer active
+**Last updated:** 2026-04-22 (session 11 — brand palette, channels, dashboard, onboarding)
+**Build status:** ✅ Live on Vercel — big visual + UX shift shipped this session
 **Production URL:** your Vercel project (`postcrisp-*.vercel.app`) — see https://vercel.com/dashboard
 **Dev server:** `npm run dev` (port 3000 or next available)
 
@@ -29,6 +29,47 @@ Three compounding bugs prevented users from completing password recovery in prod
 
 **Flow end-to-end:**
 Email link → Supabase verify → `/auth/callback?next=/auth/reset-password` → code exchange creates recovery session → redirected to reset form → submit updates password → `/dashboard` signed in.
+
+---
+
+## Session 11 shipped — brand palette + channels + living dashboard + onboarding
+
+Four strategic pieces, all architecturally aligned so they compound.
+
+### 1. Brand palette adopted — Gunmetal + Electric Blue (`133fc2d`)
+- Official hex values locked per user spec. Aviation/naval theme.
+  - Gunmetal Black `#0E1216` / Deep Steel `#181E24` / Gunmetal `#2D343C`
+  - Electric Blue `#4A9EE0` (brand-500) / Warship Grey `#8C949C` / Hangar White `#E8ECEF`
+- `tailwind.config.ts` brand ramp rebuilt around Electric Blue. `surface-*` → Gunmetal family. `shadow-glow` pulses Electric Blue. New `crisp-*` + `paper` semantic tokens.
+- `globals.css` fully migrated — new `--brand-*` variables, legacy `--violet-*` aliased for backwards compat, every hardcoded rgba violet → Electric Blue rgba.
+- Per-component hex fixes: landing hero gradient, dashboard usage ring, demo usage ring, demo heatmap, billing pill.
+- New memory: `project_brand_palette.md` captures naming + conventions. Strategic decision record updated — prior "defer palette until post-launch" call was superseded.
+
+### 2. Channels + Living Dashboard v1-lite (`3fc7481`)
+- New `channels` table (user_id, platform, handle, label, url, sort_order). RLS + 20/user cap + updated_at trigger.
+- `saved_content.channel_id` FK added (nullable, backwards-compatible).
+- `src/lib/channels.ts` — typed helpers, `PLATFORM_META` with branded chip styles, `loadChannels`, `defaultChannelForPlatform`.
+- Four API routes: `GET/POST /api/channels`, `PATCH/DELETE /api/channels/[id]`.
+- `ChannelsSection` reusable component — dropped into Settings + Onboarding.
+- Dashboard rebuilt: **typed daily briefing** (deterministic, references user's channels + usage, typewriter on mount), **channels row** (horizontal-scroll cards with per-channel week counts + add-channel affordance), metrics grid + credits (reordered into one row), **proactive suggestions panel** (rule-based: low credits / no channels / quiet channel / unused Voice Trainer, max 3, urgency-colored left border), recent content list with branded platform chips.
+
+### 3. Guided onboarding (`d99f519`)
+- 3-step wizard at `/onboarding`: Welcome → Channels → Pick impact feature. Skippable.
+- Signup action now redirects to `/onboarding` instead of `/dashboard` (existing login flow untouched).
+- Six impact-feature cards: Captions, Viral Ideas, Hashtags, Best Times, Bio Optimizer, Repurpose. Each has icon + 1-liner + ETA + "Try it" deep link.
+- Captions tool reads URL params (topic/platform/from) and auto-prefills + shows welcome banner.
+- New `GettingStartedCard` component — persistent 5-item checklist on dashboard, progress bar, live-computed from real state (channels / first gen / first save / 3 features / voice trained). Dismissible or auto-hides at 100%.
+- No schema changes — `onboarded_at` + `getting_started_dismissed` live in `profiles.preferences` JSONB (whitelist extended).
+
+### 4. Voice Trainer UX refactor — put on hold (`94a4f20`)
+- YouTube URL import confirmed to be blocked by Vercel IP bot-detection (`player_response_json_length: 3820` diagnostic — see memory).
+- Removed URL import UI block. Reframed the page as caption/written-content analyzer. Added "How this works" 3-step section + clear "coming soon" note listing the deferred integrations.
+- Server-side importer lib + API route kept in repo (ready to re-activate when we pick a real transcript solution — SearchAPI.io / YouTube OAuth / browser extension).
+- Voice Trainer is off the critical path per the new strategic direction — channels + dashboard + onboarding now carry the "platform starts feeling personalized" role.
+
+### 5. Failed-but-learned-from Voice Trainer URL import attempts (earlier today)
+- `b4d96e1` → `091cf30` → `f5cffb9` → `9b973f9` → `de9bd47` — four successive approaches (youtube-transcript pkg → youtubei.js → timedtext endpoint → HTML scrape → full diagnostic output). All ultimately blocked by YouTube's IP detection on Vercel's datacenter range.
+- Lesson captured: server-side YouTube scraping from Vercel is a dead end. Long-term options are paid APIs (SearchAPI.io) or YouTube OAuth (own-content only). Deferred both.
 
 ---
 
@@ -175,6 +216,10 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voic
 | Admin Phase 2 — Access Control | ✅ Done (session 8) |
 | Admin Phase 2 — Password reset + recovery fix | ✅ Done (session 9) |
 | Admin Phase 2 — Billing admin / Moderation | ⏳ Remaining |
+| Voice Trainer v1 | ✅ Core shipped (s10), URL import on hold (s11) |
+| Brand palette (Gunmetal + Electric Blue) | ✅ Done (session 11) |
+| Channels + Living Dashboard v1-lite | ✅ Done (session 11) |
+| Guided onboarding + Getting Started checklist | ✅ Done (session 11) |
 | **Alpha deployment** | ✅ **Live on Vercel (session 8)** |
 | Step 7 — Launch prep | 🟡 Partial (alpha live, MFA + Stripe prod + custom domain remain) |
 
@@ -182,17 +227,54 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voic
 
 ## Next session — options
 
-1. **Voice Trainer (IDEA-12)** — the locked Phase 1 priority per the strategic decision record. Foundational personalization layer under every content feature. Plan is captured at the top of ROADMAP. **Recommended path if no tester feedback is urgent.**
-2. **Triage tester feedback** — once UAT produces real bug reports / feature requests, that becomes top priority over Voice Trainer. Review `/admin/analytics` for usage patterns, act on specific findings.
-3. **Billing admin** — real Stripe MRR/churn/refunds, replacing list-price estimate. Unblocks paywall activation.
-4. **Stripe production setup** — create 6 price IDs for Creator/Team/Elite Monthly/Yearly, wire webhook, test full paywall. Needed before opening signups to paying users.
-5. **Custom domain on Vercel** — point `postcrisp.com` to Vercel, swap Supabase Site URL, update Resend sender. ~15 min.
+Tester flow is now: signup → wizard → first feature try → dashboard with checklist + briefing + channel row. Most of the "feels personalized" story is in place without any external API integration.
 
-Pick whichever is highest-leverage given the tester feedback you get.
+1. **Tool-level channel picker** (~1 hr) — replace platform dropdown in tools with a channel picker driven by `channels` table. Starts populating `saved_content.channel_id`.
+2. **Library reorganization by channel tabs** (~1 hr) — `/dashboard/saved` picks up channel awareness.
+3. **Brand Readiness Score (IDEA-10, ~3-4 hrs)** — monetization gateway gamification. Pure Claude + internal DB, no external APIs needed.
+4. **Thumbnail Analyzer (IDEA-04, ~2 hrs)** — Claude vision, user uploads image for analysis.
+5. **Billing admin** — real Stripe MRR replacing list-price estimate.
+6. **Stripe production price IDs** — needed before you open paywall.
+7. **Custom domain** (`postcrisp.com` → Vercel, ~15 min).
+8. **Triage Rodney/tester feedback** — always a good default.
+
+Voice Trainer URL import is parked. Two real long-term paths when it's worth re-activating: SearchAPI.io (residential proxy API, ~$0.005/req) or YouTube OAuth (own-content only, free but requires Google review).
 
 ---
 
-## SQL migrations run this session (for your records)
+## ⚠️ SQL migrations pending from session 11 (run these in Supabase)
+
+```sql
+-- Channels
+CREATE TABLE IF NOT EXISTS public.channels (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  platform    TEXT NOT NULL,
+  handle      TEXT NOT NULL,
+  label       TEXT,
+  url         TEXT,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS channels_user_id_idx ON public.channels (user_id, sort_order, created_at);
+ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own channels" ON public.channels FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own channels" ON public.channels FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own channels" ON public.channels FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own channels" ON public.channels FOR DELETE USING (auth.uid() = user_id);
+CREATE OR REPLACE TRIGGER channels_updated_at BEFORE UPDATE ON public.channels FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- saved_content channel FK
+ALTER TABLE public.saved_content ADD COLUMN IF NOT EXISTS channel_id UUID REFERENCES public.channels(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS saved_content_channel_id_idx ON public.saved_content (channel_id);
+```
+
+Session 10 `voice_profiles` migration still applicable if not already run.
+
+---
+
+## SQL migrations run in earlier sessions (for your records)
 
 ```sql
 -- Session 8: platform_settings for access control
