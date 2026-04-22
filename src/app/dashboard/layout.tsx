@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { requireAlphaAcceptance } from "@/lib/alpha-agreement-server";
 
 export const metadata: Metadata = {
   title: {
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  await requireAlphaAcceptance("/dashboard");
   return (
     <div className="min-h-screen bg-surface-primary">
       <Sidebar />
