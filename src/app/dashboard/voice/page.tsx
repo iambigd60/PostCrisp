@@ -73,8 +73,6 @@ export default function VoiceTrainerPage() {
   const [sampleLabel, setSampleLabel] = useState("");
   const [samplePlatform, setSamplePlatform] = useState("");
   const [adding, setAdding] = useState(false);
-  const [importUrl, setImportUrl] = useState("");
-  const [importing, setImporting] = useState(false);
   const { addToast } = useToast();
 
   const load = async () => {
@@ -90,42 +88,6 @@ export default function VoiceTrainerPage() {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
-
-  const handleImportFromUrl = async () => {
-    if (!importUrl.trim()) {
-      addToast("Paste a URL first.", "error");
-      return;
-    }
-    setImporting(true);
-    try {
-      const res = await apiFetch<{ ok: true; sample: { content: string; platform: string | null; label: string | null; warnings: string[] }; debug?: unknown }>(
-        "/api/voice-profile/samples/import-url",
-        { method: "POST", body: JSON.stringify({ url: importUrl.trim() }) }
-      );
-      // Log debug info to browser console regardless of success — helps diagnose
-      // IP-block / API-change issues without needing Vercel log access.
-      // eslint-disable-next-line no-console
-      if (res.debug) console.info("[voice import debug]", res.debug);
-      setSampleContent(res.sample.content);
-      if (res.sample.platform) setSamplePlatform(res.sample.platform);
-      if (res.sample.label) setSampleLabel(res.sample.label);
-      if (res.sample.warnings && res.sample.warnings.length > 0) {
-        addToast(res.sample.warnings[0], "info");
-      } else {
-        addToast("Imported. Review below, then save.", "success");
-      }
-      setImportUrl("");
-    } catch (err) {
-      // ApiError carries the full response body on `payload`, so debug info
-      // is there too — log it for diagnosis.
-      // eslint-disable-next-line no-console
-      if (err instanceof ApiError) console.info("[voice import debug]", err.payload);
-      const msg = err instanceof ApiError ? err.message : "Import failed";
-      addToast(msg, "error");
-    } finally {
-      setImporting(false);
-    }
-  };
 
   const handleAddSample = async () => {
     if (!sampleContent.trim()) {
@@ -216,19 +178,56 @@ export default function VoiceTrainerPage() {
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Voice Trainer</h1>
           <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-300 border border-brand-500/20">
-            Beta
+            Beta · Captions
           </span>
         </div>
-        <p className="text-zinc-500 mt-1">
-          Teach PostCrisp how you write by sharing examples of your existing content. We analyze your writing
-          style — tone, rhythm, signature phrases, openers, closers — and use it on every caption, script, and
-          post we generate for you. The more samples, the sharper the match.
+        <p className="text-zinc-400 mt-2 leading-relaxed">
+          Teach PostCrisp how <strong className="text-zinc-200">you</strong> write. Paste 3+ captions, scripts,
+          or posts you&apos;ve already written, we analyze the patterns — tone, rhythm, signature phrases,
+          how you open and close — and every caption/script/bio PostCrisp generates from then on matches your
+          style instead of sounding like generic AI.
         </p>
-        <p className="text-zinc-600 text-xs mt-2">
-          <strong className="text-zinc-400">Note:</strong> &ldquo;Voice&rdquo; here means your written voice — the way
-          you write captions, scripts, bios, newsletters. Not audio. YouTube transcript import works now; Instagram,
-          TikTok, X, LinkedIn, Threads, Facebook URL imports + audio/video voice analysis are all coming soon.
-        </p>
+      </div>
+
+      {/* How it works */}
+      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <h2 className="text-sm font-semibold text-zinc-200 mb-3">How this works</h2>
+        <ol className="space-y-2.5 text-sm text-zinc-400">
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-500/15 text-brand-300 flex items-center justify-center text-xs font-bold">1</span>
+            <span>
+              <strong className="text-zinc-200">Paste written content you&apos;ve created</strong> — captions, scripts,
+              email newsletters, blog posts, LinkedIn posts, DMs. Anything you wrote that sounds like <em>you</em>.
+              The more varied and the longer each sample, the better.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-500/15 text-brand-300 flex items-center justify-center text-xs font-bold">2</span>
+            <span>
+              <strong className="text-zinc-200">Click Analyze voice</strong> once you have 3 or more samples. PostCrisp
+              reads them and extracts your distinctive patterns into a structured style guide.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-500/15 text-brand-300 flex items-center justify-center text-xs font-bold">3</span>
+            <span>
+              <strong className="text-zinc-200">Every generation after that sounds like you.</strong> Captions, scripts,
+              repurposed content, bios — they all get your style guide injected automatically. You can clear and
+              re-analyze any time as your voice evolves.
+            </span>
+          </li>
+        </ol>
+      </div>
+
+      {/* Video / audio / URL import — coming soon */}
+      <div className="rounded-xl border border-zinc-500/10 bg-surface-secondary/60 p-4 text-xs text-zinc-500 flex gap-3 items-start">
+        <span className="text-lg">🔜</span>
+        <div>
+          <strong className="text-zinc-400 block mb-0.5">Coming soon</strong>
+          Importing samples from YouTube / TikTok / Instagram / X / LinkedIn / Threads / Facebook by URL —
+          plus true audio / video voice analysis (upload a clip and we transcribe it for you). For now,
+          PostCrisp analyzes written captions only.
+        </div>
       </div>
 
       {/* Status banner */}
@@ -276,34 +275,6 @@ export default function VoiceTrainerPage() {
 
           {addOpen && (
             <div className="rounded-xl border border-brand-500/30 bg-brand-500/5 p-4 space-y-3">
-              {/* YouTube URL import */}
-              <div className="rounded-lg border border-brand-500/20 bg-surface-tertiary/50 p-3">
-                <label className="block text-xs font-semibold text-brand-300 mb-1.5">
-                  Import from a YouTube video
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=... or youtu.be/..."
-                    className="flex-1 rounded-lg bg-surface-primary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40 font-mono"
-                  />
-                  <Button size="sm" variant="secondary" onClick={handleImportFromUrl} loading={importing} disabled={!importUrl.trim()}>
-                    Import transcript
-                  </Button>
-                </div>
-                <p className="text-2xs text-zinc-500 mt-1.5">
-                  We&apos;ll pull your YouTube captions and drop the transcript into the box below. Works on any public video with captions enabled.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-brand-500/10" />
-                <span className="text-2xs text-zinc-600 uppercase tracking-wider">or paste written content</span>
-                <div className="h-px flex-1 bg-brand-500/10" />
-              </div>
-
               <textarea
                 value={sampleContent}
                 onChange={(e) => setSampleContent(e.target.value)}
@@ -411,12 +382,6 @@ export default function VoiceTrainerPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-200/80 mt-4">
-            <strong className="block text-amber-200 mb-1">What happens next</strong>
-            Once analyzed, your voice profile automatically feeds into content-generation features
-            (captions, scripts, repurposer, and more). Output will start sounding like you,
-            not like a generic AI.
-          </div>
         </div>
       </div>
     </div>
