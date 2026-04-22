@@ -79,13 +79,57 @@ function extractYouTubeVideoId(url: string): string | null {
   }
 }
 
-// Cached Innertube client — it does a one-time cold bootstrap against YouTube
-// to fetch session keys, so we reuse the instance across requests.
+// Cached Innertube instance — bootstrap is expensive, reuse across requests.
 let _innertube: Innertube | null = null
 async function getInnertube(): Promise<Innertube> {
   if (_innertube) return _innertube
-  _innertube = await Innertube.create()
+  _innertube = await Innertube.create({ retrieve_player: false })
   return _innertube
+}
+
+// Shape of a caption track as exposed by youtubei.js + YouTube's player config.
+// We only read the handful of fields we need; others may be present.
+interface CaptionTrack {
+  base_url?: string
+  baseUrl?: string
+  language_code?: string
+  languageCode?: string
+  kind?: string
+  name?: { simpleText?: string }
+}
+
+// Shape of the JSON3 timedtext response we parse out of YouTube.
+interface Json3Transcript {
+  events?: Array<{
+    segs?: Array<{ utf8?: string }>
+  }>
+}
+
+function pickCaptionTrack(tracks: CaptionTrack[]): CaptionTrack | null {
+  if (!tracks.length) return null
+  // Prefer an English manually-authored track, then English auto-generated,
+  // then first available of any language.
+  const isEnglish = (t: CaptionTrack) => {
+    const lang = t.language_code ?? t.languageCode
+    return typeof lang === 'string' && lang.toLowerCase().startsWith('en')
+  }
+  const manual = tracks.find((t) => isEnglish(t) && t.kind !== 'asr')
+  if (manual) return manual
+  const autoEn = tracks.find(isEnglish)
+  if (autoEn) return autoEn
+  return tracks[0]
+}
+
+function parseJson3Transcript(data: Json3Transcript): string {
+  const events = Array.isArray(data?.events) ? data.events : []
+  const pieces: string[] = []
+  for (const ev of events) {
+    if (!Array.isArray(ev.segs)) continue
+    for (const seg of ev.segs) {
+      if (typeof seg.utf8 === 'string') pieces.push(seg.utf8)
+    }
+  }
+  return pieces.join('').replace(/\s+/g, ' ').trim()
 }
 
 async function importYouTube(url: string): Promise<ImportResult | ImportFailure> {
@@ -101,25 +145,50 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
   try {
     const yt = await getInnertube()
     const info = await yt.getInfo(videoId)
-    const transcriptData = await info.getTranscript()
 
-    // youtubei.js shape: transcriptData.transcript.content.body.initial_segments[].snippet.text
-    // Guard aggressively because this is an unofficial API shape.
-    const segments = transcriptData?.transcript?.content?.body?.initial_segments ?? []
-    if (!Array.isArray(segments) || segments.length === 0) {
+    // youtubei.js exposes caption_tracks on info.captions. The raw shape is
+    // an array of { base_url, language_code, kind, name, ... }. We pick a
+    // track and fetch its transcript directly from timedtext — much more
+    // stable than the /get_transcript Innertube endpoint that returns 400s.
+    const capData = (info as { captions?: { caption_tracks?: CaptionTrack[] } })?.captions
+    const tracks = capData?.caption_tracks ?? []
+
+    const track = pickCaptionTrack(tracks)
+    if (!track) {
       return {
         ok: false,
-        error: "This video doesn't have a transcript available. YouTube only generates captions for some videos — try one where the 'Show transcript' button works at youtube.com.",
+        error: "This video doesn't have any captions. Try one where the 'Show transcript' button works at youtube.com, or paste the content manually.",
         platform: 'youtube',
       }
     }
 
-    const content = segments
-      .map((s: { snippet?: { text?: string } }) => s.snippet?.text ?? '')
-      .filter(Boolean)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    const baseUrl = track.base_url ?? track.baseUrl
+    if (!baseUrl) {
+      return {
+        ok: false,
+        error: "YouTube returned caption tracks but no fetch URL. This usually means captions are locked on this video.",
+        platform: 'youtube',
+      }
+    }
+
+    // Fetch the JSON3 timedtext response (cleaner than XML — each segment is
+    // an event with utf8 strings).
+    const separator = baseUrl.includes('?') ? '&' : '?'
+    const ttUrl = `${baseUrl}${separator}fmt=json3`
+    const res = await fetch(ttUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PostCrispVoiceTrainer/1.0)' },
+    })
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: `YouTube rejected the transcript fetch (HTTP ${res.status}). Try a different video or paste manually.`,
+        platform: 'youtube',
+      }
+    }
+
+    const data: Json3Transcript = await res.json()
+    const content = parseJson3Transcript(data)
 
     if (!content) {
       return {
@@ -133,8 +202,12 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
     if (content.length < 200) {
       warnings.push('The transcript is quite short — longer samples give a more accurate voice profile.')
     }
+    if (track.kind === 'asr') {
+      warnings.push('This video only has auto-generated captions, which can include transcription errors. You can still analyze it, but results will be less accurate than a manually-captioned video.')
+    }
 
-    const title = info?.basic_info?.title ?? `YouTube: ${videoId}`
+    const title =
+      (info as { basic_info?: { title?: string } })?.basic_info?.title ?? `YouTube: ${videoId}`
 
     return {
       ok: true,
@@ -147,22 +220,17 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
       },
     }
   } catch (err) {
-    // Log the real error server-side so we can diagnose via Vercel logs,
-    // but return a user-friendly message that's honest about what we know.
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[voice-url-importer] YouTube fetch failed for ${videoId}:`, message)
 
-    // Classify by the underlying message, not a broad regex.
     const lower = message.toLowerCase()
     let userMessage: string
-    if (lower.includes('not found') || lower.includes('transcript is disabled') || lower.includes('transcripts are disabled')) {
-      userMessage = "This video doesn't have a transcript available. Try one where the 'Show transcript' button works at youtube.com."
-    } else if (lower.includes('private') || lower.includes('unavailable')) {
+    if (lower.includes('private') || lower.includes('unavailable')) {
       userMessage = 'This video is private or unavailable.'
     } else if (lower.includes('age')) {
       userMessage = "Age-restricted videos can't be fetched — try a different one."
     } else {
-      userMessage = `Transcript fetch failed: ${message.slice(0, 200)}`
+      userMessage = `Couldn't fetch that video: ${message.slice(0, 200)}`
     }
 
     return {
