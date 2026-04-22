@@ -5,51 +5,64 @@
 @tailwind utilities;
 
 :root {
-  /* Brand Colors */
-  --violet-50: #f5f3ff;
-  --violet-100: #ede9fe;
-  --violet-200: #ddd6fe;
-  --violet-300: #c4b5fd;
-  --violet-400: #a78bfa;
-  --violet-500: #8b5cf6;
-  --violet-600: #7c3aed;
-  --violet-700: #6d28d9;
-  --violet-800: #5b21b6;
-  --violet-900: #4c1d95;
+  /* Brand Colors — Electric Blue ramp, anchored on 500 = #4A9EE0 */
+  --brand-50:  #EFF7FC;
+  --brand-100: #D6ECF7;
+  --brand-200: #ADD3EE;
+  --brand-300: #85BBE4;
+  --brand-400: #65ABDD;
+  --brand-500: #4A9EE0;
+  --brand-600: #3B85BE;
+  --brand-700: #2D6699;
+  --brand-800: #204B72;
+  --brand-900: #14354F;
 
-  /* Surfaces */
-  --bg-primary: #09090b;
-  --bg-secondary: #0f0f14;
-  --bg-tertiary: #16161d;
-  --bg-elevated: #1c1c27;
-  --bg-hover: #232330;
+  /* Backwards-compat — legacy --violet-* tokens now point at the brand ramp.
+     Remove once all usages are migrated. */
+  --violet-50:  var(--brand-50);
+  --violet-100: var(--brand-100);
+  --violet-200: var(--brand-200);
+  --violet-300: var(--brand-300);
+  --violet-400: var(--brand-400);
+  --violet-500: var(--brand-500);
+  --violet-600: var(--brand-600);
+  --violet-700: var(--brand-700);
+  --violet-800: var(--brand-800);
+  --violet-900: var(--brand-900);
 
-  /* Borders */
-  --border-subtle: rgba(139, 92, 246, 0.08);
-  --border-default: rgba(139, 92, 246, 0.15);
-  --border-strong: rgba(139, 92, 246, 0.3);
+  /* Surfaces — Gunmetal palette per brand spec */
+  --bg-primary:   #0E1216;  /* Gunmetal Black */
+  --bg-secondary: #181E24;  /* Deep Steel */
+  --bg-tertiary:  #2D343C;  /* Gunmetal */
+  --bg-elevated:  #363E47;
+  --bg-hover:     #232A32;
+
+  /* Borders — Electric Blue at low opacity */
+  --border-subtle:  rgba(74, 158, 224, 0.08);
+  --border-default: rgba(74, 158, 224, 0.15);
+  --border-strong:  rgba(74, 158, 224, 0.3);
 
   /* Text */
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --text-accent: #a78bfa;
+  --text-primary:   #E8ECEF;  /* Hangar White */
+  --text-secondary: #8C949C;  /* Warship Grey */
+  --text-tertiary:  #646B73;
+  --text-accent:    #4A9EE0;  /* Electric Blue */
 
-  /* Status */
+  /* Status — reserved for semantic state, not brand. Kept close to current. */
   --success: #34d399;
   --success-bg: rgba(52, 211, 153, 0.1);
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --warning: #fbbf24;
   --warning-bg: rgba(251, 191, 36, 0.1);
-  --info: #60a5fa;
-  --info-bg: rgba(96, 165, 250, 0.1);
+  --info: #4A9EE0;
+  --info-bg: rgba(74, 158, 224, 0.1);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+  /* Shadows — deeper on the darker Gunmetal Black surface */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 20px rgba(74, 158, 224, 0.25);
 
   /* Radius */
   --radius-sm: 6px;
@@ -93,7 +106,7 @@ body {
 
 /* Focus styles for keyboard navigation */
 *:focus-visible {
-  outline: 2px solid var(--violet-500);
+  outline: 2px solid var(--brand-500);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -124,7 +137,7 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(74, 158, 224, 0.35);
   color: var(--text-primary);
 }
 
@@ -366,16 +379,16 @@ body {
   .stagger-children > *:nth-child(7) { animation-delay: 450ms; }
   .stagger-children > *:nth-child(8) { animation-delay: 525ms; }
 
-  /* Glass morphism */
+  /* Glass morphism — tuned to the Deep Steel card surface */
   .glass {
-    background: rgba(15, 15, 20, 0.7);
+    background: rgba(24, 30, 36, 0.7);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border-subtle);
   }
 
   .glass-strong {
-    background: rgba(15, 15, 20, 0.85);
+    background: rgba(24, 30, 36, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border-default);

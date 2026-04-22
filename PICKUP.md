@@ -166,7 +166,7 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voic
 | Step 3 — Tiers | ✅ Done |
 | Step 4 — 16 new features + paywalls | ✅ Done |
 | Step 5 — Moderate features | ⏸ Deferred post-launch |
-| Step 5.5 — Design refresh | ⏸ Waiting on logo |
+| Step 5.5 — Brand palette | ✅ Done 2026-04-22 — Gunmetal + Electric Blue applied |
 | Step 6 — Landing page | ✅ Done |
 | Step 6.5 — Cost optimization | ✅ Done |
 | Step 6.75 — Credit system | ✅ Done |

@@ -175,7 +175,7 @@ function CreditMeter({ balance, allowance, resetAt, cycleLabel }: { balance: num
     <div className="flex items-center gap-4">
       <div className="relative w-20 h-20 flex-shrink-0">
         <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(139,92,246,0.1)" strokeWidth="7" />
+          <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(74,158,224,0.12)" strokeWidth="7" />
           <circle
             cx="40" cy="40" r={r} fill="none"
             stroke={color} strokeWidth="7"

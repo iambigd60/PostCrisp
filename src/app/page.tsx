@@ -20,7 +20,7 @@ const FEATURE_CATEGORIES = [
     title: "Create",
     count: 8,
     desc: "Captions, hashtags, scripts, repurpose, blog-to-social, polls, DMs, comment replies.",
-    color: "from-violet-500 to-purple-600",
+    color: "from-brand-500 to-brand-700",
   },
   {
     icon: "⚙️",

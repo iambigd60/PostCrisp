@@ -39,7 +39,7 @@ function HeatmapCell({ value }: { value: number }) {
   return (
     <div
       className="aspect-square rounded-sm sm:rounded transition-all hover:scale-110 hover:z-10 relative group cursor-default"
-      style={{ backgroundColor: `rgba(139, 92, 246, ${opacity})` }}
+      style={{ backgroundColor: `rgba(74, 158, 224, ${opacity})` }}
       title={`Engagement: ${value}%`}
     >
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-surface-elevated border border-brand-500/20 rounded text-2xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
@@ -117,7 +117,7 @@ export default function DemoBestTimesPage() {
               <span>Low</span>
               <div className="flex gap-0.5">
                 {[10, 30, 50, 70, 90].map((v) => (
-                  <div key={v} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(139, 92, 246, ${v / 100})` }} />
+                  <div key={v} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(74, 158, 224, ${v / 100})` }} />
                 ))}
               </div>
               <span>High</span>

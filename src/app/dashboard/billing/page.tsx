@@ -138,7 +138,7 @@ export default function BillingPage() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-zinc-100">{currentPlan.name} Plan</h2>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isPaid ? `bg-opacity-20 ${theme.accent}` : 'bg-zinc-700/50 text-zinc-400'}`} style={isPaid ? { backgroundColor: 'rgba(139,92,246,0.15)' } : undefined}>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isPaid ? `bg-opacity-20 ${theme.accent}` : 'bg-zinc-700/50 text-zinc-400'}`} style={isPaid ? { backgroundColor: 'rgba(74,158,224,0.18)' } : undefined}>
                 {isPaid ? 'Active' : 'Free tier'}
               </span>
             </div>

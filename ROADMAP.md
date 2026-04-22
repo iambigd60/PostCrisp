@@ -161,9 +161,22 @@ Grow (all tiers):
 
 ---
 
-## Step 5.5 — Design system modernization (~1 day)
+## ✅ Step 5.5 — Brand palette adopted (2026-04-22)
 
-Current visual design is functional but conservative. Refresh before launch so the product looks as premium as it performs.
+Palette finalized: **Gunmetal + Electric Blue** (aviation/naval theme — "PostCrisp" = Post [blue action] + Crisp [Warship Grey aesthetic]).
+
+- Gunmetal Black `#0E1216` — page bg
+- Deep Steel `#181E24` — cards
+- Gunmetal `#2D343C` — accent surfaces
+- **Electric Blue `#4A9EE0`** — primary brand
+- Warship Grey `#8C949C` — secondary text
+- Hangar White `#E8ECEF` — primary text
+
+Applied via `tailwind.config.ts` tonal ramp + `globals.css` variables + targeted updates to hardcoded rgba references (dashboard usage ring, heatmap cells, gradient pills). Legacy `--violet-*` CSS vars still resolve (aliased to `--brand-*`) for safety. Shadow-glow now pulses Electric Blue instead of violet.
+
+Earlier candidate palettes (Coral+Cyan, Amber+Plum, Crusher Brands Cognac/Area-51, mint/teal from brainstorm) kept below as historical context — not adopted.
+
+### Historical candidates (for reference only)
 
 - [ ] **Color scheme audit + refresh** — current palette is violet-brand + dark zinc surfaces. Reads "tech tool" not "creative tool." Three candidate directions to decide between:
 

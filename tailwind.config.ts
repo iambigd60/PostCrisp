@@ -9,21 +9,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Brand: Electric Blue tonal ramp, anchored on 500 = #4A9EE0 ──
+        // Used in existing code as `brand-300` / `brand-500` / `brand-500/20` etc.
+        // Swapping the scale here updates every semantic token reference app-wide.
         brand: {
-          50: "#f5f3ff", 100: "#ede9fe", 200: "#ddd6fe", 300: "#c4b5fd",
-          400: "#a78bfa", 500: "#8b5cf6", 600: "#7c3aed", 700: "#6d28d9",
-          800: "#5b21b6", 900: "#4c1d95",
+          50:  "#EFF7FC",
+          100: "#D6ECF7",
+          200: "#ADD3EE",
+          300: "#85BBE4",
+          400: "#65ABDD",
+          500: "#4A9EE0",  // Electric Blue — brand primary
+          600: "#3B85BE",
+          700: "#2D6699",
+          800: "#204B72",
+          900: "#14354F",
         },
+        // ── Surfaces: Gunmetal palette per brand spec ──
         surface: {
-          primary: "#09090b", secondary: "#0f0f14", tertiary: "#16161d",
-          elevated: "#1c1c27", hover: "#232330",
+          primary:   "#0E1216",  // Gunmetal Black — page bg
+          secondary: "#181E24",  // Deep Steel — cards / elevated bg
+          tertiary:  "#2D343C",  // Gunmetal — accent surfaces / pill bg
+          elevated:  "#363E47",  // one step above tertiary for modals etc.
+          hover:     "#232A32",  // between secondary and tertiary for hover states
+        },
+        // ── Crisp: Warship Grey as a semantic accent (part of the brand vocabulary) ──
+        crisp: {
+          light:   "#B4BBC2",
+          DEFAULT: "#8C949C",  // Warship Grey — secondary accent
+          dark:    "#646B73",
+        },
+        // ── Paper: Hangar White for primary text on dark ──
+        paper: {
+          DEFAULT: "#E8ECEF",  // Hangar White
         },
       },
       fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
       spacing: { sidebar: "260px", "sidebar-collapsed": "72px", header: "64px" },
       boxShadow: {
-        glow: "0 0 20px rgba(139, 92, 246, 0.15)",
-        "glow-lg": "0 0 40px rgba(139, 92, 246, 0.2)",
+        // Electric Blue pulse replacing the old violet glow
+        glow:      "0 0 20px rgba(74, 158, 224, 0.2)",
+        "glow-lg": "0 0 40px rgba(74, 158, 224, 0.25)",
       },
       animation: {
         shimmer: "shimmer 2s ease-in-out infinite",
