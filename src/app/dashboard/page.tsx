@@ -7,6 +7,7 @@ import { SkeletonDashboard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
 import { PLATFORM_META, type Channel } from '@/lib/channels'
+import { GettingStartedCard, type GettingStartedState } from '@/components/GettingStartedCard'
 
 interface Profile {
   full_name: string | null
@@ -15,6 +16,10 @@ interface Profile {
   daily_generations_reset_at: string
   credits_balance: number
   credits_reset_at: string
+  preferences?: {
+    getting_started_dismissed?: boolean
+    onboarded_at?: string | null
+  } | null
 }
 
 interface Generation {
@@ -36,6 +41,9 @@ interface DashboardStats {
   weekGensByPlatform: Record<string, number>
   // Feature keys the user has used at least once (all time). Used to pick unused features for suggestions.
   featuresUsed: Set<string>
+  // Getting-started checklist state (persisted via profiles.preferences).
+  gettingStarted: GettingStartedState
+  gettingStartedDismissed: boolean
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
@@ -403,9 +411,9 @@ export default function DashboardPage() {
 
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-        const [profileRes, generationsRes, savedRes, recentRes, channelsRes, weekGensRes, featuresRes] = await Promise.all([
+        const [profileRes, generationsRes, savedRes, recentRes, channelsRes, weekGensRes, featuresRes, voiceRes] = await Promise.all([
           supabase.from('profiles')
-            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at')
+            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at, preferences')
             .eq('id', user.id)
             .maybeSingle(),
           supabase.from('generations')
@@ -434,6 +442,11 @@ export default function DashboardPage() {
           supabase.from('generations')
             .select('feature')
             .eq('user_id', user.id),
+          // Voice profile traits — populated means user trained their voice.
+          supabase.from('voice_profiles')
+            .select('traits')
+            .eq('user_id', user.id)
+            .maybeSingle(),
         ])
 
         let dailyUsed = profileRes.data?.daily_generations_used ?? 0
@@ -453,15 +466,31 @@ export default function DashboardPage() {
           if (row.feature) featuresUsed.add(row.feature)
         }
 
+        const channels = (channelsRes.data ?? []) as Channel[]
+        const totalGenerations = generationsRes.count ?? 0
+        const savedCount = savedRes.count ?? 0
+        const voiceTrained = !!voiceRes.data?.traits
+        const prefs = (profileRes.data?.preferences ?? {}) as Profile['preferences']
+
+        const gettingStarted: GettingStartedState = {
+          channelsAdded: channels.length > 0,
+          firstGeneration: totalGenerations > 0,
+          savedSomething: savedCount > 0,
+          triedThreeFeatures: featuresUsed.size >= 3,
+          voiceTrained,
+        }
+
         setStats({
           profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
-          totalGenerations: generationsRes.count ?? 0,
-          savedCount: savedRes.count ?? 0,
+          totalGenerations,
+          savedCount,
           weekGenerations: (weekGensRes.data ?? []).length,
           recentGenerations: (recentRes.data ?? []) as Generation[],
-          channels: (channelsRes.data ?? []) as Channel[],
+          channels,
           weekGensByPlatform,
           featuresUsed,
+          gettingStarted,
+          gettingStartedDismissed: Boolean(prefs?.getting_started_dismissed),
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
@@ -517,6 +546,15 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Getting Started checklist — hides once fully complete or user dismisses */}
+      {stats && (
+        <GettingStartedCard
+          state={stats.gettingStarted}
+          dismissed={stats.gettingStartedDismissed}
+          onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
+        />
+      )}
 
       {/* Channels row — personalizes everything below */}
       {stats && stats.channels.length > 0 && (

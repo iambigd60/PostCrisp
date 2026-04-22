@@ -10,6 +10,8 @@ const ALLOWED_KEYS = new Set([
   'email_notifications',
   'usage_reminders',
   'channels',
+  'onboarded_at',              // ISO timestamp set when user finishes /onboarding
+  'getting_started_dismissed', // boolean set when user dismisses the dashboard checklist
 ])
 
 export async function PUT(request: Request) {

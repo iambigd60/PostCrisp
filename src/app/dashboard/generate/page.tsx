@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { PLATFORMS, TONES, CONTENT_TYPES, GENERATION_MESSAGES, PLATFORM_LIMITS, type PlatformId } from "@/lib/constants";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -46,6 +47,19 @@ export default function GeneratePage() {
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
+  const searchParams = useSearchParams();
+  const cameFromOnboarding = searchParams?.get("from") === "onboarding";
+
+  // Prefill from URL params (used by the onboarding wizard's 'Try Captions' CTA
+  // and can be used by share/deep-link flows later). Only sets on mount so the
+  // user's typing doesn't get overwritten.
+  useEffect(() => {
+    const t = searchParams?.get("topic");
+    const p = searchParams?.get("platform");
+    if (t && !topic) setTopic(t.slice(0, 200));
+    if (p && PLATFORMS.some((pl) => pl.id === p)) setPlatform(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const callGenerate = async (body: GenerateRequest) => {
     return apiFetch<{ captions: string[] }>("/api/generate", {
@@ -121,6 +135,17 @@ export default function GeneratePage() {
 
   return (
     <div className="space-y-6">
+      {cameFromOnboarding && captions.length === 0 && (
+        <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-4 flex items-start gap-3">
+          <span className="text-xl">👋</span>
+          <div className="flex-1">
+            <p className="text-sm text-zinc-200">
+              <strong>Welcome to your first tool.</strong> Type a topic, pick a platform + tone, hit Generate.
+              You&apos;ll get 5 caption variations in about 15 seconds. Save the ones you love; regenerate the ones you don&apos;t.
+            </p>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Caption Generator</h1>
         <p className="text-zinc-500 mt-1">Describe your post and let AI craft the perfect caption.</p>

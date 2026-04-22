@@ -43,5 +43,8 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  // New users land on /onboarding for the guided setup; existing users
+  // (login flow) never hit this path. The wizard itself can be skipped,
+  // so this doesn't trap anyone.
+  redirect('/onboarding')
 }
