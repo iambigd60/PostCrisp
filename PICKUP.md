@@ -61,13 +61,25 @@ Four strategic pieces, all architecturally aligned so they compound.
 - New `GettingStartedCard` component — persistent 5-item checklist on dashboard, progress bar, live-computed from real state (channels / first gen / first save / 3 features / voice trained). Dismissible or auto-hides at 100%.
 - No schema changes — `onboarded_at` + `getting_started_dismissed` live in `profiles.preferences` JSONB (whitelist extended).
 
-### 4. Voice Trainer UX refactor — put on hold (`94a4f20`)
+### 4. Alpha Tester Agreement + in-product acceptance gate (`b74f2d4` + `8663f90`)
+
+Prepping for wider tester wave. Legal + product pieces:
+
+- **NDA template** at `docs/alpha-tester-agreement.md` — one-page agreement for sending to testers out-of-band if ever needed. Includes usage flow, email script, future-us checklist. Governing law: Nevada.
+- **In-product acceptance gate** at `/accept-terms` — every authenticated non-admin user must accept before reaching `/dashboard/**` or `/onboarding/**`. Typed full-name signature (min 2 chars) + explicit "I have read and agree" checkbox + submit. Both required before button enables.
+- **Audit record** saved to `profiles.preferences.alpha_nda = { accepted_at, full_name, version, user_agent }`. Versioned via `ALPHA_AGREEMENT_VERSION` constant — bump version to force re-acceptance after text changes.
+- **Server-side guard** `requireAlphaAcceptance()` in `src/lib/alpha-agreement-server.ts` — called from dashboard + onboarding layouts. Admins (role='admin') bypass entirely.
+- **Canonical agreement text** in `src/lib/alpha-agreement.ts` (version-locked with code, no runtime file reads).
+- **Reset path** for testing: `UPDATE profiles SET preferences = preferences - 'alpha_nda' WHERE id = '<uuid>';`
+- **Fit for Klar brothers onboarding** — Ken and Kevin will hit the gate automatically on first sign-in. No paper NDA needed; clickwrap + typed signature + ESIGN compliance covers the legal moment in-product.
+
+### 5. Voice Trainer UX refactor — put on hold (`94a4f20`)
 - YouTube URL import confirmed to be blocked by Vercel IP bot-detection (`player_response_json_length: 3820` diagnostic — see memory).
 - Removed URL import UI block. Reframed the page as caption/written-content analyzer. Added "How this works" 3-step section + clear "coming soon" note listing the deferred integrations.
 - Server-side importer lib + API route kept in repo (ready to re-activate when we pick a real transcript solution — SearchAPI.io / YouTube OAuth / browser extension).
 - Voice Trainer is off the critical path per the new strategic direction — channels + dashboard + onboarding now carry the "platform starts feeling personalized" role.
 
-### 5. Failed-but-learned-from Voice Trainer URL import attempts (earlier today)
+### 6. Failed-but-learned-from Voice Trainer URL import attempts (earlier today)
 - `b4d96e1` → `091cf30` → `f5cffb9` → `9b973f9` → `de9bd47` — four successive approaches (youtube-transcript pkg → youtubei.js → timedtext endpoint → HTML scrape → full diagnostic output). All ultimately blocked by YouTube's IP detection on Vercel's datacenter range.
 - Lesson captured: server-side YouTube scraping from Vercel is a dead end. Long-term options are paid APIs (SearchAPI.io) or YouTube OAuth (own-content only). Deferred both.
 
@@ -220,6 +232,7 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voic
 | Brand palette (Gunmetal + Electric Blue) | ✅ Done (session 11) |
 | Channels + Living Dashboard v1-lite | ✅ Done (session 11) |
 | Guided onboarding + Getting Started checklist | ✅ Done (session 11) |
+| Alpha Tester Agreement template + in-product acceptance gate | ✅ Done (session 11) |
 | **Alpha deployment** | ✅ **Live on Vercel (session 8)** |
 | Step 7 — Launch prep | 🟡 Partial (alpha live, MFA + Stripe prod + custom domain remain) |
 
