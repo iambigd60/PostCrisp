@@ -98,10 +98,14 @@ export default function VoiceTrainerPage() {
     }
     setImporting(true);
     try {
-      const res = await apiFetch<{ ok: true; sample: { content: string; platform: string | null; label: string | null; warnings: string[] } }>(
+      const res = await apiFetch<{ ok: true; sample: { content: string; platform: string | null; label: string | null; warnings: string[] }; debug?: unknown }>(
         "/api/voice-profile/samples/import-url",
         { method: "POST", body: JSON.stringify({ url: importUrl.trim() }) }
       );
+      // Log debug info to browser console regardless of success — helps diagnose
+      // IP-block / API-change issues without needing Vercel log access.
+      // eslint-disable-next-line no-console
+      if (res.debug) console.info("[voice import debug]", res.debug);
       setSampleContent(res.sample.content);
       if (res.sample.platform) setSamplePlatform(res.sample.platform);
       if (res.sample.label) setSampleLabel(res.sample.label);
@@ -112,6 +116,10 @@ export default function VoiceTrainerPage() {
       }
       setImportUrl("");
     } catch (err) {
+      // ApiError carries the full response body on `payload`, so debug info
+      // is there too — log it for diagnosis.
+      // eslint-disable-next-line no-console
+      if (err instanceof ApiError) console.info("[voice import debug]", err.payload);
       const msg = err instanceof ApiError ? err.message : "Import failed";
       addToast(msg, "error");
     } finally {

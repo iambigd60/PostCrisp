@@ -13,9 +13,34 @@ export interface ImportedSample {
 
 export type ImportPlatform = 'youtube'
 
+export interface ImportDebug {
+  scrape?: {
+    http_status?: number
+    page_length?: number
+    ytInitialPlayerResponse_found?: boolean
+    player_response_json_length?: number
+    caption_tracks_count?: number
+    error?: string
+  }
+  innertube?: {
+    ran: boolean
+    parsed_caption_tracks_count?: number
+    raw_caption_tracks_count?: number
+    error?: string
+  }
+  timedtext?: {
+    url_host?: string
+    http_status?: number
+    content_length?: number
+    error?: string
+  }
+  chosen_strategy?: 'scrape' | 'innertube' | 'none'
+}
+
 export interface ImportResult {
   ok: true
   sample: ImportedSample
+  debug?: ImportDebug
 }
 
 export interface ImportFailure {
@@ -23,6 +48,7 @@ export interface ImportFailure {
   error: string
   platform?: string
   suggestion?: string
+  debug?: ImportDebug
 }
 
 // ─── Platform detection ──────────────────────────────────────────────────
@@ -132,8 +158,9 @@ interface ScrapedPlayerResponse {
 
 async function scrapeWatchPage(
   videoId: string
-): Promise<{ tracks: CaptionTrack[]; title: string | null } | { error: string }> {
+): Promise<{ tracks: CaptionTrack[]; title: string | null; debug: NonNullable<ImportDebug['scrape']> } | { error: string; debug: NonNullable<ImportDebug['scrape']> }> {
   const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
+  const debug: NonNullable<ImportDebug['scrape']> = {}
   try {
     const res = await fetch(watchUrl, {
       headers: {
@@ -142,24 +169,28 @@ async function scrapeWatchPage(
         'Accept-Language': 'en-US,en;q=0.9',
       },
     })
+    debug.http_status = res.status
     if (!res.ok) {
-      return { error: `YouTube returned HTTP ${res.status} for the watch page.` }
+      debug.error = `HTTP ${res.status}`
+      return { error: `YouTube returned HTTP ${res.status} for the watch page.`, debug }
     }
     const html = await res.text()
+    debug.page_length = html.length
 
-    // Locate ytInitialPlayerResponse in the HTML. It's assigned with either
-    // `var ytInitialPlayerResponse = {...};` or `ytInitialPlayerResponse = {...};`.
     const marker = 'ytInitialPlayerResponse'
     const start = html.indexOf(marker)
-    if (start === -1) return { error: 'Video page did not contain ytInitialPlayerResponse.' }
+    debug.ytInitialPlayerResponse_found = start !== -1
+    if (start === -1) {
+      debug.error = 'marker not in HTML'
+      return { error: 'Video page did not contain ytInitialPlayerResponse.', debug }
+    }
 
-    // Walk forward to find the opening brace of the JSON.
     const braceStart = html.indexOf('{', start)
-    if (braceStart === -1) return { error: 'Could not locate player response JSON.' }
+    if (braceStart === -1) {
+      debug.error = 'no opening brace'
+      return { error: 'Could not locate player response JSON.', debug }
+    }
 
-    // Walk a balanced-brace parser respecting string literals + escapes so we
-    // extract the complete JSON object even if it spans many lines / includes
-    // strings with inner braces.
     let depth = 0
     let inString = false
     let escape = false
@@ -176,22 +207,29 @@ async function scrapeWatchPage(
         if (depth === 0) { end = i; break }
       }
     }
-    if (end === -1) return { error: 'Malformed player response in page.' }
+    if (end === -1) {
+      debug.error = 'unbalanced braces'
+      return { error: 'Malformed player response in page.', debug }
+    }
 
     const jsonText = html.slice(braceStart, end + 1)
+    debug.player_response_json_length = jsonText.length
     let parsed: ScrapedPlayerResponse
     try {
       parsed = JSON.parse(jsonText)
     } catch {
-      return { error: 'Player response JSON was not parseable.' }
+      debug.error = 'JSON parse failed'
+      return { error: 'Player response JSON was not parseable.', debug }
     }
 
     const tracks = parsed.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []
     const title = parsed.videoDetails?.title ?? null
-    return { tracks, title }
+    debug.caption_tracks_count = tracks.length
+    return { tracks, title, debug }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return { error: `Failed to fetch watch page: ${msg}` }
+    debug.error = msg.slice(0, 200)
+    return { error: `Failed to fetch watch page: ${msg}`, debug }
   }
 }
 
@@ -208,29 +246,30 @@ async function getInnertube(): Promise<Innertube> {
 
 async function innertubeFallback(
   videoId: string
-): Promise<{ tracks: CaptionTrack[]; title: string | null } | { error: string }> {
+): Promise<{ tracks: CaptionTrack[]; title: string | null; debug: NonNullable<ImportDebug['innertube']> } | { error: string; debug: NonNullable<ImportDebug['innertube']> }> {
+  const debug: NonNullable<ImportDebug['innertube']> = { ran: true }
   try {
     const yt = await getInnertube()
     const info = await yt.getInfo(videoId, { client: 'WEB' })
 
-    // Try the high-level parsed shape first...
     const parsedTracks =
       (info as { captions?: { caption_tracks?: CaptionTrack[] } })?.captions?.caption_tracks ?? []
+    debug.parsed_caption_tracks_count = parsedTracks.length
 
-    // ...then fall back to the raw player_response shape in case the parsed
-    // version is empty on this client type.
     type RawPR = { captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] } } }
     const rawPR =
       (info as { page?: { 1?: { player_response?: RawPR } } })?.page?.[1]?.player_response ??
       (info as { player_response?: RawPR })?.player_response
     const rawTracks = rawPR?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []
+    debug.raw_caption_tracks_count = rawTracks.length
 
     const tracks = parsedTracks.length > 0 ? parsedTracks : rawTracks
     const title = (info as { basic_info?: { title?: string } })?.basic_info?.title ?? null
-    return { tracks, title }
+    return { tracks, title, debug }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return { error: `Innertube fallback failed: ${msg}` }
+    debug.error = msg.slice(0, 200)
+    return { error: `Innertube fallback failed: ${msg}`, debug }
   }
 }
 
@@ -246,9 +285,10 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
     }
   }
 
-  // Try HTML scrape first — most reliable. If it fails (parsing or HTTP),
-  // fall back to Innertube. If both fail, give up with the most specific error.
+  const debug: ImportDebug = { chosen_strategy: 'none' }
+
   const scraped = await scrapeWatchPage(videoId)
+  debug.scrape = scraped.debug
 
   let tracks: CaptionTrack[] = []
   let title: string | null = null
@@ -258,30 +298,32 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
     lastError = scraped.error
     console.warn(`[voice-url-importer] HTML scrape failed for ${videoId}: ${scraped.error} — trying Innertube fallback`)
     const fb = await innertubeFallback(videoId)
+    debug.innertube = fb.debug
     if ('error' in fb) {
-      console.error(`[voice-url-importer] Both strategies failed for ${videoId}. Last errors: ${scraped.error} | ${fb.error}`)
       return {
         ok: false,
         error: `Couldn't fetch that video: ${fb.error}`,
         platform: 'youtube',
+        debug,
       }
     }
     tracks = fb.tracks
     title = fb.title
+    debug.chosen_strategy = 'innertube'
   } else {
     tracks = scraped.tracks
     title = scraped.title
+    debug.chosen_strategy = 'scrape'
     if (tracks.length === 0) {
-      // Scrape worked but returned no tracks — still try Innertube as a sanity
-      // check, since the scrape layout occasionally misses captions that
-      // Innertube surfaces.
       console.warn(`[voice-url-importer] HTML scrape returned 0 tracks for ${videoId} — trying Innertube fallback`)
       const fb = await innertubeFallback(videoId)
+      debug.innertube = fb.debug
       if ('error' in fb) {
         lastError = fb.error
       } else if (fb.tracks.length > 0) {
         tracks = fb.tracks
         title = fb.title ?? title
+        debug.chosen_strategy = 'innertube'
       }
     }
   }
@@ -293,6 +335,7 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
         ? `No captions found. ${lastError}`
         : "This video doesn't have any captions. Try one where the 'Show transcript' button works at youtube.com, or paste the content manually.",
       platform: 'youtube',
+      debug,
     }
   }
 
@@ -302,12 +345,18 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
       ok: false,
       error: 'Caption track found but no download URL was exposed. This usually means captions are locked on this video.',
       platform: 'youtube',
+      debug,
     }
   }
 
-  // Fetch the timedtext transcript directly in JSON3 format.
   const separator = track.baseUrl.includes('?') ? '&' : '?'
   const ttUrl = `${track.baseUrl}${separator}fmt=json3`
+  const timedtextDebug: NonNullable<ImportDebug['timedtext']> = {}
+  try {
+    timedtextDebug.url_host = new URL(track.baseUrl).hostname
+  } catch { /* non-fatal */ }
+  debug.timedtext = timedtextDebug
+
   try {
     const res = await fetch(ttUrl, {
       headers: {
@@ -315,18 +364,21 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       },
     })
+    timedtextDebug.http_status = res.status
     if (!res.ok) {
       return {
         ok: false,
         error: `YouTube rejected the transcript download (HTTP ${res.status}).`,
         platform: 'youtube',
+        debug,
       }
     }
     const data: Json3Transcript = await res.json()
     const content = parseJson3Transcript(data)
+    timedtextDebug.content_length = content.length
 
     if (!content) {
-      return { ok: false, error: 'The transcript came back empty.', platform: 'youtube' }
+      return { ok: false, error: 'The transcript came back empty.', platform: 'youtube', debug }
     }
 
     const warnings: string[] = []
@@ -346,14 +398,16 @@ async function importYouTube(url: string): Promise<ImportResult | ImportFailure>
         source_url: url,
         warnings,
       },
+      debug,
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[voice-url-importer] timedtext fetch failed for ${videoId}:`, msg)
+    timedtextDebug.error = msg.slice(0, 200)
     return {
       ok: false,
       error: `Couldn't download the transcript: ${msg.slice(0, 200)}`,
       platform: 'youtube',
+      debug,
     }
   }
 }

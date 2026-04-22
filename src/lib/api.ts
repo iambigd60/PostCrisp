@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public payload?: unknown) {
     super(message);
     this.name = "ApiError";
   }
@@ -38,7 +38,7 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
         throw new ApiError(429, "Rate limit reached. Upgrade for unlimited access!");
       }
 
-      throw new ApiError(response.status, message);
+      throw new ApiError(response.status, message, errorData);
     }
 
     return response.json();
