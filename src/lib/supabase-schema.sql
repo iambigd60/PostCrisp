@@ -98,6 +98,53 @@ INSERT INTO public.platform_settings (key, value)
 
 -- No INSERT/UPDATE RLS — writes go through service role from admin API routes
 
+-- channels — a creator's social accounts. Feeds the dashboard, the tool
+-- picker, and the library's organization. One row per account per user.
+CREATE TABLE IF NOT EXISTS public.channels (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  platform    TEXT NOT NULL,        -- 'instagram' | 'tiktok' | 'youtube' | 'x' | 'linkedin' | 'threads' | 'facebook' | 'newsletter' | 'blog' | 'other'
+  handle      TEXT NOT NULL,        -- e.g. '@alex.main' or 'Alex Kim'
+  label       TEXT,                 -- optional nickname: 'Main account', 'BTS clips', 'Finance newsletter'
+  url         TEXT,                 -- canonical URL to the profile
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS channels_user_id_idx ON public.channels (user_id, sort_order, created_at);
+
+ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users read own channels"
+  ON public.channels FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users insert own channels"
+  ON public.channels FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own channels"
+  ON public.channels FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users delete own channels"
+  ON public.channels FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE OR REPLACE TRIGGER channels_updated_at
+  BEFORE UPDATE ON public.channels
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- saved_content gets an optional channel_id so users can bucket library
+-- entries by brand channel. Nullable to stay backwards-compatible with
+-- existing rows and with saves made before a channel is selected.
+ALTER TABLE public.saved_content
+  ADD COLUMN IF NOT EXISTS channel_id UUID REFERENCES public.channels(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS saved_content_channel_id_idx ON public.saved_content (channel_id);
+
 -- feedback — in-app tester/user feedback submissions
 CREATE TABLE IF NOT EXISTS public.feedback (
   id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { SkeletonDashboard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
+import { PLATFORM_META, type Channel } from '@/lib/channels'
 
 interface Profile {
   full_name: string | null
@@ -30,6 +31,11 @@ interface DashboardStats {
   savedCount: number
   weekGenerations: number
   recentGenerations: Generation[]
+  channels: Channel[]
+  // Maps channel platform → count of generations that went on that platform this week.
+  weekGensByPlatform: Record<string, number>
+  // Feature keys the user has used at least once (all time). Used to pick unused features for suggestions.
+  featuresUsed: Set<string>
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
@@ -232,6 +238,157 @@ const QUICK_ACTIONS = [
   { icon: '🚀', label: 'Get viral ideas', href: '/dashboard/viral-ideas' },
 ]
 
+// Daily briefing generator. Reads the user's internal usage data and returns
+// a 1-2 sentence brief that feels personalized. Pure function of the stats
+// object — no randomness, so it stays stable across re-renders in the same
+// session. Deliberately INTERNAL data only (no scraped social data).
+function buildBriefing(stats: DashboardStats, firstName: string): string {
+  const { channels, weekGenerations, savedCount, totalGenerations, featuresUsed } = stats
+
+  // First-time or near-empty state
+  if (totalGenerations === 0) {
+    if (channels.length === 0) {
+      return `Welcome in, ${firstName}. Start by adding your channels in Settings — PostCrisp tailors every caption, script, and idea to the platforms you actually post on.`
+    }
+    const platforms = channels.map((c) => PLATFORM_META[c.platform]?.label ?? c.platform).slice(0, 2).join(' and ')
+    return `Welcome in, ${firstName}. Your ${platforms} channel${channels.length === 1 ? '' : 's'} ${channels.length === 1 ? 'is' : 'are'} all set. Generate your first caption — takes about fifteen seconds.`
+  }
+
+  // Active user
+  const parts: string[] = []
+  if (weekGenerations > 0) {
+    parts.push(`You've run ${weekGenerations} generation${weekGenerations === 1 ? '' : 's'} this week`)
+  } else if (totalGenerations > 0) {
+    parts.push(`You haven't generated anything this week yet`)
+  }
+
+  if (savedCount > 0) {
+    parts.push(`${savedCount} piece${savedCount === 1 ? '' : 's'} saved in your library`)
+  }
+
+  // Tease a feature they haven't used yet
+  const FEATURE_SUGGESTIONS = [
+    { key: 'viral_ideas', blurb: '— try Viral Ideas for a fresh angle' },
+    { key: 'channel_analysis', blurb: '— a Channel Analysis might spot gaps in your strategy' },
+    { key: 'repurpose', blurb: '— Repurpose turns one post into five' },
+    { key: 'posting_times', blurb: '— Best Times can tune your schedule' },
+  ]
+  const unused = FEATURE_SUGGESTIONS.find((s) => !featuresUsed.has(s.key))
+
+  let sentence = parts.length > 0 ? parts.join(', ') : `Nice to see you back, ${firstName}`
+  if (unused) sentence += ` ${unused.blurb}.`
+  else sentence += '.'
+
+  return sentence
+}
+
+// Proactive suggestions — color-coded by urgency. All signals are internal
+// PostCrisp data (no scraped social data) so they work even without any
+// platform API integration.
+type Suggestion = { id: string; icon: string; label: string; message: string; cta: string; href: string; urgency: 'high' | 'medium' | 'low' }
+
+function buildSuggestions(stats: DashboardStats): Suggestion[] {
+  const out: Suggestion[] = []
+  const { profile, channels, weekGenerations, weekGensByPlatform, featuresUsed } = stats
+
+  // Low-credit warning
+  const tier = tierFromDbValue(profile?.subscription_tier)
+  const allowance = TIER_ALLOWANCE[tier].credits
+  const balance = profile?.credits_balance ?? 0
+  if (allowance > 0 && balance / allowance <= 0.15) {
+    out.push({
+      id: 'low-credits',
+      icon: '⚠️',
+      label: 'Credits running low',
+      message: `You have ${balance} credit${balance === 1 ? '' : 's'} left of your ${allowance} ${TIER_ALLOWANCE[tier].cycle} allowance.`,
+      cta: 'Top up',
+      href: '/dashboard/billing',
+      urgency: 'high',
+    })
+  }
+
+  // Missing channels
+  if (channels.length === 0) {
+    out.push({
+      id: 'no-channels',
+      icon: '🧭',
+      label: 'Connect your channels',
+      message: 'List the social accounts you post to. PostCrisp uses these to personalize every tool + organize your library.',
+      cta: 'Add channels',
+      href: '/dashboard/settings',
+      urgency: 'medium',
+    })
+  } else {
+    // Find a channel they haven't generated for this week
+    const quietChannel = channels.find((c) => !weekGensByPlatform[c.platform])
+    if (quietChannel && weekGenerations > 0) {
+      const meta = PLATFORM_META[quietChannel.platform]
+      out.push({
+        id: 'quiet-channel',
+        icon: meta?.icon ?? '🔕',
+        label: `Nothing for ${meta?.label ?? quietChannel.platform} this week`,
+        message: `${quietChannel.handle} hasn't had any content generated this week. Want to write something?`,
+        cta: 'Generate now',
+        href: '/dashboard/generate',
+        urgency: 'low',
+      })
+    }
+  }
+
+  // Haven't tried Voice Trainer
+  if (!featuresUsed.has('voice_profile_analyzed')) {
+    // Only recommend Voice Trainer if user has generated SOMETHING — don't overwhelm day-1 users
+    if (stats.totalGenerations >= 3) {
+      out.push({
+        id: 'voice-trainer',
+        icon: '🎙️',
+        label: 'Train your writing style',
+        message: 'Paste 3+ captions you\'ve written, and PostCrisp will match your voice on every future generation.',
+        cta: 'Open Voice Trainer',
+        href: '/dashboard/voice',
+        urgency: 'low',
+      })
+    }
+  }
+
+  return out.slice(0, 3)
+}
+
+// Animated typewriter for the daily briefing. Renders progressively to feel
+// 'alive' on page load, then stays static. No loop — runs once per mount.
+function TypedBriefing({ text }: { text: string }) {
+  const [shown, setShown] = useState('')
+  const [done, setDone] = useState(false)
+  const idx = useRef(0)
+
+  useEffect(() => {
+    idx.current = 0
+    setShown('')
+    setDone(false)
+    // Short initial delay so the animation doesn't clash with layout shift.
+    const delay = setTimeout(() => {
+      const interval = setInterval(() => {
+        if (idx.current < text.length) {
+          idx.current++
+          setShown(text.slice(0, idx.current))
+        } else {
+          setDone(true)
+          clearInterval(interval)
+        }
+      }, 18)
+      return () => clearInterval(interval)
+    }, 200)
+    return () => clearTimeout(delay)
+  }, [text])
+
+  return (
+    <>
+      {shown}
+      {!done && <span className="inline-block w-[2px] h-4 bg-brand-400 ml-0.5 align-middle animate-pulse" />}
+    </>
+  )
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -244,7 +401,9 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { setLoading(false); return }
 
-        const [profileRes, generationsRes, savedRes, recentRes] = await Promise.all([
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+        const [profileRes, generationsRes, savedRes, recentRes, channelsRes, weekGensRes, featuresRes] = await Promise.all([
           supabase.from('profiles')
             .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at')
             .eq('id', user.id)
@@ -260,13 +419,22 @@ export default function DashboardPage() {
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(5),
+          supabase.from('channels')
+            .select('id, user_id, platform, handle, label, url, sort_order, created_at, updated_at')
+            .eq('user_id', user.id)
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true }),
+          // Per-platform generation counts for this week — used for the 'you haven't
+          // posted on X yet this week' proactive suggestion + channel card stats.
+          supabase.from('generations')
+            .select('platform')
+            .eq('user_id', user.id)
+            .gte('created_at', weekAgo),
+          // Distinct feature set all-time — used to pick unused features to suggest.
+          supabase.from('generations')
+            .select('feature')
+            .eq('user_id', user.id),
         ])
-
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const { count: weekCount } = await supabase.from('generations')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('created_at', weekAgo)
 
         let dailyUsed = profileRes.data?.daily_generations_used ?? 0
         if (profileRes.data) {
@@ -274,12 +442,26 @@ export default function DashboardPage() {
           if (resetAt.toDateString() !== new Date().toDateString()) dailyUsed = 0
         }
 
+        const weekGensByPlatform: Record<string, number> = {}
+        for (const row of (weekGensRes.data ?? []) as { platform: string | null }[]) {
+          if (!row.platform) continue
+          weekGensByPlatform[row.platform] = (weekGensByPlatform[row.platform] ?? 0) + 1
+        }
+
+        const featuresUsed = new Set<string>()
+        for (const row of (featuresRes.data ?? []) as { feature: string }[]) {
+          if (row.feature) featuresUsed.add(row.feature)
+        }
+
         setStats({
           profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
           totalGenerations: generationsRes.count ?? 0,
           savedCount: savedRes.count ?? 0,
-          weekGenerations: weekCount ?? 0,
+          weekGenerations: (weekGensRes.data ?? []).length,
           recentGenerations: (recentRes.data ?? []) as Generation[],
+          channels: (channelsRes.data ?? []) as Channel[],
+          weekGensByPlatform,
+          featuresUsed,
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
@@ -296,14 +478,18 @@ export default function DashboardPage() {
   const profile = stats?.profile
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
   const isPro = profile?.subscription_tier !== 'free'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const briefing = stats ? buildBriefing(stats, firstName) : ''
+  const suggestions = stats ? buildSuggestions(stats) : []
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
+      {/* Header — greeting + date + upgrade CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">
-            Welcome back, {firstName}! 👋
+            {greeting}, {firstName}
           </h1>
           <p className="text-zinc-500 mt-1 text-sm">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -319,42 +505,80 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { icon: '✍️', label: 'This week', value: stats?.weekGenerations ?? 0, sub: 'generations' },
-          { icon: '📊', label: 'All time', value: stats?.totalGenerations ?? 0, sub: 'generations' },
-          { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0, sub: 'pieces of content' },
-          { icon: '🔥', label: 'Today', value: profile?.daily_generations_used ?? 0, sub: 'generations today' },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all">
-            <span className="text-xl block mb-2">{stat.icon}</span>
-            <div className="text-2xl font-bold text-zinc-100">{stat.value}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
-          </div>
-        ))}
+      {/* Daily briefing — typed text, references the user's channels + usage */}
+      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary shadow-glow p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center text-xl flex-shrink-0">
+          ✦
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Your daily briefing</div>
+          <p className="text-sm sm:text-base text-zinc-200 leading-relaxed min-h-[1.5rem]">
+            <TypedBriefing text={briefing} />
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick actions */}
-        <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-base font-semibold text-zinc-200">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {QUICK_ACTIONS.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary border border-brand-500/10 hover:border-brand-500/25 hover:bg-surface-elevated transition-all group min-h-[52px]"
-              >
-                <span className="text-xl group-hover:scale-110 transition-transform">{action.icon}</span>
-                <span className="text-sm font-medium text-zinc-300">{action.label}</span>
-                <span className="ml-auto text-zinc-600 group-hover:text-zinc-400 transition-colors text-sm">→</span>
-              </Link>
-            ))}
+      {/* Channels row — personalizes everything below */}
+      {stats && stats.channels.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-300">Your channels</h2>
+            <Link href="/dashboard/settings" className="text-xs text-brand-400 hover:text-brand-300">Manage →</Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {stats.channels.map((c) => {
+              const meta = PLATFORM_META[c.platform]
+              const weekCount = stats.weekGensByPlatform[c.platform] ?? 0
+              return (
+                <div
+                  key={c.id}
+                  className="flex-shrink-0 min-w-[200px] rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/25 transition-all p-4 group"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base ${meta.chip.split(' ').slice(0, 2).join(' ')}`}>
+                      {meta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">{meta.label}</div>
+                      <div className="text-sm text-zinc-200 truncate">{c.handle}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    <span className="font-bold text-zinc-200">{weekCount}</span> generation{weekCount === 1 ? '' : 's'} this week
+                  </div>
+                  {c.label && <div className="text-2xs text-zinc-600 mt-1 truncate">{c.label}</div>}
+                </div>
+              )
+            })}
+            <Link
+              href="/dashboard/settings"
+              className="flex-shrink-0 min-w-[120px] rounded-xl border border-dashed border-brand-500/20 hover:border-brand-500/40 hover:bg-surface-secondary/60 transition-all p-4 flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300"
+            >
+              <span className="text-xl mb-1">＋</span>
+              <span className="text-xs font-medium">Add channel</span>
+            </Link>
           </div>
         </div>
+      )}
 
-        {/* Credits */}
+      {/* Metrics + Credits */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+          {[
+            { icon: '✍️', label: 'This week',   value: stats?.weekGenerations ?? 0,            sub: 'generations' },
+            { icon: '📊', label: 'All time',    value: stats?.totalGenerations ?? 0,           sub: 'generations' },
+            { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0,                 sub: 'in your library' },
+            { icon: '🔥', label: 'Today',       value: profile?.daily_generations_used ?? 0,   sub: 'generations' },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all">
+              <span className="text-xl block mb-2">{stat.icon}</span>
+              <div className="text-2xl font-bold text-zinc-100">{stat.value}</div>
+              <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
+              <div className="text-2xs text-zinc-600">{stat.sub}</div>
+            </div>
+          ))}
+        </div>
+
         <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
           <h2 className="text-base font-semibold text-zinc-200 mb-4">Credits</h2>
           <CreditMeter
@@ -366,46 +590,106 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent generations */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-zinc-200">Recent Generations</h2>
+      {/* Two-column: Recent Generations + Proactive Suggestions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent generations (left, 2 cols) */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-zinc-200">Recent content</h2>
+          </div>
+
+          {stats?.recentGenerations && stats.recentGenerations.length > 0 ? (
+            <div className="space-y-2">
+              {stats.recentGenerations.map((gen) => {
+                const meta = FEATURE_META[gen.feature] ?? { icon: '✨', label: gen.feature, href: '/dashboard' }
+                const platformMeta = gen.platform ? PLATFORM_META[gen.platform as keyof typeof PLATFORM_META] : null
+                return (
+                  <Link
+                    key={gen.id}
+                    href={`/dashboard/generations/${gen.id}`}
+                    className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/20 hover:bg-surface-elevated transition-all group"
+                  >
+                    <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-xs font-medium text-brand-400">{meta.label}</span>
+                        {platformMeta && (
+                          <span className={`text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${platformMeta.chip}`}>
+                            {platformMeta.icon} {platformMeta.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-zinc-400 truncate">{getPreview(gen)}</p>
+                    </div>
+                    <span className="text-xs text-zinc-600 flex-shrink-0">{timeAgo(gen.created_at)}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon="📝"
+              title="No generations yet"
+              description="Start generating captions, hashtags, or viral ideas and they'll appear here."
+              actionLabel="Generate Your First Caption"
+              actionHref="/dashboard/generate"
+            />
+          )}
         </div>
 
-        {stats?.recentGenerations && stats.recentGenerations.length > 0 ? (
-          <div className="space-y-2">
-            {stats.recentGenerations.map((gen) => {
-              const meta = FEATURE_META[gen.feature] ?? { icon: '✨', label: gen.feature, href: '/dashboard' }
-              return (
-                <Link
-                  key={gen.id}
-                  href={`/dashboard/generations/${gen.id}`}
-                  className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/20 hover:bg-surface-elevated transition-all group"
-                >
-                  <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-medium text-brand-400">{meta.label}</span>
-                      {gen.platform && (
-                        <span className="text-xs text-zinc-600 bg-surface-tertiary px-1.5 py-0.5 rounded-full capitalize">{gen.platform}</span>
-                      )}
+        {/* Proactive suggestions + quick actions (right column) */}
+        <div className="space-y-3">
+          {suggestions.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-base font-semibold text-zinc-200">PostCrisp suggests</h2>
+              {suggestions.map((s) => {
+                const borderColor =
+                  s.urgency === 'high'   ? 'border-l-red-400' :
+                  s.urgency === 'medium' ? 'border-l-amber-400' :
+                                           'border-l-brand-400'
+                const labelColor =
+                  s.urgency === 'high'   ? 'text-red-300' :
+                  s.urgency === 'medium' ? 'text-amber-300' :
+                                           'text-brand-300'
+                return (
+                  <Link
+                    key={s.id}
+                    href={s.href}
+                    className={`block rounded-xl border border-brand-500/10 border-l-4 ${borderColor} bg-surface-secondary hover:bg-surface-elevated p-4 transition-all group`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-lg flex-shrink-0">{s.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-2xs font-bold uppercase tracking-wider ${labelColor} mb-1`}>{s.label}</div>
+                        <p className="text-sm text-zinc-300 leading-snug">{s.message}</p>
+                        <span className="inline-block text-xs text-brand-400 group-hover:text-brand-300 font-medium mt-2">
+                          {s.cta} →
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-zinc-400 truncate">{getPreview(gen)}</p>
-                  </div>
-                  <span className="text-xs text-zinc-600 flex-shrink-0">{timeAgo(gen.created_at)}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <h2 className="text-base font-semibold text-zinc-200">Quick actions</h2>
+            <div className="grid grid-cols-1 gap-2">
+              {QUICK_ACTIONS.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary border border-brand-500/10 hover:border-brand-500/25 hover:bg-surface-elevated transition-all group min-h-[48px]"
+                >
+                  <span className="text-lg group-hover:scale-110 transition-transform">{action.icon}</span>
+                  <span className="text-sm font-medium text-zinc-300">{action.label}</span>
+                  <span className="ml-auto text-zinc-600 group-hover:text-brand-400 transition-colors text-sm">→</span>
                 </Link>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        ) : (
-          <EmptyState
-            icon="📝"
-            title="No generations yet"
-            description="Start generating captions, hashtags, or viral ideas and they'll appear here."
-            actionLabel="Generate Your First Caption"
-            actionHref="/dashboard/generate"
-          />
-        )}
+        </div>
       </div>
     </div>
   )

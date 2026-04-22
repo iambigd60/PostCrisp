@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { PLATFORMS, TONES } from '@/lib/constants'
+import { ChannelsSection } from '@/components/ChannelsSection'
 
 interface Profile {
   id: string
@@ -292,6 +293,14 @@ export default function SettingsPage() {
         <Button onClick={handleSaveProfile} loading={savingProfile} disabled={!fullName.trim()}>
           Save Changes
         </Button>
+      </SectionCard>
+
+      {/* Channels */}
+      <SectionCard
+        title="Your channels"
+        description="List the social accounts you create content for. PostCrisp uses these to organize your library, personalize your dashboard, and preselect the right platform in tools."
+      >
+        <ChannelsSection />
       </SectionCard>
 
       {/* Preferences */}
