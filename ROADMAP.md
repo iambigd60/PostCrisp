@@ -5,6 +5,102 @@
 
 ---
 
+## 🔜 Next phase — Progressive onboarding tutorial + post-onboarding tour
+
+Planned 2026-04-23. Brainstormed in session 11 following the security-review discussion. **Build tomorrow.** This is the acquisition+retention funnel that converts the existing 3-step wizard into a multi-week guided experience.
+
+### Goal
+
+Sticky onboarding arc stretching across ~2 weeks for new signups. Two distinct experiences:
+
+1. **Acquisition hook (first visit, 5-7 min):** 5-step guided tutorial that ends with the user having a real Channel Analysis, a saved caption, and the first upgrade CTA shown in context.
+2. **Habit builder (ongoing, 2-week tail):** second-tier Getting Started checklist that unlocks 10 more tool walkthroughs after initial 5 complete. User progresses at their own pace; card auto-retires when done.
+
+### Phase 1 — 5-step onboarding tutorial (6-8 hrs)
+
+Added as new step(s) in the existing `/onboarding` wizard, running AFTER channel setup.
+
+**The 5 steps (each 30-90 seconds):**
+
+1. **Analyze your channel** — user picks one of their added channels, answers 3 minimum-friction questions (niche, follower count, one challenge), runs Channel Analysis. **Platform absorbs the credit cost** (not user's starter allowance). Result shows overall assessment + 2 of 3 strengths + 1 of 4 gaps; the Quick Wins, Long-Term Moves, and full gap list are visibly locked with an inline upgrade CTA (Creator tier $19/mo) right next to the locked content. Not a modal, not a hard gate — user can continue the tutorial regardless.
+2. **Write a caption for your niche** — form pre-filled with topic/platform derived from their channel context. Generates 3 captions, user saves one. First actual credit consumed from their 10.
+3. **Find matching hashtags** — automatically chains from the caption topic in step 2. Demonstrates feature composition.
+4. **Get viral content ideas** — 5 ideas tailored to their niche. First "there's a lot more here" moment.
+5. **Save your first piece to the library** — click Save on anything they've generated so far. Retention behavior.
+
+**End state after tutorial:** user has 1 saved Channel Analysis (partially locked), 1 saved caption/idea, 10 starter credits fully intact, and 3 of 5 Getting Started checklist items already checked.
+
+**Key design decisions (defaults if user doesn't answer before build):**
+- **Credit consumption during tutorial:** platform absorbs step 1's cost (~$0.05-0.10 per user); steps 2-5 use user's normal credits (they're intentional choices, not sampled). This avoids "I paid with credits and have nothing left" psychology.
+- **Half-viewable pattern (Decision 2):** show-summary-lock-specifics — overall assessment + 2 strengths + 1 gap visible; Quick Wins / Long-Term Moves / remaining gaps locked with inline upgrade CTA.
+- **Paywall placement:** inline upgrade CTA next to locked content, NOT a modal blocker. Users can skip and still finish the tutorial.
+- **Skippable:** every step has "skip this step" — forced tutorials convert worse than optional ones.
+- **Existing users (Rodney + Klar brothers):** treated as grandfathered — they land on their normal dashboard, don't see the tutorial retroactively. If we want to offer them the tour as optional, add a "Take the tour" button on the Getting Started card.
+
+**Implementation pieces:**
+- New `profiles.preferences.tutorial_progress = { step, completed, analysis_id }` JSONB field
+- `checkAuthAndUsage({ bypassCredits: true })` option flag for tutorial-mode generations
+- New `<LockedSection>` component that grays + blurs content + embeds upgrade CTA
+- Channel Analysis route accepts `tutorialMode: true` and flags sections as `locked: true`
+- Captions / Hashtags / Viral Ideas routes accept pre-fill query params (captions already does; others need it)
+- Wizard routing handles step 1-5 state, previous/next, skip
+- On tutorial completion, Getting Started checklist pre-fills 3 of 5 items (channels added, first gen, first save)
+
+### Phase 2 — Next-10-tools progressive checklist (3-4 hrs)
+
+Built after Phase 1 ships + we have tester data. Automatically appears on `/dashboard` after user completes the initial 5-step tutorial.
+
+**The 10 tools, ranked by impact:**
+
+1. Scripts (biggest TAM overlap — video creators)
+2. Repurpose (headline feature per brainstorm)
+3. Channel Analysis (if not used in step 1 of tutorial)
+4. Trend Radar (growth + discovery hook)
+5. Platform Tips (always-useful reference)
+6. Bio Optimizer (fast universal win)
+7. Sound Tracker (TikTok/Reels specifically)
+8. Blog → Social (written-content creators)
+9. Comment Replies (scales engagement)
+10. Brand Pitch (monetization — signals platform is serious)
+
+Skipped-for-later (still discoverable in sidebar, just not tour-prompted): DM Templates, Polls, YouTube SEO, Rate Calculator, Competitor Analysis, Collab Finder.
+
+**UX:**
+- Getting Started card auto-evolves after initial 5 items are all complete
+- New section unfurls: "🔓 You've unlocked 10 more tools to explore" — second checklist
+- Each item = 1-line value prop + "Try it →" button that deep-links to the tool with pre-filled context (same pattern as onboarding step 3-5 chaining)
+- Check off 10 more at their own pace
+- Card retires permanently when all 10 done or user dismisses
+
+### Phase 3 — Daily suggestion widget (2-3 hrs, v2 only if data says it's needed)
+
+**Deferred until Phase 2 has usage data.** Dashboard widget that picks the highest-signal untried tool per day, based on what their channels imply + what they've done so far. Stretches onboarding across 10+ days. Feels personal, not scripted. Only build if Phase 2 checklist shows meaningful drop-off (users not clicking through to the 10 tools).
+
+### Branding — does NOT block this build
+
+- Palette is done (Gunmetal + Electric Blue applied across Tailwind + CSS tokens)
+- Logo is placeholder `⚡`; final logo is a single shared component swap (~30 min) when asset lands
+- Tutorial is live/contextual (users run real tools, not screenshot walkthroughs) — nothing to reshoot when logo changes
+- Only caveat: if we ever add screenshot GIFs in the "10 tools" cards, those get recorded post-logo-finalization (~20 min total for 10 GIFs)
+
+**Recommendation: build tutorial, swap logo whenever it's final — decoupled.**
+
+### Decisions still needed from user (ask morning of build)
+
+1. **Phase 1 scope** — build exactly as speced? Or trim / rearrange the 5 steps?
+2. **Credits during tutorial** — platform absorbs step 1 (my rec) or user pays?
+3. **Post-tutorial: Phase 2 only, or Phase 2 + Phase 3 hybrid?** Recommended: Phase 2 now, Phase 3 later.
+4. **Paywall placement** — inline upgrade CTA (my rec) or end-of-tutorial modal?
+5. **Grandfathered users** — do existing signups see the tutorial on next login, or only brand-new signups?
+
+### Total effort
+
+- **Phase 1:** 6-8 hours (build in one session)
+- **Phase 2:** 3-4 hours (next session after Phase 1 has usage data)
+- **Phase 3:** 2-3 hours (only if validated by data)
+
+---
+
 ## ✅ Voice Trainer v1 shipped 2026-04-21 (IDEA-12)
 
 The foundational personalization layer is live. Per the 2026-04-20 strategic decision

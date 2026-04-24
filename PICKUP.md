@@ -238,20 +238,51 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voic
 
 ---
 
-## Next session — options
+## ⏭️ Next session (2026-04-23) — DECIDED PLAN
 
-Tester flow is now: signup → wizard → first feature try → dashboard with checklist + briefing + channel row. Most of the "feels personalized" story is in place without any external API integration.
+**Building:** Progressive onboarding tutorial — 5-step guided walkthrough + the groundwork for the post-tutorial 10-tool progressive checklist. Full design + decisions captured in ROADMAP.md under "🔜 Next phase — Progressive onboarding tutorial + post-onboarding tour".
 
-1. **Tool-level channel picker** (~1 hr) — replace platform dropdown in tools with a channel picker driven by `channels` table. Starts populating `saved_content.channel_id`.
-2. **Library reorganization by channel tabs** (~1 hr) — `/dashboard/saved` picks up channel awareness.
-3. **Brand Readiness Score (IDEA-10, ~3-4 hrs)** — monetization gateway gamification. Pure Claude + internal DB, no external APIs needed.
-4. **Thumbnail Analyzer (IDEA-04, ~2 hrs)** — Claude vision, user uploads image for analysis.
-5. **Billing admin** — real Stripe MRR replacing list-price estimate.
-6. **Stripe production price IDs** — needed before you open paywall.
-7. **Custom domain** (`postcrisp.com` → Vercel, ~15 min).
-8. **Triage Rodney/tester feedback** — always a good default.
+**Start-of-session sequence:**
 
-Voice Trainer URL import is parked. Two real long-term paths when it's worth re-activating: SearchAPI.io (residential proxy API, ~$0.005/req) or YouTube OAuth (own-content only, free but requires Google review).
+1. Ask the 5 unanswered decision questions (listed in ROADMAP "Decisions still needed"). Quick answers unblock the build.
+2. Build Phase 1 (5-step tutorial, ~6-8 hrs unattended).
+3. Commit + push.
+4. Defer Phase 2 (next-10-tools checklist) to the session after — only build once we have tester signal on the initial tutorial.
+
+**Default answers if user says "go with your recs":**
+- Credits during tutorial: platform absorbs step 1 (~$0.05-0.10/user); steps 2-5 use user's normal credits
+- Half-viewable: show-summary-lock-specifics (overall assessment + 2 of 3 strengths + 1 of 4 gaps visible; Quick Wins + Long-Term Moves + remaining gaps locked)
+- Paywall: inline upgrade CTA next to locked content, not a modal
+- Grandfathered users: Rodney + Klar brothers DON'T see tutorial on next login (optional "Take the tour" button on Getting Started card)
+- Sequence: Channel Analysis → Captions → Hashtags → Viral Ideas → Save-to-library
+
+**Branding does NOT block this build.** Palette is applied app-wide. Logo is a single-component swap whenever final asset lands. Tutorial is live/contextual (users run real tools), no screenshots to reshoot later.
+
+**Security review findings to handle IN PARALLEL (or after Phase 1):**
+See `docs/security-review.md`. Must-fix-before-20-testers items (~90 min total) can be batched as their own commit before the next tester wave:
+- Delete orphaned `src/app/login/actions.ts` (H2)
+- Delete dead `src/lib/supabase.ts` (H3)
+- Security headers in `next.config.mjs` (M3)
+- Server-side NDA acceptance endpoint (M1)
+- RLS fix on `feature_access` + `ai_config_overrides` (M4)
+- TEXT length caps (L2)
+
+---
+
+## Backlog (not prioritized for next session)
+
+1. **Tool-level channel picker** (~1 hr) — replace platform dropdown with `channels` picker; starts populating `saved_content.channel_id`
+2. **Library reorg by channel tabs** (~1 hr)
+3. **Brand Readiness Score** (IDEA-10, ~3-4 hrs) — gamification, pure Claude + internal DB
+4. **Thumbnail Analyzer** (IDEA-04, ~2 hrs) — Claude vision
+5. **Billing admin** — real Stripe MRR replacing list-price estimate
+6. **Stripe production price IDs** — needed before paywall activation
+7. **Custom domain** (`postcrisp.com` → Vercel, ~15 min)
+8. **Rate limiting via Upstash** (~45 min, M2 from security review)
+9. **MFA on admin account** (external, ~30 min in Supabase dashboard)
+10. **Triage Rodney/tester feedback** — ongoing default
+
+Voice Trainer URL import parked. Two real long-term paths: SearchAPI.io (~$0.005/req) or YouTube OAuth (own-content only, Google review required).
 
 ---
 
