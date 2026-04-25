@@ -43,6 +43,77 @@ interface StepProps {
 
 // ─── STEP 1 — Channel Analysis ───────────────────────────────────────────
 
+/**
+ * Fake-progress indicator for the Channel Analysis run. The API doesn't stream
+ * progress, so this asymptotes toward 95% over ~45s while cycling through
+ * stage messages so the user knows the tab isn't dead. Snaps to 100% when
+ * the parent unmounts it on result.
+ */
+function AnalysisProgress({ platform, handle }: { platform: string; handle: string }) {
+  const [progress, setProgress] = useState(2)
+  const [stageIdx, setStageIdx] = useState(0)
+  const platformLabel = PLATFORM_META[platform as keyof typeof PLATFORM_META]?.label ?? platform
+
+  const stages = [
+    'Reading your channel context…',
+    `Reviewing 2026 ${platformLabel} dynamics…`,
+    'Identifying strengths and gaps…',
+    'Drafting platform-specific recommendations…',
+    'Finalizing your audit report…',
+  ]
+
+  useEffect(() => {
+    // Asymptote toward 95% — slow down as we approach
+    const tick = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 95) return p
+        const remaining = 95 - p
+        return Math.min(95, p + Math.max(0.4, remaining * 0.045))
+      })
+    }, 500)
+
+    // Advance stage roughly every 9 seconds
+    const stageTick = setInterval(() => {
+      setStageIdx((i) => Math.min(i + 1, stages.length - 1))
+    }, 9000)
+
+    return () => {
+      clearInterval(tick)
+      clearInterval(stageTick)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-bold text-zinc-100">Analyzing your channel.</h2>
+        <p className="text-zinc-400 mt-2 text-sm leading-relaxed">
+          Running a real audit of <strong className="text-zinc-200">{handle}</strong> on{' '}
+          <strong className="text-zinc-200">{platformLabel}</strong>. This usually takes 30–60 seconds.
+        </p>
+      </div>
+      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 rounded-full border-2 border-brand-500/30 border-t-brand-500 animate-spin flex-shrink-0" />
+          <div className="text-sm text-zinc-200 font-medium flex-1">{stages[stageIdx]}</div>
+          <div className="text-xs text-zinc-500 tabular-nums font-semibold">{Math.round(progress)}%</div>
+        </div>
+        <div className="h-1.5 bg-surface-tertiary rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          We&apos;re reviewing your niche, posting cadence, and the 2026 {platformLabel} algorithm — not a stock template.
+          Hang tight.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 interface LockedAnalysisResult {
   overallAssessment: string
   strengths: string[]
@@ -110,6 +181,11 @@ export function ChannelAnalysisStep({ channels, ctx, setCtx, onNext, onSkip }: S
     } finally {
       setRunning(false)
     }
+  }
+
+  // ── Running — show progress card so the user sees something is happening ──
+  if (running && !result && selected) {
+    return <AnalysisProgress platform={selected.platform} handle={selected.handle} />
   }
 
   // ── No channel state ──
