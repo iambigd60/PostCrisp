@@ -18,11 +18,34 @@ export interface ChannelAnalysisResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('channel-analysis')
-  if (!auth.ok) return auth.response
-
   const body = await request.json()
-  const { platform, niche, followerCount, postingCadence, contentFocus, currentChallenges, analyzeHandle } = body
+  const { platform, niche, followerCount, postingCadence, contentFocus, currentChallenges, analyzeHandle, tutorialMode } = body
+
+  // Tutorial mode bypasses the user's credit allowance — PostCrisp absorbs
+  // step 1's cost (~$0.05-0.10 per user) so testers finish the tutorial with
+  // their full 10 starter credits intact for genuine post-tutorial use.
+  // We don't trust the client flag blindly: the route only honors it when
+  // the user has tutorial_progress.step === 'analyze' AND .completed !== true.
+  let allowBypass = false
+  if (tutorialMode) {
+    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .maybeSingle()
+      const prefs = (profile?.preferences ?? {}) as { tutorial_progress?: { step?: string; completed?: boolean } }
+      const tp = prefs.tutorial_progress
+      // Allow bypass on the FIRST tutorial run (no record yet) or while user
+      // is genuinely on the analyze step. Once tutorial is completed, no more bypass.
+      allowBypass = !tp || (!tp.completed && (!tp.step || tp.step === 'analyze'))
+    }
+  }
+
+  const auth = await checkAuthAndUsage('channel-analysis', { bypassCredits: allowBypass })
+  if (!auth.ok) return auth.response
 
   if (!platform || !niche?.trim()) {
     return NextResponse.json({ error: 'Platform and niche are required.' }, { status: 400 })
@@ -114,18 +137,51 @@ Rules:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    const { data: inserted } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'channel_analysis',
       platform,
-      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze },
+      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: !!tutorialMode },
       output_data: parsed,
       tokens_used: totalTokens,
-    })
+    }).select('id').single()
 
+    // bypass-credits flow already left auth.creditCost = 0 — calling consumeCredits
+    // is a no-op there but kept for symmetry / non-tutorial path.
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'channel-analysis')
 
-    return NextResponse.json(parsed)
+    // Tutorial mode: return the result with sections marked locked so the
+    // client renders them through LockedSection. The full result is still
+    // saved to generations (above) for post-upgrade reveal.
+    if (tutorialMode && allowBypass) {
+      const locked = {
+        overallAssessment: parsed.overallAssessment,
+        // Show 2 of 3 strengths and 1 of 4 gaps unlocked
+        strengths: (parsed.strengths ?? []).slice(0, 2),
+        gaps: (parsed.gaps ?? []).slice(0, 1),
+        // Observations stay; recommendations get hidden behind the paywall
+        contentMix: { observation: parsed.contentMix?.observation ?? '', recommendation: null },
+        postingConsistency: { observation: parsed.postingConsistency?.observation ?? '', recommendation: null },
+        audienceEngagement: { observation: parsed.audienceEngagement?.observation ?? '', recommendation: null },
+        // Fully locked sections
+        missedOpportunities: [],
+        quickWins: [],
+        longTermMoves: [],
+        // Counts so the client knows how many items are hidden behind each lock
+        _locked: {
+          strengths_hidden: Math.max(0, (parsed.strengths?.length ?? 0) - 2),
+          gaps_hidden: Math.max(0, (parsed.gaps?.length ?? 0) - 1),
+          missedOpportunities_hidden: parsed.missedOpportunities?.length ?? 0,
+          quickWins_hidden: parsed.quickWins?.length ?? 0,
+          longTermMoves_hidden: parsed.longTermMoves?.length ?? 0,
+          recommendations_hidden: 3, // contentMix, postingConsistency, audienceEngagement
+        },
+        analysis_id: inserted?.id ?? null,
+      }
+      return NextResponse.json(locked)
+    }
+
+    return NextResponse.json({ ...parsed, analysis_id: inserted?.id ?? null })
   } catch (error) {
     console.error('Channel analysis error:', error)
     return NextResponse.json({ error: 'Failed to analyze channel. Please try again.' }, { status: 500 })

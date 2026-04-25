@@ -25,7 +25,16 @@ type AuthUsageDenied = {
   response: NextResponse
 }
 
-export async function checkAuthAndUsage(task?: CrispTask): Promise<AuthUsageOk | AuthUsageDenied> {
+export interface CheckAuthOptions {
+  /** When true, skip the credit balance check + cost. Used by the onboarding
+   *  tutorial so step 1's Channel Analysis runs on PostCrisp's dime — the
+   *  user's 10 starter credits stay intact for genuine post-tutorial use.
+   *  The Anthropic/OpenAI cost still gets billed; we just don't debit the
+   *  user's allowance. Verified server-side via tutorial state. */
+  bypassCredits?: boolean
+}
+
+export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions = {}): Promise<AuthUsageOk | AuthUsageDenied> {
   const supabase = createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -69,15 +78,17 @@ export async function checkAuthAndUsage(task?: CrispTask): Promise<AuthUsageOk |
     }
   }
 
-  // Credit preflight — ensure allowance is current, then check balance
+  // Credit preflight — ensure allowance is current, then check balance.
+  // bypassCredits (used by the onboarding tutorial) skips both the cost
+  // and the balance check; the user's credit allowance stays untouched.
   let creditCost = 0
   let creditsBalance = 0
   if (task) {
     const { balance } = await ensureCreditsCurrent(supabase, user.id, tier)
     creditsBalance = balance
-    creditCost = isAdmin ? 0 : creditCostFor(task)
+    creditCost = (isAdmin || opts.bypassCredits) ? 0 : creditCostFor(task)
 
-    if (!isAdmin && balance < creditCost) {
+    if (!isAdmin && !opts.bypassCredits && balance < creditCost) {
       return {
         ok: false,
         response: NextResponse.json(

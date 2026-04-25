@@ -13,6 +13,7 @@ const ALLOWED_KEYS = new Set([
   'onboarded_at',              // ISO timestamp set when user finishes /onboarding
   'getting_started_dismissed', // boolean set when user dismisses the dashboard checklist
   'alpha_nda',                 // structured record: {accepted_at, full_name, version, user_agent?}
+  'tutorial_progress',         // structured record: {step, completed, analysis_id, saved_caption_topic}
 ])
 
 export async function PUT(request: Request) {
