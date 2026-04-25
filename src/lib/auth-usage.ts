@@ -32,6 +32,11 @@ export interface CheckAuthOptions {
    *  The Anthropic/OpenAI cost still gets billed; we just don't debit the
    *  user's allowance. Verified server-side via tutorial state. */
   bypassCredits?: boolean
+  /** When true, skip the tier feature-access gate. Paired with bypassCredits
+   *  for the tutorial: Channel Analysis is normally Creator+, but starter
+   *  users still need a one-time guided run during onboarding. Caller must
+   *  validate the tutorial-state guard before passing this. */
+  bypassFeatureGate?: boolean
 }
 
 export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions = {}): Promise<AuthUsageOk | AuthUsageDenied> {
@@ -70,8 +75,9 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   // Admins bypass every gate (tier + usage cap + feature access + credits)
   const isAdmin = role === 'admin'
 
-  // Feature access (tier gating) — admins bypass
-  if (task && !isAdmin) {
+  // Feature access (tier gating) — admins bypass; tutorial run also bypasses
+  // when the route has validated its tutorial-state guard.
+  if (task && !isAdmin && !opts.bypassFeatureGate) {
     const access = await resolveFeatureAccess(task, tier)
     if (!access.allowed) {
       return { ok: false, response: featureBlockedResponse(access) }

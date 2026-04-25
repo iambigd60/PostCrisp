@@ -44,7 +44,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const auth = await checkAuthAndUsage('channel-analysis', { bypassCredits: allowBypass })
+  const auth = await checkAuthAndUsage('channel-analysis', {
+    bypassCredits: allowBypass,
+    bypassFeatureGate: allowBypass,
+  })
   if (!auth.ok) return auth.response
 
   if (!platform || !niche?.trim()) {
