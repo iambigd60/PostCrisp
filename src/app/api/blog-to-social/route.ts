@@ -15,7 +15,7 @@ export interface BlogSocialPost {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('blog-to-social')
+  const auth = await checkAuthAndUsage('blog-to-social', { request })
   if (!auth.ok) return auth.response
 
   const body = await request.json()

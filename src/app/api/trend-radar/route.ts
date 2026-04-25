@@ -16,7 +16,7 @@ export interface Trend {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('trend-radar')
+  const auth = await checkAuthAndUsage('trend-radar', { request })
   if (!auth.ok) return auth.response
 
   const body = await request.json()

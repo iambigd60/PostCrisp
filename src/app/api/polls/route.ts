@@ -13,7 +13,7 @@ export interface Poll {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('polls')
+  const auth = await checkAuthAndUsage('polls', { request })
   if (!auth.ok) return auth.response
 
   const body = await request.json()

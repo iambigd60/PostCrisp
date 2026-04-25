@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { checkFeedbackRateLimit } from '@/lib/rate-limit'
 
 // POST — submit feedback. Auth required (we attach user_id automatically).
 export async function POST(request: Request) {
@@ -7,6 +8,20 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Rate limit: 10/hour per user. Real testers send feedback occasionally;
+  // a spam loop hits the wall fast.
+  const rl = await checkFeedbackRateLimit(user.id)
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: 'Too much feedback in a short window. Try again in a bit.',
+        code: 'RATE_LIMITED',
+        retryAfterSec: rl.retryAfterSec,
+      },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    )
   }
 
   const body = await request.json()

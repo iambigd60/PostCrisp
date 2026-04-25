@@ -16,7 +16,7 @@ export interface ScriptResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('script')
+  const auth = await checkAuthAndUsage('script', { request })
   if (!auth.ok) return auth.response
 
   const body = await request.json()

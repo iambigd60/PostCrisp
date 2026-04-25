@@ -35,6 +35,7 @@ export async function POST(request: Request) {
   const auth = await checkAuthAndUsage('channel-analysis', {
     bypassCredits: allowBypass,
     bypassFeatureGate: allowBypass,
+    request,
   })
   if (!auth.ok) return auth.response
 

@@ -13,7 +13,7 @@ export interface PlatformTip {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('platform-tips')
+  const auth = await checkAuthAndUsage('platform-tips', { request })
   if (!auth.ok) return auth.response
 
   const body = await request.json()

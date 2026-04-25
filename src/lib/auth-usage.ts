@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
 import { ensureCreditsCurrent, creditCostFor } from './credits'
+import { checkAiRateLimit } from './rate-limit'
 
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
 export const FREE_DAILY_LIMIT = 10
@@ -37,6 +38,11 @@ export interface CheckAuthOptions {
    *  users still need a one-time guided run during onboarding. Caller must
    *  validate the tutorial-state guard before passing this. */
   bypassFeatureGate?: boolean
+  /** When provided, applies the AI rate-limit (per-user + per-IP) before
+   *  the auth/credit checks. Routes should pass the inbound Request so the
+   *  limiter can extract the client IP. Without this, rate limiting is
+   *  skipped — unconfigured Upstash also no-ops. */
+  request?: Request
 }
 
 export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions = {}): Promise<AuthUsageOk | AuthUsageDenied> {
@@ -45,6 +51,31 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  // Rate limit: per-user + per-IP sliding window. Caller must pass the
+  // Request to enable this; without it, limiting silently no-ops (covers
+  // local dev and any route not yet migrated to pass `request`).
+  if (opts.request) {
+    const rl = await checkAiRateLimit(opts.request, user.id)
+    if (!rl.ok) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: rl.reason === 'ip'
+              ? 'Too many requests from this network. Slow down and try again shortly.'
+              : 'You\'re generating too quickly. Give it a moment and try again.',
+            code: 'RATE_LIMITED',
+            retryAfterSec: rl.retryAfterSec,
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(rl.retryAfterSec) },
+          },
+        ),
+      }
+    }
   }
 
   const { data: profile, error: profileError } = await supabase
