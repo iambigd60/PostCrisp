@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs'
+
 /** @type {import('next').NextConfig} */
 
 // Pragmatic CSP for Phase 0 hardening. Permits 'unsafe-inline' for scripts
@@ -48,4 +50,16 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+// Sentry webpack plugin wrap. Source-map upload is gated on SENTRY_AUTH_TOKEN
+// being set in the Vercel build env; without it, the wrap is still safe
+// (errors will still be captured at runtime, just without symbolicated stacks).
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  // Don't fail the Vercel build if Sentry source-map upload errors.
+  errorHandler: () => {},
+  // Trim @sentry/nextjs bundles to keep first-load JS small.
+  hideSourceMaps: true,
+  disableLogger: true,
+})
