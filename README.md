@@ -2,7 +2,7 @@
 
 AI-powered content platform for social-media creators. Built on Next.js 14 (App Router), Supabase, Stripe, and routed AI providers (Anthropic + OpenAI) via the in-house PostCrisp Engine.
 
-Currently in invite-only alpha (`Crusher Brands, LLC`).
+Currently in invite-only alpha. Operated by Crusher Brands, LLC.
 
 ## Local development
 
