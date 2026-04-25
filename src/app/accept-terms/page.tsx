@@ -58,15 +58,13 @@ function AcceptTermsPageInner() {
     if (!canSubmit) return
     setSubmitting(true)
     try {
-      await apiFetch('/api/user/preferences', {
-        method: 'PUT',
+      // Server-only endpoint — captures accepted_at, version, and user_agent
+      // server-side so the legal audit trail can't be forged from the client.
+      await apiFetch('/api/user/alpha-acceptance', {
+        method: 'POST',
         body: JSON.stringify({
-          alpha_nda: {
-            accepted_at: new Date().toISOString(),
-            full_name: typedName.trim(),
-            version: ALPHA_AGREEMENT_VERSION,
-            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
-          },
+          full_name: typedName.trim(),
+          agreed: true,
         }),
       })
       addToast('Thanks — agreement accepted. Welcome in.', 'success')

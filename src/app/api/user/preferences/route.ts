@@ -3,6 +3,11 @@ import { createClient } from '@/utils/supabase/server'
 
 // Whitelist of keys that clients can write under `preferences`. Any other keys
 // are ignored to prevent arbitrary writes.
+//
+// `alpha_nda` is intentionally NOT in this whitelist — it's a legal audit
+// record and is written exclusively via /api/user/alpha-acceptance, which
+// captures accepted_at + version + user_agent server-side. Putting it here
+// would let a client forge an acceptance without seeing the agreement.
 const ALLOWED_KEYS = new Set([
   'default_platform',
   'default_tone',
@@ -12,7 +17,6 @@ const ALLOWED_KEYS = new Set([
   'channels',
   'onboarded_at',              // ISO timestamp set when user finishes /onboarding
   'getting_started_dismissed', // boolean set when user dismisses the dashboard checklist
-  'alpha_nda',                 // structured record: {accepted_at, full_name, version, user_agent?}
   'tutorial_progress',         // structured record: {step, completed, analysis_id, saved_caption_topic}
 ])
 
