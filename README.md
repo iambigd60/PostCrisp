@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PostCrisp
 
-## Getting Started
+AI-powered content platform for social-media creators. Built on Next.js 14 (App Router), Supabase, Stripe, and routed AI providers (Anthropic + OpenAI) via the in-house PostCrisp Engine.
 
-First, run the development server:
+Currently in invite-only alpha (`Crusher Brands, LLC`).
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | Next.js ESLint |
+| `npm run typecheck` | `tsc --noEmit` — strict TS check |
+| `npm test` | Vitest run (single pass) |
+| `npm run test:watch` | Vitest watch mode |
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Required (server, set in Vercel + `.env.local`):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Var | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (browser-safe) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only — bypasses RLS, used by admin routes |
+| `ANTHROPIC_API_KEY` | PostCrisp Engine — Anthropic provider |
+| `OPENAI_API_KEY` | PostCrisp Engine — OpenAI provider |
+| `STRIPE_SECRET_KEY` | Stripe billing (test/prod modes via key prefix) |
+| `STRIPE_WEBHOOK_SECRET` | Verifies inbound Stripe events |
+| `STRIPE_CREATOR_MONTHLY_PRICE_ID` | + `_YEARLY_`, `STRIPE_TEAM_*`, `STRIPE_ELITE_*` per tier/cycle |
+| `RESEND_API_KEY` | Transactional email (auth, feedback notifications) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Required (observability + rate limiting, both server + client):
 
-## Deploy on Vercel
+| Var | Purpose |
+|---|---|
+| `SENTRY_DSN` | Server-side error capture (API routes, edge runtime) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Browser-side error capture — same value as `SENTRY_DSN`, but `NEXT_PUBLIC_` prefix is required for browser bundle inlining |
+| `UPSTASH_REDIS_REST_URL` | Rate limiter backend |
+| `UPSTASH_REDIS_REST_TOKEN` | Rate limiter auth |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Optional:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Var | Purpose |
+|---|---|
+| `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry source-map upload metadata |
+| `SENTRY_AUTH_TOKEN` | Enables source-map upload on build |
+| `FEEDBACK_NOTIFICATION_EMAIL` | Override admin notification address (default: captain@postcrisp.com) |
+
+Sentry is gated on `VERCEL_ENV === 'production' || 'preview'` — it intentionally does not capture from local dev.
+
+## CI
+
+GitHub Actions runs `lint`, `typecheck`, and `test` on every PR and push to `main`. Failed checks block merge. Workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+## Deploy
+
+Auto-deploys to Vercel on push to `main`. No manual step required.
