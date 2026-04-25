@@ -652,16 +652,17 @@ interface ViralIdea {
 }
 
 export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
+  const [niche, setNiche] = useState<string>(() => ctx.niche || ctx.captionTopic || '')
   const [generating, setGenerating] = useState(false)
   const [ideas, setIdeas] = useState<ViralIdea[]>([])
   const [autoRan, setAutoRan] = useState(false)
   const { addToast } = useToast()
 
-  const niche = ctx.niche || ctx.captionTopic
   const platform = ctx.selectedChannel?.platform ?? 'instagram'
 
   const handleGenerate = async () => {
-    if (!niche) {
+    const trimmed = niche.trim()
+    if (!trimmed) {
       addToast('Add a niche or topic first.', 'error')
       return
     }
@@ -670,7 +671,7 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
       const res = await apiFetch<{ ideas: ViralIdea[] }>('/api/viral-ideas', {
         method: 'POST',
         body: JSON.stringify({
-          niche,
+          niche: trimmed,
           platforms: [PLATFORM_META[platform as keyof typeof PLATFORM_META]?.label ?? 'Instagram'],
           formats: ['Video', 'Carousel'],
           count: 5,
@@ -685,7 +686,7 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
     }
   }
 
-  // Auto-run once on mount if we have niche context
+  // Auto-run once on mount if we already have niche context (carried from analyze/captions)
   useEffect(() => {
     if (niche && ideas.length === 0 && !generating && !autoRan) {
       setAutoRan(true)
@@ -694,19 +695,40 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const carried = !!(ctx.niche || ctx.captionTopic)
+
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-bold text-zinc-100">5 viral ideas for your niche.</h2>
         <p className="text-zinc-400 mt-2 text-sm leading-relaxed">
-          {niche ? <>Tailored to <strong className="text-zinc-200">{niche}</strong>. Each comes with a hook + why it works.</> : <>Tell us a niche and we&apos;ll generate 5 specific ideas.</>}
+          {carried
+            ? <>Tailored to <strong className="text-zinc-200">{niche}</strong>. Each comes with a hook + why it works.</>
+            : <>Tell us a niche and we&apos;ll generate 5 specific ideas.</>}
         </p>
       </div>
 
-      {!niche && (
-        <Button onClick={handleGenerate} loading={generating} disabled>
-          (No niche set — skip this step)
-        </Button>
+      {/* Niche input — visible when nothing carried over OR no ideas yet so user can edit */}
+      {!carried && ideas.length === 0 && !generating && (
+        <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              Your niche
+            </label>
+            <input
+              type="text"
+              value={niche}
+              onChange={(e) => setNiche(e.target.value)}
+              placeholder="e.g. food creators in Las Vegas, AI tooling for solopreneurs"
+              maxLength={200}
+              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/40"
+              autoFocus
+            />
+          </div>
+          <Button onClick={handleGenerate} loading={generating} disabled={!niche.trim()}>
+            Generate 5 ideas
+          </Button>
+        </div>
       )}
 
       {generating && (
