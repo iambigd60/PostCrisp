@@ -428,6 +428,7 @@ export function CaptionsStep({ ctx, setCtx, onNext, onSkip }: StepProps) {
           tone,
           contentType: 'post',
           count: 3,
+          tutorialMode: true,
         }),
         timeout: 60000,
       })
@@ -568,6 +569,7 @@ export function HashtagsStep({ ctx, onNext, onSkip }: StepProps) {
         platform,
         count: '15',
         mix: '0.5',
+        tutorial: '1',
       })
       const res = await apiFetch<HashtagsResult>(`/api/hashtags?${params.toString()}`, {
         timeout: 60000,
@@ -675,6 +677,7 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
           platforms: [PLATFORM_META[platform as keyof typeof PLATFORM_META]?.label ?? 'Instagram'],
           formats: ['Video', 'Carousel'],
           count: 5,
+          tutorialMode: true,
         }),
         timeout: 90000,
       })

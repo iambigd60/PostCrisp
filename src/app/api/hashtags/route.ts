@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { isInActiveTutorial } from '@/lib/tutorial-bypass'
 
 // Split N hashtags across 3 categories based on mix (0=popular-heavy, 1=niche-heavy)
 function splitCounts(total: number, mix: number): { high: number; medium: number; low: number } {
@@ -19,14 +20,26 @@ function splitCounts(total: number, mix: number): { high: number; medium: number
 }
 
 export async function GET(request: Request) {
-  const auth = await checkAuthAndUsage('hashtags')
-  if (!auth.ok) return auth.response
-
   const { searchParams } = new URL(request.url)
   const query = searchParams.get('q')
   const platform = searchParams.get('platform') || 'instagram'
   const countParam = parseInt(searchParams.get('count') || '20', 10)
   const mixParam = parseFloat(searchParams.get('mix') || '0.5')
+  const tutorialMode = searchParams.get('tutorial') === '1'
+
+  // Tutorial mode: PostCrisp absorbs the credit + tier cost. Server-validated.
+  let allowBypass = false
+  if (tutorialMode) {
+    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+  }
+
+  const auth = await checkAuthAndUsage('hashtags', {
+    bypassCredits: allowBypass,
+    bypassFeatureGate: allowBypass,
+  })
+  if (!auth.ok) return auth.response
 
   if (!query) {
     return NextResponse.json({ error: 'Please provide a search query.' }, { status: 400 })

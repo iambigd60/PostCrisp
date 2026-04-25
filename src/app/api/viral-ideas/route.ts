@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { isInActiveTutorial } from '@/lib/tutorial-bypass'
 
 export interface ViralIdea {
   title: string
@@ -79,9 +80,6 @@ function extractIdeas(content: string): ViralIdea[] {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('viral-ideas')
-  if (!auth.ok) return auth.response
-
   const body = await request.json()
   const {
     niche,
@@ -90,7 +88,22 @@ export async function POST(request: Request) {
     trendSource = 'Current Trends',
     audience = 'general audience',
     count = 10,
+    tutorialMode,
   } = body
+
+  // Tutorial mode: PostCrisp absorbs credit + tier cost. Server-validated.
+  let allowBypass = false
+  if (tutorialMode) {
+    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+  }
+
+  const auth = await checkAuthAndUsage('viral-ideas', {
+    bypassCredits: allowBypass,
+    bypassFeatureGate: allowBypass,
+  })
+  if (!auth.ok) return auth.response
 
   if (!niche?.trim()) {
     return NextResponse.json({ error: 'Niche is required.' }, { status: 400 })

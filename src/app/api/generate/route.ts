@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
+import { isInActiveTutorial } from '@/lib/tutorial-bypass'
 
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
@@ -24,9 +25,6 @@ const contentTypeGuidance: Record<string, string> = {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('captions')
-  if (!auth.ok) return auth.response
-
   const body = await request.json()
   const {
     topic,
@@ -36,6 +34,7 @@ export async function POST(request: Request) {
     audience,
     count = 5,
     avoid,
+    tutorialMode,
   }: {
     topic?: string
     platform?: string
@@ -44,7 +43,23 @@ export async function POST(request: Request) {
     audience?: string
     count?: number
     avoid?: string[]
+    tutorialMode?: boolean
   } = body
+
+  // Tutorial mode: PostCrisp absorbs the credit + tier cost so testers
+  // finish onboarding with their starter credits intact. Server-validated.
+  let allowBypass = false
+  if (tutorialMode) {
+    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+  }
+
+  const auth = await checkAuthAndUsage('captions', {
+    bypassCredits: allowBypass,
+    bypassFeatureGate: allowBypass,
+  })
+  if (!auth.ok) return auth.response
 
   if (!topic || !platform || !tone) {
     return NextResponse.json({ error: 'Please fill in all fields: topic, platform, and tone.' }, { status: 400 })

@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { consumeCredits } from '@/lib/credits'
+import { isInActiveTutorial } from '@/lib/tutorial-bypass'
 
 export interface ChannelAnalysisResult {
   overallAssessment: string
@@ -22,26 +23,13 @@ export async function POST(request: Request) {
   const { platform, niche, followerCount, postingCadence, contentFocus, currentChallenges, analyzeHandle, tutorialMode } = body
 
   // Tutorial mode bypasses the user's credit allowance — PostCrisp absorbs
-  // step 1's cost (~$0.05-0.10 per user) so testers finish the tutorial with
-  // their full 10 starter credits intact for genuine post-tutorial use.
-  // We don't trust the client flag blindly: the route only honors it when
-  // the user has tutorial_progress.step === 'analyze' AND .completed !== true.
+  // the cost so testers finish the tutorial with their full starter credits
+  // intact. Validated via the shared tutorial-state guard.
   let allowBypass = false
   if (tutorialMode) {
     const supabase = (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferences')
-        .eq('id', user.id)
-        .maybeSingle()
-      const prefs = (profile?.preferences ?? {}) as { tutorial_progress?: { step?: string; completed?: boolean } }
-      const tp = prefs.tutorial_progress
-      // Allow bypass on the FIRST tutorial run (no record yet) or while user
-      // is genuinely on the analyze step. Once tutorial is completed, no more bypass.
-      allowBypass = !tp || (!tp.completed && (!tp.step || tp.step === 'analyze'))
-    }
+    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
   }
 
   const auth = await checkAuthAndUsage('channel-analysis', {
