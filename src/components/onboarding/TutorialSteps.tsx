@@ -543,8 +543,9 @@ export function CaptionsStep({ ctx, setCtx, onNext, onSkip }: StepProps) {
 
 // ─── STEP 3 — Hashtags ────────────────────────────────────────────────────
 
+type HashtagCategory = 'HIGH_REACH' | 'MEDIUM_REACH' | 'LOW_COMPETITION'
 interface HashtagsResult {
-  hashtags: { tag: string; category: 'popular' | 'niche' | 'community'; reach?: string }[]
+  hashtags: { tag: string; category: HashtagCategory; score?: number; posts?: string }[]
 }
 
 export function HashtagsStep({ ctx, onNext, onSkip }: StepProps) {
@@ -562,9 +563,13 @@ export function HashtagsStep({ ctx, onNext, onSkip }: StepProps) {
     }
     setGenerating(true)
     try {
-      const res = await apiFetch<HashtagsResult>('/api/hashtags', {
-        method: 'POST',
-        body: JSON.stringify({ topic: topic.trim(), platform, count: 15 }),
+      const params = new URLSearchParams({
+        q: topic.trim(),
+        platform,
+        count: '15',
+        mix: '0.5',
+      })
+      const res = await apiFetch<HashtagsResult>(`/api/hashtags?${params.toString()}`, {
         timeout: 60000,
       })
       setTags(res.hashtags ?? [])
@@ -611,9 +616,9 @@ export function HashtagsStep({ ctx, onNext, onSkip }: StepProps) {
               <span
                 key={i}
                 className={`text-xs px-2.5 py-1 rounded-lg border ${
-                  t.category === 'popular'
+                  t.category === 'HIGH_REACH'
                     ? 'bg-brand-500/10 text-brand-300 border-brand-500/20'
-                    : t.category === 'niche'
+                    : t.category === 'LOW_COMPETITION'
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                     : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                 }`}
