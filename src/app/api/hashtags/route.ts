@@ -3,7 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
-import { isInActiveTutorial } from '@/lib/tutorial-bypass'
+import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 // Split N hashtags across 3 categories based on mix (0=popular-heavy, 1=niche-heavy)
 function splitCounts(total: number, mix: number): { high: number; medium: number; low: number } {
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   if (tutorialMode) {
     const supabase = (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'hashtags')
   }
 
   const auth = await checkAuthAndUsage('hashtags', {
@@ -89,7 +89,7 @@ Rules:
       user_id: auth.userId,
       feature: 'hashtags',
       platform,
-      input_data: { query, count, mix },
+      input_data: { query, count, mix, tutorialMode: allowBypass },
       output_data: { hashtags },
       tokens_used: totalTokens,
     })

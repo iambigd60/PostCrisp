@@ -79,13 +79,23 @@ export default function OnboardingPage() {
         return
       }
       const [profileRes, channelsRes] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('full_name, preferences').eq('id', user.id).maybeSingle(),
         supabase
           .from('channels')
           .select('id, user_id, platform, handle, label, url, sort_order, created_at, updated_at')
           .eq('user_id', user.id)
           .order('sort_order'),
       ])
+
+      // Gate replay: once the tutorial is completed, send them to the dashboard.
+      // The server-side bypass guard would still deny free credits anyway, so
+      // re-running the wizard would just charge them — bad UX, send home instead.
+      const prefs = (profileRes.data?.preferences ?? {}) as { tutorial_progress?: { completed?: boolean } }
+      if (prefs.tutorial_progress?.completed) {
+        router.replace('/dashboard')
+        return
+      }
+
       const name = profileRes.data?.full_name?.split(' ')[0]?.trim()
       if (name) setUserFirstName(name)
       setChannels((channelsRes.data ?? []) as Channel[])

@@ -80,6 +80,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
   // Which groups are expanded. Default: all expanded (better discoverability).
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     () => new Set(NAV_GROUPS.map((g) => g.label))
@@ -93,10 +94,14 @@ export function Sidebar() {
       if (!user || !mounted) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, preferences")
         .eq("id", user.id)
         .maybeSingle();
-      if (mounted) setIsAdmin(profile?.role === "admin");
+      if (mounted) {
+        setIsAdmin(profile?.role === "admin");
+        const prefs = (profile?.preferences ?? {}) as { tutorial_progress?: { completed?: boolean } };
+        setTutorialCompleted(!!prefs.tutorial_progress?.completed);
+      }
     })();
     return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,15 +204,17 @@ export function Sidebar() {
           )}
         </Link>
 
-        {/* Tutorial (top-level) — re-runnable guided walkthrough for existing users */}
-        <Link
-          href={TUTORIAL_ITEM.href}
-          onClick={() => setMobileOpen(false)}
-          className={linkClass(TUTORIAL_ITEM.href)}
-        >
-          <span className="text-lg flex-shrink-0">{TUTORIAL_ITEM.icon}</span>
-          {!collapsed && <span>{TUTORIAL_ITEM.label}</span>}
-        </Link>
+        {/* Tutorial (top-level) — only shown to users who haven't completed it yet */}
+        {!tutorialCompleted && (
+          <Link
+            href={TUTORIAL_ITEM.href}
+            onClick={() => setMobileOpen(false)}
+            className={linkClass(TUTORIAL_ITEM.href)}
+          >
+            <span className="text-lg flex-shrink-0">{TUTORIAL_ITEM.icon}</span>
+            {!collapsed && <span>{TUTORIAL_ITEM.label}</span>}
+          </Link>
+        )}
 
         {/* Grouped feature nav */}
         {NAV_GROUPS.map((group) => {

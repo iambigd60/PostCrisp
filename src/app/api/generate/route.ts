@@ -4,7 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
-import { isInActiveTutorial } from '@/lib/tutorial-bypass'
+import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   if (tutorialMode) {
     const supabase = (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'captions')
   }
 
   const auth = await checkAuthAndUsage('captions', {
@@ -107,7 +107,7 @@ Return ONLY valid JSON with this structure — no markdown:
       user_id: auth.userId,
       feature: 'captions',
       platform,
-      input_data: { topic, tone, contentType, audience: audience ?? null, count: safeCount },
+      input_data: { topic, tone, contentType, audience: audience ?? null, count: safeCount, tutorialMode: allowBypass },
       output_data: { captions },
       tokens_used: totalTokens,
     })

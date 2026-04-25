@@ -4,7 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { consumeCredits } from '@/lib/credits'
-import { isInActiveTutorial } from '@/lib/tutorial-bypass'
+import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 export interface ChannelAnalysisResult {
   overallAssessment: string
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (tutorialMode) {
     const supabase = (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'channel_analysis')
   }
 
   const auth = await checkAuthAndUsage('channel-analysis', {
@@ -132,7 +132,7 @@ Rules:
       user_id: auth.userId,
       feature: 'channel_analysis',
       platform,
-      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: !!tutorialMode },
+      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: allowBypass },
       output_data: parsed,
       tokens_used: totalTokens,
     }).select('id').single()

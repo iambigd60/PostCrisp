@@ -3,7 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
-import { isInActiveTutorial } from '@/lib/tutorial-bypass'
+import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 export interface ViralIdea {
   title: string
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   if (tutorialMode) {
     const supabase = (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await isInActiveTutorial(supabase, user.id)
+    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'viral_ideas')
   }
 
   const auth = await checkAuthAndUsage('viral-ideas', {
@@ -174,7 +174,7 @@ Rules:
       user_id: auth.userId,
       feature: 'viral_ideas',
       platform: platforms[0] ?? null,
-      input_data: { niche, platforms, formats, trendSource, audience, count: safeCount },
+      input_data: { niche, platforms, formats, trendSource, audience, count: safeCount, tutorialMode: allowBypass },
       output_data: { ideas },
       tokens_used: totalTokens,
     })

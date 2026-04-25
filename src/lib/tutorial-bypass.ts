@@ -2,20 +2,20 @@
  * Server-side guard for the onboarding tutorial credit bypass.
  *
  * When a tutorial step calls a generation API with `tutorialMode: true`,
- * the route must validate that the user is genuinely in the active
- * tutorial flow before honoring the bypass. This prevents a client
- * from spoofing the flag forever.
+ * the route must validate two things before honoring the bypass:
+ *   1. The user is genuinely in the active tutorial flow
+ *   2. They have not already used the bypass for this specific feature
  *
- * The bypass covers Channel Analysis, Captions, Hashtags, and Viral
- * Ideas — i.e. the four AI-generation steps of the wizard. PostCrisp
- * absorbs ~$0.10 per tester to keep their starter credits intact for
- * genuine post-tutorial use.
+ * Together these turn the tutorial into a one-time-per-feature freebie:
+ * each tester gets exactly one free Channel Analysis, one free Captions
+ * generation, one free Hashtags lookup, and one free Viral Ideas batch.
+ * After that, the feature charges normal credits and respects tier gates.
  *
- * Security note: tutorial_progress is user-writeable via the
- * /api/user/preferences whitelist, so a determined attacker could
- * sit on `step='captions', completed=false` to keep getting free
- * generations. Acceptable for alpha (20 testers, ~$0.10/user); if
- * abuse shows up we'll move to a server-only used-features counter.
+ * Prior-use detection reads the generations table — every tutorial run
+ * is recorded with input_data.tutorialMode = true, so a single existence
+ * query is enough. This gate is server-authoritative: even if a client
+ * spoofs tutorial_progress.completed=false to extend the active window,
+ * the per-feature lock still fires after the first run.
  */
 
 import type { createClient } from '@/utils/supabase/server'
@@ -54,4 +54,45 @@ export async function isInActiveTutorial(
   // Step must be one of the AI-generation tutorial steps (or empty,
   // meaning user just landed on /onboarding and hasn't transitioned)
   return !tp.step || TUTORIAL_STEPS.has(tp.step)
+}
+
+/**
+ * Returns true when the bypass has already been consumed for this user
+ * + feature pair. We detect this by querying the generations table for
+ * any past row where input_data.tutorialMode === true. Server-authoritative
+ * — the user can't reset this from the client.
+ *
+ * `feature` must match the value the route writes into generations.feature
+ * (e.g. 'channel_analysis', 'captions', 'hashtags', 'viral_ideas').
+ */
+export async function hasUsedTutorialBypass(
+  supabase: ServerClient,
+  userId: string,
+  feature: string,
+): Promise<boolean> {
+  const { count } = await supabase
+    .from('generations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .eq('input_data->>tutorialMode', 'true')
+
+  return (count ?? 0) > 0
+}
+
+/**
+ * Combined gate: grants tutorial bypass only when the user is in an
+ * active tutorial AND has not already burned the bypass for this feature.
+ * Routes should call this once they know which feature they represent.
+ */
+export async function shouldGrantTutorialBypass(
+  supabase: ServerClient,
+  userId: string,
+  feature: string,
+): Promise<boolean> {
+  const [active, used] = await Promise.all([
+    isInActiveTutorial(supabase, userId),
+    hasUsedTutorialBypass(supabase, userId, feature),
+  ])
+  return active && !used
 }
