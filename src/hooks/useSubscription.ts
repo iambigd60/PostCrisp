@@ -25,11 +25,11 @@ export function useSubscription() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  const upgrade = async (priceId: string) => {
+  const upgrade = async (target: 'creator' | 'team' | 'elite', cycle: 'monthly' | 'yearly') => {
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({ tier: target, cycle }),
     })
     const { url, error } = await res.json()
     if (error) throw new Error(error)

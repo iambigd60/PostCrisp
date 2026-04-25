@@ -73,22 +73,24 @@ export default function BillingPage() {
     }
   }
 
-  const priceIdFor = (target: PaidTier): string | undefined => {
-    if (target === 'creator') return billing === 'monthly' ? PRICES.creator_monthly : PRICES.creator_yearly
-    if (target === 'team')    return billing === 'monthly' ? PRICES.team_monthly    : PRICES.team_yearly
-    if (target === 'elite')   return billing === 'monthly' ? PRICES.elite_monthly   : PRICES.elite_yearly
-    return undefined
+  // Client-side check is for UX only — surface the "not configured" toast
+  // before round-tripping. The server is authoritative on which tier maps
+  // to which Stripe price ID.
+  const isConfigured = (target: PaidTier): boolean => {
+    if (target === 'creator') return !!(billing === 'monthly' ? PRICES.creator_monthly : PRICES.creator_yearly)
+    if (target === 'team')    return !!(billing === 'monthly' ? PRICES.team_monthly    : PRICES.team_yearly)
+    if (target === 'elite')   return !!(billing === 'monthly' ? PRICES.elite_monthly   : PRICES.elite_yearly)
+    return false
   }
 
   const handleUpgrade = async (target: PaidTier) => {
-    const priceId = priceIdFor(target)
-    if (!priceId) {
+    if (!isConfigured(target)) {
       addToast(`${TIER_LABELS[target]} is not yet configured in Stripe.`, 'warning')
       return
     }
     setWorking(target)
     try {
-      await upgrade(priceId)
+      await upgrade(target, billing)
     } catch {
       addToast('Failed to start checkout. Please try again.', 'error')
       setWorking(null)

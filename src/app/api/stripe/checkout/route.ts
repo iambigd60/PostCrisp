@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, PRICES } from '@/lib/stripe'
 import { createClient } from '@/utils/supabase/server'
+
+// Server-authoritative tier → priceId map. We never trust a client-supplied
+// priceId — a logged-in user could otherwise pass a $0 test price (or a
+// lower-tier price) and get a higher-tier subscription. Client sends a
+// semantic { tier, cycle } pair; we resolve the actual Stripe price here.
+const TIER_PRICE_MAP: Record<string, Record<string, string | undefined>> = {
+  creator: { monthly: PRICES.creator_monthly, yearly: PRICES.creator_yearly },
+  team:    { monthly: PRICES.team_monthly,    yearly: PRICES.team_yearly    },
+  elite:   { monthly: PRICES.elite_monthly,   yearly: PRICES.elite_yearly   },
+}
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -10,9 +20,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { priceId } = await request.json()
+  const body = await request.json().catch(() => ({}))
+  const { tier, cycle } = body as { tier?: string; cycle?: string }
+
+  if (tier !== 'creator' && tier !== 'team' && tier !== 'elite') {
+    return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
+  }
+  if (cycle !== 'monthly' && cycle !== 'yearly') {
+    return NextResponse.json({ error: 'Invalid billing cycle' }, { status: 400 })
+  }
+
+  const priceId = TIER_PRICE_MAP[tier][cycle]
   if (!priceId) {
-    return NextResponse.json({ error: 'Price ID is required' }, { status: 400 })
+    return NextResponse.json(
+      { error: `${tier} ${cycle} is not yet configured in Stripe.` },
+      { status: 400 },
+    )
   }
 
   const { data: profile } = await supabase
@@ -22,7 +45,6 @@ export async function POST(request: Request) {
     .single()
 
   try {
-    // Reuse existing Stripe customer or let Checkout create one
     const customerParams = profile?.stripe_customer_id
       ? { customer: profile.stripe_customer_id }
       : { customer_email: profile?.email ?? user.email }
@@ -36,7 +58,7 @@ export async function POST(request: Request) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
       subscription_data: {
-        metadata: { supabase_user_id: user.id },
+        metadata: { supabase_user_id: user.id, tier, cycle },
       },
       allow_promotion_codes: true,
     })
