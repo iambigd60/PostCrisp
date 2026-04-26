@@ -12,6 +12,10 @@ interface NavItem {
 
 interface NavGroup {
   label: string;
+  /** Optional hub-page link. When set, the group's label becomes a clickable
+   *  link to this URL while the disclosure arrow still toggles the inline
+   *  tool list. Categories without a hub yet render as a toggle-only header. */
+  hubHref?: string;
   items: NavItem[];
 }
 
@@ -24,6 +28,7 @@ const TUTORIAL_ITEM: NavItem = { href: "/onboarding", label: "Tutorial", icon: "
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Create",
+    hubHref: "/dashboard/create",
     items: [
       { href: "/dashboard/generate",       label: "Captions",         icon: "✍️" },
       { href: "/dashboard/hashtags",       label: "Hashtags",         icon: "🏷️" },
@@ -223,6 +228,29 @@ export function Sidebar() {
           return (
             <div key={group.label}>
               {!collapsed ? (
+                // When the group has a hub page, label = clickable Link to
+                // the hub, arrow = separate button for expand/collapse. When
+                // there's no hub yet, the entire row is a toggle button.
+                group.hubHref ? (
+                  <div className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-zinc-500">
+                    <Link
+                      href={group.hubHref}
+                      onClick={() => setMobileOpen(false)}
+                      className={`hover:text-brand-300 transition-colors flex-1 ${pathname === group.hubHref ? 'text-brand-300' : ''}`}
+                    >
+                      {group.label}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.label)}
+                      className="ml-2 text-zinc-600 hover:text-zinc-400 transition-transform"
+                      aria-expanded={isOpen}
+                      aria-label={`${isOpen ? "Collapse" : "Expand"} ${group.label}`}
+                    >
+                      <span className={`inline-block transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}>▾</span>
+                    </button>
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.label)}
@@ -233,6 +261,7 @@ export function Sidebar() {
                   <span>{group.label}</span>
                   <span className={`text-zinc-600 group-hover:text-zinc-400 transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}>▾</span>
                 </button>
+                )
               ) : (
                 <div className="h-px bg-brand-500/10 mx-3 my-2" />
               )}
