@@ -58,21 +58,41 @@ Rules:
 - hashtags: 5-15 for IG/TikTok, 0-3 for X/LinkedIn/Facebook/Threads
 - notes: optional 1-sentence reason this version fits the platform`
 
+  let text = ''
+  let totalTokens = 0
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
-    const { text, totalTokens } = await crispGenerate({
+    const result = await crispGenerate({
       task: 'repurpose',
       tier: auth.tier,
       voiceSnippet,
       prompt,
-      maxTokens: 4000,
+      // Bumped 4000 → 5000. Output scales with targetPlatforms.length × per-platform variant; tight at 4000 for 4+ platforms.
+      maxTokens: 5000,
     })
+    text = result.text
+    totalTokens = result.totalTokens
+  } catch (error) {
+    console.error('Repurpose — model call failed:', error)
+    return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
+  }
 
+  let items: RepurposedItem[]
+  try {
     const parsed = parseLooseJson<{ items: RepurposedItem[] }>(text)
-    const items = parsed.items ?? []
+    items = parsed.items ?? []
+  } catch (error) {
+    console.error('Repurpose — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
+  }
 
+  if (!Array.isArray(items) || items.length === 0) {
+    console.error('Repurpose — empty/invalid items array. Preview:', text.slice(0, 300))
+    return NextResponse.json({ error: 'AI returned no repurposed items. Please try again.' }, { status: 502 })
+  }
+
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-
     await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'repurpose',
@@ -81,12 +101,10 @@ Rules:
       output_data: { items },
       tokens_used: totalTokens,
     })
-
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'repurpose')
-
-    return NextResponse.json({ items })
   } catch (error) {
-    console.error('Repurpose error:', error)
-    return NextResponse.json({ error: 'Failed to repurpose content. Please try again.' }, { status: 500 })
+    console.error('Repurpose — persistence failed (non-fatal):', error)
   }
+
+  return NextResponse.json({ items })
 }

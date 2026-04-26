@@ -152,28 +152,36 @@ Rules:
   // Budget ~500 output tokens per idea. Cap at Opus's practical limit.
   const maxTokens = Math.min(8000, 800 + safeCount * 520)
 
+  let text = ''
+  let totalTokens = 0
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
-    const { text, totalTokens } = await crispGenerate({
+    const result = await crispGenerate({
       task: 'viral-ideas',
       tier: auth.tier,
       voiceSnippet,
       prompt,
       maxTokens,
     })
+    text = result.text
+    totalTokens = result.totalTokens
+  } catch (error) {
+    console.error('Viral ideas — model call failed:', error)
+    return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
+  }
 
-    const ideas = extractIdeas(text)
+  // extractIdeas has its own recovery loop (per-slice parseLooseJson +
+  // continue past malformed objects), so it doesn't throw — it just returns
+  // a possibly-empty array. Empty array means nothing was parseable.
+  const ideas = extractIdeas(text)
 
-    if (ideas.length === 0) {
-      console.error('Viral ideas: got zero parseable ideas. Raw content:', text.slice(0, 500))
-      return NextResponse.json(
-        { error: 'The AI response could not be parsed. Please try again.' },
-        { status: 502 }
-      )
-    }
+  if (ideas.length === 0) {
+    console.error('Viral ideas — zero parseable ideas. Preview:', text.slice(0, 500))
+    return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
+  }
 
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-
     await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'viral_ideas',
@@ -182,12 +190,10 @@ Rules:
       output_data: { ideas },
       tokens_used: totalTokens,
     })
-
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'viral-ideas')
-
-    return NextResponse.json({ ideas, generatedAt: new Date().toISOString() })
   } catch (error) {
-    console.error('Viral ideas generation error:', error)
-    return NextResponse.json({ error: 'Failed to generate ideas. Please try again.' }, { status: 500 })
+    console.error('Viral ideas — persistence failed (non-fatal):', error)
   }
+
+  return NextResponse.json({ ideas, generatedAt: new Date().toISOString() })
 }

@@ -67,21 +67,41 @@ Rules:
 - hashtags 3-8 for IG/TikTok, 1-3 for X/LinkedIn, optional elsewhere
 - sourceSection helps the user remember where it came from`
 
+  let text = ''
+  let totalTokens = 0
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
-    const { text, totalTokens } = await crispGenerate({
+    const result = await crispGenerate({
       task: 'blog-to-social',
       tier: auth.tier,
       voiceSnippet,
       prompt,
-      maxTokens: 3500,
+      // Bumped 3500 → 4500. Output is multi-format (carousel + thread + captions + tweet) and routinely brushed the cap.
+      maxTokens: 4500,
     })
+    text = result.text
+    totalTokens = result.totalTokens
+  } catch (error) {
+    console.error('Blog-to-social — model call failed:', error)
+    return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
+  }
 
+  let posts: BlogSocialPost[]
+  try {
     const parsed = parseLooseJson<{ posts: BlogSocialPost[] }>(text)
-    const posts = parsed.posts ?? []
+    posts = parsed.posts ?? []
+  } catch (error) {
+    console.error('Blog-to-social — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
+  }
 
+  if (!Array.isArray(posts) || posts.length === 0) {
+    console.error('Blog-to-social — empty/invalid posts array. Preview:', text.slice(0, 300))
+    return NextResponse.json({ error: 'AI returned no posts. Please try again.' }, { status: 502 })
+  }
+
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-
     await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'blog_to_social',
@@ -90,12 +110,10 @@ Rules:
       output_data: { posts },
       tokens_used: totalTokens,
     })
-
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'blog-to-social')
-
-    return NextResponse.json({ posts })
   } catch (error) {
-    console.error('Blog-to-social error:', error)
-    return NextResponse.json({ error: 'Failed to extract posts. Please try again.' }, { status: 500 })
+    console.error('Blog-to-social — persistence failed (non-fatal):', error)
   }
+
+  return NextResponse.json({ posts })
 }

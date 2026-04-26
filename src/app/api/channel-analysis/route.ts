@@ -117,18 +117,44 @@ Rules:
 - Every recommendation must reference ${platform}-specific mechanics or ${niche}-specific dynamics
 - Never use generic "post consistently" / "engage with your audience" advice — be specific about what/when/how`
 
+  let text = ''
+  let totalTokens = 0
   try {
-    const { text, totalTokens } = await crispGenerate({
+    const result = await crispGenerate({
       task: 'channel-analysis',
       tier: auth.tier,
       prompt,
-      maxTokens: 3500,
+      // Bumped 3500 → 4500. Output shape: 3 strengths + 4 gaps + 3 quick wins
+      // + 3 long-term moves + observations + recommendations. Tight at 3500.
+      maxTokens: 4500,
     })
+    text = result.text
+    totalTokens = result.totalTokens
+  } catch (error) {
+    console.error('Channel analysis — model call failed:', error)
+    return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
+  }
 
-    const parsed = parseLooseJson<ChannelAnalysisResult>(text)
+  let parsed: ChannelAnalysisResult
+  try {
+    parsed = parseLooseJson<ChannelAnalysisResult>(text)
+  } catch (error) {
+    console.error('Channel analysis — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
+  }
 
+  if (!parsed?.overallAssessment || !Array.isArray(parsed.strengths) || !Array.isArray(parsed.gaps)) {
+    console.error('Channel analysis — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
+  }
+
+  // Persistence is best-effort — if the insert fails we still want to return
+  // the analysis to the user. analysis_id falls back to null on persistence
+  // failure (which means tutorial-mode "save to library" links won't work for
+  // that one run, but the user gets value instead of a generic error).
+  let analysisId: string | null = null
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-
     const { data: inserted } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'channel_analysis',
@@ -137,45 +163,44 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     }).select('id').single()
-
+    analysisId = inserted?.id ?? null
     // bypass-credits flow already left auth.creditCost = 0 — calling consumeCredits
     // is a no-op there but kept for symmetry / non-tutorial path.
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'channel-analysis')
-
-    // Tutorial mode: return the result with sections marked locked so the
-    // client renders them through LockedSection. The full result is still
-    // saved to generations (above) for post-upgrade reveal.
-    if (tutorialMode && allowBypass) {
-      const locked = {
-        overallAssessment: parsed.overallAssessment,
-        // Show 2 of 3 strengths and 1 of 4 gaps unlocked
-        strengths: (parsed.strengths ?? []).slice(0, 2),
-        gaps: (parsed.gaps ?? []).slice(0, 1),
-        // Observations stay; recommendations get hidden behind the paywall
-        contentMix: { observation: parsed.contentMix?.observation ?? '', recommendation: null },
-        postingConsistency: { observation: parsed.postingConsistency?.observation ?? '', recommendation: null },
-        audienceEngagement: { observation: parsed.audienceEngagement?.observation ?? '', recommendation: null },
-        // Fully locked sections
-        missedOpportunities: [],
-        quickWins: [],
-        longTermMoves: [],
-        // Counts so the client knows how many items are hidden behind each lock
-        _locked: {
-          strengths_hidden: Math.max(0, (parsed.strengths?.length ?? 0) - 2),
-          gaps_hidden: Math.max(0, (parsed.gaps?.length ?? 0) - 1),
-          missedOpportunities_hidden: parsed.missedOpportunities?.length ?? 0,
-          quickWins_hidden: parsed.quickWins?.length ?? 0,
-          longTermMoves_hidden: parsed.longTermMoves?.length ?? 0,
-          recommendations_hidden: 3, // contentMix, postingConsistency, audienceEngagement
-        },
-        analysis_id: inserted?.id ?? null,
-      }
-      return NextResponse.json(locked)
-    }
-
-    return NextResponse.json({ ...parsed, analysis_id: inserted?.id ?? null })
   } catch (error) {
-    console.error('Channel analysis error:', error)
-    return NextResponse.json({ error: 'Failed to analyze channel. Please try again.' }, { status: 500 })
+    console.error('Channel analysis — persistence failed (non-fatal):', error)
   }
+
+  // Tutorial mode: return the result with sections marked locked so the
+  // client renders them through LockedSection. The full result is still
+  // saved to generations (above) for post-upgrade reveal.
+  if (tutorialMode && allowBypass) {
+    const locked = {
+      overallAssessment: parsed.overallAssessment,
+      // Show 2 of 3 strengths and 1 of 4 gaps unlocked
+      strengths: (parsed.strengths ?? []).slice(0, 2),
+      gaps: (parsed.gaps ?? []).slice(0, 1),
+      // Observations stay; recommendations get hidden behind the paywall
+      contentMix: { observation: parsed.contentMix?.observation ?? '', recommendation: null },
+      postingConsistency: { observation: parsed.postingConsistency?.observation ?? '', recommendation: null },
+      audienceEngagement: { observation: parsed.audienceEngagement?.observation ?? '', recommendation: null },
+      // Fully locked sections
+      missedOpportunities: [],
+      quickWins: [],
+      longTermMoves: [],
+      // Counts so the client knows how many items are hidden behind each lock
+      _locked: {
+        strengths_hidden: Math.max(0, (parsed.strengths?.length ?? 0) - 2),
+        gaps_hidden: Math.max(0, (parsed.gaps?.length ?? 0) - 1),
+        missedOpportunities_hidden: parsed.missedOpportunities?.length ?? 0,
+        quickWins_hidden: parsed.quickWins?.length ?? 0,
+        longTermMoves_hidden: parsed.longTermMoves?.length ?? 0,
+        recommendations_hidden: 3, // contentMix, postingConsistency, audienceEngagement
+      },
+      analysis_id: analysisId,
+    }
+    return NextResponse.json(locked)
+  }
+
+  return NextResponse.json({ ...parsed, analysis_id: analysisId })
 }
