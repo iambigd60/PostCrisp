@@ -10,11 +10,30 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import type { SavedItem } from "@/lib/constants";
 
+// Drives the filter buttons + per-item badge rendering. Add a new type here
+// to surface it as its own filter + properly-styled badge in the library.
+const TYPE_META: Record<string, { filterLabel: string; badge: string; tone: 'brand' | 'blue' | 'emerald' | 'purple' | 'amber' }> = {
+  caption:             { filterLabel: '✍️ Captions',          badge: '✍️ Caption',           tone: 'brand'   },
+  hashtags:            { filterLabel: '🏷️ Hashtags',          badge: '🏷️ Hashtags',          tone: 'blue'    },
+  viral_idea:          { filterLabel: '🚀 Viral Ideas',        badge: '🚀 Viral Idea',         tone: 'emerald' },
+  channel_report:      { filterLabel: '🪞 Channel Reports',    badge: '🪞 Channel Report',     tone: 'purple'  },
+  thumbnail_analysis:  { filterLabel: '🖼️ Thumbnail Analyses', badge: '🖼️ Thumbnail Analysis', tone: 'amber'   },
+};
+const TONE_CLASS: Record<string, string> = {
+  brand:   'bg-brand-500/10 text-brand-300',
+  blue:    'bg-blue-500/10 text-blue-300',
+  emerald: 'bg-emerald-500/10 text-emerald-300',
+  purple:  'bg-purple-500/10 text-purple-300',
+  amber:   'bg-amber-500/10 text-amber-300',
+};
+const FILTER_KEYS = ['all', ...Object.keys(TYPE_META)] as const;
+type FilterKey = (typeof FILTER_KEYS)[number];
+
 export default function SavedPage() {
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "caption" | "hashtags" | "viral_idea">("all");
+  const [filter, setFilter] = useState<FilterKey>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -73,13 +92,12 @@ export default function SavedPage() {
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {(["all", "caption", "hashtags", "viral_idea"] as const).map((f) => {
-          const label =
-            f === "all" ? "All" :
-            f === "caption" ? "✍️ Captions" :
-            f === "hashtags" ? "🏷️ Hashtags" :
-            "🚀 Viral Ideas";
-          const count = f === "all" ? items.length : items.filter((i) => i.type === f).length;
+        {FILTER_KEYS.map((f) => {
+          const label = f === 'all' ? 'All' : TYPE_META[f]?.filterLabel ?? f;
+          const count = f === 'all' ? items.length : items.filter((i) => i.type === f).length;
+          // Hide a typed filter when there's nothing of that type yet — keeps
+          // the row tight and avoids "0 of X" noise.
+          if (f !== 'all' && count === 0) return null;
           return (
             <button
               key={f}
@@ -112,14 +130,8 @@ export default function SavedPage() {
               className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 hover:border-brand-500/20 transition-all group"
             >
               <div className="flex items-start justify-between mb-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                  item.type === "caption"
-                    ? "bg-brand-500/10 text-brand-300"
-                    : item.type === "hashtags"
-                    ? "bg-blue-500/10 text-blue-300"
-                    : "bg-emerald-500/10 text-emerald-300"
-                }`}>
-                  {item.type === "caption" ? "✍️ Caption" : item.type === "hashtags" ? "🏷️ Hashtags" : "🚀 Viral Idea"}
+                <span className={`text-xs font-medium px-2 py-1 rounded-lg ${TONE_CLASS[TYPE_META[item.type]?.tone ?? 'emerald']}`}>
+                  {TYPE_META[item.type]?.badge ?? `📄 ${item.type}`}
                 </span>
                 <span className="text-xs text-zinc-600">
                   {new Date(item.createdAt).toLocaleDateString()}

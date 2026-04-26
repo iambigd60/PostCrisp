@@ -35,6 +35,39 @@ const PLATFORMS = [
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
 
+// Flatten the structured analysis into readable text the saved-content
+// table can store (column is plain TEXT, not JSONB). Markdown-style so it
+// renders with reasonable hierarchy in the Saved library.
+function formatAnalysisAsText(result: ThumbnailAnalysisResult, platform: string, topic?: string): string {
+  const lines: string[] = []
+  lines.push(`# Thumbnail Analysis — ${platform}${topic ? ` · ${topic}` : ''}`)
+  lines.push('')
+  lines.push(`## Click Prediction: ${result.clickPrediction.score}/10`)
+  lines.push(result.clickPrediction.reasoning)
+  lines.push('')
+  if (result.strengths.length > 0) {
+    lines.push(`## What's Working`)
+    result.strengths.forEach((s) => lines.push(`- ${s}`))
+    lines.push('')
+  }
+  if (result.improvements.length > 0) {
+    lines.push(`## Specific Improvements`)
+    result.improvements.forEach((imp, i) => {
+      lines.push(`${i + 1}. [${imp.priority.toUpperCase()}] ${imp.change}`)
+      lines.push(`   Why: ${imp.why}`)
+    })
+    lines.push('')
+  }
+  lines.push(`## Visual Analysis`)
+  lines.push(`- **Hierarchy:** ${result.visualHierarchy}`)
+  lines.push(`- **Text legibility (${result.textLegibility.score}/10):** ${result.textLegibility.issues.length > 0 ? result.textLegibility.issues.join('; ') : 'No issues detected.'}`)
+  lines.push(`- **Emotional hook:** ${result.emotionalHook}`)
+  lines.push(`- **Subject framing:** ${result.subjectFraming}`)
+  lines.push(`- **Color contrast:** ${result.colorContrast}`)
+  lines.push(`- **Platform fit:** ${result.platformFit}`)
+  return lines.join('\n')
+}
+
 export default function ThumbnailAnalyzerPage() {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -44,6 +77,8 @@ export default function ThumbnailAnalyzerPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<ThumbnailAnalysisResult | null>(null)
   const [progressStage, setProgressStage] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { addToast } = useToast()
 
@@ -100,6 +135,7 @@ export default function ThumbnailAnalyzerPage() {
     }
     setAnalyzing(true)
     setResult(null)
+    setSaved(false)
     const stopTicker = startProgressTicker()
     try {
       const imageBase64 = await fileToBase64(file)
@@ -121,6 +157,29 @@ export default function ThumbnailAnalyzerPage() {
     } finally {
       stopTicker()
       setAnalyzing(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!result) return
+    setSaving(true)
+    try {
+      const platformLabel = PLATFORMS.find((p) => p.id === platform)?.label ?? platform
+      await apiFetch('/api/saved', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'thumbnail_analysis',
+          content: formatAnalysisAsText(result, platformLabel, topic.trim() || undefined),
+          platform,
+          topic: topic.trim() || `Thumbnail — ${platformLabel}`,
+        }),
+      })
+      setSaved(true)
+      addToast('Analysis saved to your library', 'success')
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : 'Failed to save', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -375,10 +434,20 @@ export default function ThumbnailAnalyzerPage() {
             </div>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button
+              onClick={handleSave}
+              loading={saving}
+              disabled={saved || saving}
+              variant={saved ? 'secondary' : 'primary'}
+              size="lg"
+            >
+              {saved ? '✓ Saved to library' : 'Save analysis to library'}
+            </Button>
             <button
               onClick={() => {
                 setResult(null)
+                setSaved(false)
                 if (previewUrl) URL.revokeObjectURL(previewUrl)
                 setPreviewUrl(null)
                 setFile(null)

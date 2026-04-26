@@ -207,7 +207,10 @@ export type Tone = (typeof TONES)[number]["id"];
 
 export interface SavedItem {
   id: string;
-  type: "caption" | "hashtags" | "viral_idea";
+  // Open-string union — TYPE_META in saved/page.tsx renders known types with
+  // proper badges + filter buttons; anything unknown falls back to a default
+  // styling. Pages can save with any new type without schema changes.
+  type: string;
   content: string;
   platform: string;
   createdAt: string;
