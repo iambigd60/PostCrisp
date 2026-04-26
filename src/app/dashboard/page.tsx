@@ -589,41 +589,9 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Daily briefing — typed text, references the user's channels + usage */}
-      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary shadow-glow p-5 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center text-xl flex-shrink-0">
-          ✦
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Your daily briefing</div>
-          <p className="text-sm sm:text-base text-zinc-200 leading-relaxed min-h-[1.5rem]">
-            <TypedBriefing text={briefing} />
-          </p>
-        </div>
-      </div>
-
-      {/* Getting Started checklist — hides once fully complete or user dismisses */}
-      {stats && (
-        <GettingStartedCard
-          state={stats.gettingStarted}
-          dismissed={stats.gettingStartedDismissed}
-          onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
-        />
-      )}
-
-      {/* Phase 2 — 10 next tools to try. Only surfaces post-tutorial. */}
-      {stats?.showNextTools && (
-        <NextToolsCard
-          state={stats.nextTools}
-          dismissed={stats.nextToolsDismissed}
-          onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
-        />
-      )}
-
-      {/* Brand Readiness Score — always visible, deterministic, free. */}
-      {stats && <BrandReadinessCard result={stats.brs} />}
-
-      {/* Channels row — personalizes everything below */}
+      {/* Channels row — moved to the top so the user immediately sees what
+          they have. Only renders when channels exist; new users land on
+          GettingStartedCard's "Add your channels" prompt instead. */}
       {stats && stats.channels.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -665,6 +633,40 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Daily briefing — typed text, references the user's channels + usage */}
+      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary shadow-glow p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center text-xl flex-shrink-0">
+          ✦
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Your daily briefing</div>
+          <p className="text-sm sm:text-base text-zinc-200 leading-relaxed min-h-[1.5rem]">
+            <TypedBriefing text={briefing} />
+          </p>
+        </div>
+      </div>
+
+      {/* Getting Started checklist — hides once fully complete or user dismisses */}
+      {stats && (
+        <GettingStartedCard
+          state={stats.gettingStarted}
+          dismissed={stats.gettingStartedDismissed}
+          onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
+        />
+      )}
+
+      {/* Phase 2 — 10 next tools to try. Only surfaces post-tutorial. */}
+      {stats?.showNextTools && (
+        <NextToolsCard
+          state={stats.nextTools}
+          dismissed={stats.nextToolsDismissed}
+          onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
+        />
+      )}
+
+      {/* Brand Readiness Score — always visible, deterministic, free. */}
+      {stats && <BrandReadinessCard result={stats.brs} />}
 
       {/* Metrics + Credits */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
