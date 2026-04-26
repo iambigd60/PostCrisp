@@ -1,9 +1,50 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-25 (session 12 — Phase 0 hardening + onboarding completion + 2 new features)
+**Last updated:** 2026-04-26 (session 13 — defensive error handling + UX polish + per-category hub pages)
 **Build status:** ✅ Live on Vercel — production verified end-to-end
 **Production URL:** https://postcrisp.vercel.app/
 **Dev server:** `npm run dev` (port 3000 or next available)
+
+---
+
+## Session 13 shipped — defensive error handling + dashboard UX + per-category hub pages
+
+8 commits. Three themes:
+
+### 🛡 Defensive error handling on 5 long-output AI routes
+
+Started when a tester hit "Failed to load trends. Please try again." on Trend Radar. Root cause: `maxTokens` 4000 was too tight for the 20-trend output, so Claude produced truncated JSON that crashed `parseLooseJson`'s `JSON.parse`. The route's single try/catch wrapping model + parse + DB persistence surfaced an opaque generic error.
+
+Fixed Trend Radar, then swept the same pattern across the other 4 routes most likely to exhibit it: channel-analysis, repurpose, blog-to-social, viral-ideas. Each route now:
+
+- **Bumps maxTokens** with headroom: `channel-analysis` 3500→4500, `repurpose` 4000→5000, `blog-to-social` 3500→4500, `trend-radar` 4000→6000. (`viral-ideas` already had dynamic budget.)
+- **Splits the catch into 4 phases** — model call → parse → shape validation → DB persistence. Each phase returns a different specific error code (502 with one of: "AI provider error" / "AI returned malformed output" / "AI returned an unexpected response").
+- **Logs structured context** (operation + first 500 chars of model output) so Sentry's `captureRequestError` produces useful stacks.
+- **Persistence is non-fatal** — generation succeeds, audit row insert fails, user still gets the content. Audit row is the loss; logged for follow-up.
+
+This pattern is now established. The remaining short-output AI routes (captions, hashtags, polls, comment-reply, etc.) could get the same treatment if a Sentry pattern shows them losing audit rows, but lower priority.
+
+### 🎨 Dashboard UX polish
+
+- **Thumbnail Analyzer save-to-library** — added "Save analysis to library" button. Flattens the structured analysis (click prediction + strengths + prioritized improvements + visual analysis dimensions) into markdown-style text and POSTs to `/api/saved` with `type='thumbnail_analysis'`.
+- **Saved library page renderer fix** — bug pre-existed: ANY type other than `caption`/`hashtags`/`viral_idea` was rendering as a green "🚀 Viral Idea" badge. Affected existing Channel Reports too. Replaced nested ternaries with a `TYPE_META` map driving filter buttons + badges. New entries: 🪞 Channel Reports (purple), 🖼️ Thumbnail Analyses (amber). Filter buttons hide when count is 0. `SavedItem.type` widened from a literal union to plain string.
+- **"Show hidden checklists" affordance** — once user dismisses GettingStartedCard or NextToolsCard there was no way to bring them back. New subtle button at the bottom of dashboard, only renders when at least one card is dismissed; one click resets both flags.
+- **Channels row promoted to top of dashboard** — was buried below 4 other modules. Now fires immediately after the greeting header. Empty state gracefully gated (zero-channel users still hit GettingStartedCard's "Add your channels" prompt).
+- **Channel profile pictures via unavatar.io** — `<ChannelAvatar>` component renders user's actual profile pic from each platform with a platform-emoji fallback when fetch fails. CSP updated to allow unavatar.io + major CDN redirect targets (googleusercontent, twimg, cdninstagram, tiktokcdn, licdn, etc.). Reliability varies by platform — IG/TikTok occasionally blocked; emoji fallback handles those cleanly.
+
+### 🗂 Per-category hub pages (brainstormed mid-session)
+
+User flagged the sidebar as clunky — wanted clicking a top-level category (Create / Optimize / Grow / Monetize / Library) to go to a dashboard listing all tools in that category, with the user's recent activity and "how to use them" guidance.
+
+Designed and shipped 4 hub pages + Library sidebar relabel:
+
+- **`<CategoryHub>` reusable component** at `src/components/CategoryHub.tsx`. Each category page is a thin 10-line wrapper passing in title + description + tools array.
+- **`src/lib/tools-meta.ts`** — single source of truth for the 21 tools across 4 categories. Each tool has `key` (matches generations.feature), category, icon, label, tagline, "Best for: ..." line, and href.
+- **Hub layout**: header (category + tool count + 1-sentence orientation copy) → tool grid (3-col on desktop) with cards showing tagline + "Best for:" + a green "USED" pill if user has past generations for that tool → recent activity filtered to category's tools (last 8) → graceful empty state.
+- **Sidebar refactor**: `NavGroup` gained an optional `hubHref` field. Categories with a hub render a split header — clickable Link for the label + separate disclosure-arrow button for expanding the inline tool list. Power-user direct access preserved; new users discover via the hub.
+- **Library hub = relabeled `/dashboard/saved`**, no new code. Sidebar Library group label points there.
+
+Routes: `/dashboard/create` (8 tools), `/dashboard/optimize` (6), `/dashboard/grow` (4), `/dashboard/monetize` (3). Each ~580 B in the build thanks to the shared component.
 
 ---
 
@@ -109,6 +150,10 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | Thumbnail Analyzer (multimodal) | ✅ Done 2026-04-25 |
 | Brand Readiness Score lite (IDEA-10) | ✅ Done 2026-04-25 |
 | **Phase 0 hardening sprint** (Sentry + rate limit + headers + Stripe + alpha_nda + Vitest + CI) | ✅ Done 2026-04-25 |
+| Defensive error-handling sweep on 5 long-output AI routes | ✅ Done 2026-04-26 |
+| Per-category hub pages (Create / Optimize / Grow / Monetize) + Library relabel | ✅ Done 2026-04-26 |
+| Dashboard polish (channels promoted, profile pictures, show-hidden affordance, Saved badges) | ✅ Done 2026-04-26 |
+| Thumbnail Analyzer save-to-library | ✅ Done 2026-04-26 |
 | **Alpha deployment** | ✅ Live on Vercel (postcrisp.vercel.app) |
 | Step 7 — Launch prep (custom domain, MFA, Stripe prod, mobile audit, Next.js 15) | 🟡 Partial |
 
@@ -126,11 +171,18 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 5. **Brand Deal Maker** (IDEA-09) — needs separate scoping session.
 6. Phase 3 daily-suggestion widget — only build if Phase 2 NextToolsCard data shows drop-off.
 
+**Smaller polish (queue up if you want low-effort wins):**
+- Mobile sidebar audit — the new clickable category-label + arrow-button split should be eyeballed on mobile to confirm touch targets aren't cramped
+- Settings + Billing currently nested under Library group; future "Account" group could split them off cleanly
+- Defensive error-handling sweep on the remaining short-output AI routes (captions, hashtags, polls, comment-reply, etc.) — pattern is established; only worth doing if Sentry shows them losing audit rows
+- Tool-level channel picker (~1 hr) — replace platform dropdown on tools with the user's channels picker
+- Library reorg by channel tabs (~1 hr)
+
 **Pre-public-launch (Step 7 remaining):**
 7. Custom domain `postcrisp.com` → Vercel + Supabase Site URL update
 8. Stripe production prices (6 price IDs) + webhook for production
 9. MFA enrollment for `captain@postcrisp.com`
-10. Mobile responsive audit
+10. Mobile responsive audit (full app, not just sidebar)
 11. Next.js 15 upgrade (above)
 12. Error boundary audit on new pages
 
