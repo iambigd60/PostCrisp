@@ -199,14 +199,6 @@ export const MOCK_HASHTAGS = [
   { tag: "#reels", score: 88, posts: "33.5M" },
 ];
 
-// Mock best times data (hour: engagement score 0-100)
-export const MOCK_BEST_TIMES: Record<string, number[]> = {
-  instagram: [10, 15, 12, 8, 5, 8, 20, 35, 55, 72, 80, 85, 78, 82, 70, 60, 65, 75, 88, 92, 85, 70, 45, 25],
-  x:         [12, 8, 5, 3, 2, 5, 15, 40, 65, 78, 82, 88, 90, 85, 72, 65, 70, 80, 85, 75, 60, 45, 30, 18],
-  linkedin:  [5, 3, 2, 2, 3, 8, 25, 55, 82, 90, 85, 88, 75, 65, 60, 55, 62, 70, 50, 35, 20, 12, 8, 5],
-  tiktok:    [15, 12, 10, 8, 5, 8, 18, 30, 45, 55, 60, 65, 62, 68, 72, 75, 80, 85, 92, 95, 90, 78, 55, 30],
-};
-
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export const HOURS = Array.from({ length: 24 }, (_, i) => `${i}:00`);
 
