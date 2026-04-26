@@ -42,6 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Optimize",
+    hubHref: "/dashboard/optimize",
     items: [
       { href: "/dashboard/best-times",        label: "Best Times",       icon: "⏰" },
       { href: "/dashboard/youtube-seo",       label: "YouTube SEO",      icon: "📺" },
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Grow",
+    hubHref: "/dashboard/grow",
     items: [
       { href: "/dashboard/viral-ideas",    label: "Viral Ideas",      icon: "🚀" },
       { href: "/dashboard/trends",         label: "Trend Radar",      icon: "📡" },
@@ -62,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Monetize",
+    hubHref: "/dashboard/monetize",
     items: [
       { href: "/dashboard/brand-pitch",        label: "Brand Pitch",         icon: "📧" },
       { href: "/dashboard/rate-calculator",    label: "Rate Calculator",     icon: "💵" },
@@ -70,6 +73,11 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Library",
+    // Library "hub" is the existing /dashboard/saved page — relabeled,
+    // not rebuilt. Settings + Billing live here for proximity but they
+    // aren't really library content; future cleanup may move them to
+    // their own "Account" group.
+    hubHref: "/dashboard/saved",
     items: [
       { href: "/dashboard/saved",          label: "Saved Content",    icon: "💾" },
       { href: "/dashboard/settings",       label: "Settings",         icon: "⚙️" },

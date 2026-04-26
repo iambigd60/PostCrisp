@@ -97,11 +97,142 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
 ]
 
+// OPTIMIZE — channel + asset improvement tools.
+export const OPTIMIZE_TOOLS: ToolMeta[] = [
+  {
+    key: 'posting_times',
+    category: 'optimize',
+    icon: '⏰',
+    label: 'Best Times',
+    tagline: 'Find the hours your audience actually shows up.',
+    bestFor: 'Scheduling posts across multiple platforms.',
+    href: '/dashboard/best-times',
+  },
+  {
+    key: 'youtube_seo',
+    category: 'optimize',
+    icon: '📺',
+    label: 'YouTube SEO',
+    tagline: 'Title, description, tags, hashtags — built to rank.',
+    bestFor: 'Any new YouTube upload\'s search performance.',
+    href: '/dashboard/youtube-seo',
+  },
+  {
+    key: 'bio_optimizer',
+    category: 'optimize',
+    icon: '🧬',
+    label: 'Bio Optimizer',
+    tagline: 'Rewrite your profile bio to convert lurkers into followers.',
+    bestFor: 'Refreshing bios after a positioning or niche shift.',
+    href: '/dashboard/bio-optimizer',
+  },
+  {
+    key: 'platform_tips',
+    category: 'optimize',
+    icon: '💡',
+    label: 'Platform Tips',
+    tagline: 'Algorithm dynamics + best practices specific to each platform.',
+    bestFor: 'Getting up to speed when you\'re entering a new platform.',
+    href: '/dashboard/platform-tips',
+  },
+  {
+    key: 'channel_analysis',
+    category: 'optimize',
+    icon: '🪞',
+    label: 'Channel Analysis',
+    tagline: 'Honest audit of your channel — strengths, gaps, recommendations.',
+    bestFor: 'A quarterly self-checkup or pre-pivot diagnostic.',
+    href: '/dashboard/channel-analysis',
+  },
+  {
+    key: 'thumbnail_analyzer',
+    category: 'optimize',
+    icon: '🖼️',
+    label: 'Thumbnail Analyzer',
+    tagline: 'Click-prediction critique with prioritized fixes.',
+    bestFor: 'A/B-deciding before you publish a thumbnail.',
+    href: '/dashboard/thumbnail-analyzer',
+  },
+]
+
+// GROW — discovery + reach tools.
+export const GROW_TOOLS: ToolMeta[] = [
+  {
+    key: 'viral_ideas',
+    category: 'grow',
+    icon: '🚀',
+    label: 'Viral Ideas',
+    tagline: 'Specific content ideas tailored to your niche.',
+    bestFor: 'Stuck-on-what-to-post days.',
+    href: '/dashboard/viral-ideas',
+  },
+  {
+    key: 'trend_radar',
+    category: 'grow',
+    icon: '📡',
+    label: 'Trend Radar',
+    tagline: "What's peaking and what's rising in your niche.",
+    bestFor: 'Catching trends before they crest.',
+    href: '/dashboard/trends',
+  },
+  {
+    key: 'sound_tracker',
+    category: 'grow',
+    icon: '🎵',
+    label: 'Sound Tracker',
+    tagline: 'Trending sounds for TikTok and Reels.',
+    bestFor: 'Short-form creators who need sound coverage.',
+    href: '/dashboard/sounds',
+  },
+  {
+    key: 'collab_finder',
+    category: 'grow',
+    icon: '🤝',
+    label: 'Collab Finder',
+    tagline: 'Match with creators who fit your niche + tier.',
+    bestFor: 'Building reach through partnerships.',
+    href: '/dashboard/collab-finder',
+  },
+]
+
+// MONETIZE — partnership + pricing tools (Creator+ tier-gated).
+export const MONETIZE_TOOLS: ToolMeta[] = [
+  {
+    key: 'brand_pitch',
+    category: 'monetize',
+    icon: '📧',
+    label: 'Brand Pitch',
+    tagline: 'Outreach pitches tuned to a brand — formal + casual + follow-up.',
+    bestFor: 'Cold-pitching brand partnerships.',
+    href: '/dashboard/brand-pitch',
+  },
+  {
+    key: 'rate_calculator',
+    category: 'monetize',
+    icon: '💵',
+    label: 'Rate Calculator',
+    tagline: 'Defensible rate cards for sponsored posts.',
+    bestFor: "Setting prices when a brand asks 'how much?'.",
+    href: '/dashboard/rate-calculator',
+  },
+  {
+    key: 'competitor_analysis',
+    category: 'monetize',
+    icon: '🔍',
+    label: 'Competitor Analysis',
+    tagline: 'Strategic read on a competing creator — strengths, gaps, differentiation.',
+    bestFor: 'Positioning against creators in your tier.',
+    href: '/dashboard/competitor-analysis',
+  },
+]
+
 // Aggregate map for quick lookup by feature key. Hub pages read by
 // category; dashboard widgets read by key.
 export const ALL_TOOLS: ToolMeta[] = [
   ...CREATE_TOOLS,
-  // OPTIMIZE / GROW / MONETIZE coming as those hubs land.
+  ...OPTIMIZE_TOOLS,
+  ...GROW_TOOLS,
+  ...MONETIZE_TOOLS,
 ]
 
 export function toolsForCategory(category: ToolCategory): ToolMeta[] {
