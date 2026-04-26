@@ -5,9 +5,53 @@
 
 ---
 
-## 🔜 Next phase — Progressive onboarding tutorial + post-onboarding tour
+## ✅ Phase 0 hardening sprint shipped 2026-04-25 (session 12)
 
-Planned 2026-04-23. Brainstormed in session 11 following the security-review discussion. **Build tomorrow.** This is the acquisition+retention funnel that converts the existing 3-step wizard into a multi-week guided experience.
+Closed all P0 items from the security review + Claude/ChatGPT codebase assessments. Production now has:
+
+- **Sentry error monitoring** — server + edge + client runtimes via `@sentry/nextjs` v10. Live + verified end-to-end (real test event landed in `crusher-brands-llc/javascript-nextjs`).
+- **Upstash Redis rate limiting** — 30/min per user + 60/min per IP backstop on all 20 AI generation routes; 10/hr per user on feedback. No more open-ended Anthropic/OpenAI bill exposure from a single user.
+- **Server-authoritative Stripe priceId** — client sends `{tier, cycle}`; server resolves price ID from a hardcoded map. Closes H1 from security review (revenue manipulation exploit).
+- **Server-only Alpha NDA acceptance** — new `/api/user/alpha-acceptance`; `alpha_nda` removed from preferences whitelist. Audit-trail integrity restored.
+- **Security headers on every route** — CSP (with Sentry/Stripe origins), HSTS w/ preload, frame-ancestors none, X-Frame DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+- **Vitest + 14 critical-path tests** on `consumeCredits`, `checkAuthAndUsage`, `isInActiveTutorial`, and `computeBrandReadiness`. Lightweight in-memory Supabase fake.
+- **GitHub Actions CI** — lint + typecheck + tests block merges on every PR + push to main. First merge gate the project has had.
+- **Dead code deleted** — orphaned `src/app/login/actions.ts` (H2), service-role-leaking `src/lib/supabase.ts` (H3), `MOCK_BEST_TIMES` constant.
+
+**Deferred from this sprint:**
+- Next.js 15 upgrade — semver-major, deserves its own focused half-day on a separate branch
+- `SENTRY_AUTH_TOKEN` env vars in Vercel for source-map upload — manual UI work, ~5 min when ready
+- Sentry alert rule (UI configuration) — manual, ~5 min
+
+---
+
+## ✅ Two new features shipped 2026-04-25 (session 12)
+
+**Thumbnail Analyzer** (multimodal — IDEA-04 from brainstorm):
+
+- First multimodal feature in the platform. Uses Claude vision via Anthropic SDK directly.
+- `/dashboard/thumbnail-analyzer` + `/api/thumbnail-analyzer` + sidebar entry under Optimize
+- Drag-drop upload (≤5 MB JPEG/PNG/WebP/GIF) → click-prediction score (1–10) + structured critique (visual hierarchy, text legibility, emotional hook, framing, color contrast, platform fit, prioritized improvements)
+- 4 credits, all tiers (acquisition feature). Sonnet for Starter+Creator, Opus for Elite.
+- Image stays in the request → Anthropic → discarded; only metadata persists to `generations.input_data`.
+
+**Brand Readiness Score lite** (IDEA-10 from brainstorm):
+
+- Deterministic 0–100 dashboard hero card. No AI call, no credits, instant.
+- 5 dimensions weighted: channel coverage (20) / voice training (20) / tool variety (25) / saved library (15) / recent activity (20)
+- Letter grade A–F + top 3 highest-leverage actions sorted by points-to-gain
+- 6 unit tests cover scoring + grade thresholds + action sorting
+- Lives in `src/lib/brand-readiness.ts` + `src/components/BrandReadinessCard.tsx`
+
+---
+
+## ✅ Progressive onboarding tutorial + post-onboarding tour — Phase 1 + Phase 2 shipped 2026-04-25
+
+Originally planned 2026-04-23, shipped on 2026-04-25 (session 12). Phase 1 (5-step tutorial) and Phase 2 (10-tool discovery checklist) both live in production. Phase 3 (daily suggestion widget) deferred until Phase 2 has tester data.
+
+Below is the original spec for historical reference.
+
+### Original spec — 2026-04-23 plan
 
 ### Goal
 
@@ -402,7 +446,7 @@ GET route handlers are cached at build time unless they use cookies/auth/headers
 **Locked (2026-04-19): domain is `postcrisp.com`** (primary), `postcrisp.ai` redirects to it. Rationale: creator audience, not dev audience; .com fits the category (Buffer/Later/Hootsuite are all .com); email deliverability better; longevity beats trendy. `postcrisp.ai` is owned, just 301-redirected so we catch typos and block squatters.
 
 
-- [ ] Delete orphaned `src/app/login/actions.ts`
+- [x] ✅ 2026-04-25 — Deleted orphaned `src/app/login/actions.ts` (security H2). Also deleted `src/lib/supabase.ts` (H3). Also `MOCK_BEST_TIMES` dead code.
 - [x] ✅ 2026-04-20 — Lowered `FREE_DAILY_LIMIT` back to 10 (in `src/lib/auth-usage.ts`; was legacy anyway — credits are the primary cap)
 - [ ] Fix `api/viral-ideas` JSON parse error (Claude sometimes returns malformed arrays)
 - [ ] **MFA for admin accounts** — required before launch. Any account with `role = 'admin'` must enroll in Supabase Auth MFA (TOTP). Block `/admin/*` access if admin hasn't enrolled. Use Supabase Auth's built-in MFA flow.

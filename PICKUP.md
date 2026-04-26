@@ -1,13 +1,158 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-22 (session 11 — brand palette, channels, dashboard, onboarding)
-**Build status:** ✅ Live on Vercel — big visual + UX shift shipped this session
-**Production URL:** your Vercel project (`postcrisp-*.vercel.app`) — see https://vercel.com/dashboard
+**Last updated:** 2026-04-25 (session 12 — Phase 0 hardening + onboarding completion + 2 new features)
+**Build status:** ✅ Live on Vercel — production verified end-to-end
+**Production URL:** https://postcrisp.vercel.app/
 **Dev server:** `npm run dev` (port 3000 or next available)
 
 ---
 
-## Session 9 shipped — admin password reset + recovery flow fix
+## Session 12 shipped — hardening sprint + onboarding completion + 2 new features
+
+A massive session: ~30 commits across 8 distinct lanes. Closed all P0 security review items, finished the onboarding arc started in session 11, and shipped two strategic features (Thumbnail Analyzer + Brand Readiness Score). Everything verified live in production.
+
+### 🛡 Phase 0 hardening sprint — production safety net
+
+Closed every P0 from the security review + ChatGPT/Claude codebase assessments in one push:
+
+- **Sentry error monitoring** wired across server / edge / client runtimes via `@sentry/nextjs` v10. Gated on `VERCEL_ENV` so local dev stays quiet. Bug fixed mid-session: client gate originally read `NEXT_PUBLIC_VERCEL_ENV` (which Vercel doesn't auto-inject) — switched to gate on DSN presence only.
+- **Upstash Redis rate limiting** on all 20 AI generation routes + feedback. 30/min per user, 60/min per IP backstop, 10/hr feedback. Wired through `opts.request` on `checkAuthAndUsage` so all 20 AI routes get the limiter in one helper change.
+- **Server-authoritative Stripe priceId mapping** (security review H1). Client now sends `{tier, cycle}`; server resolves Stripe price ID from a hardcoded map. Closes the revenue-manipulation exploit before paywall activation.
+- **Server-only Alpha NDA acceptance endpoint** (M-tier). New `/api/user/alpha-acceptance` captures `accepted_at` + `version` + `user_agent` server-side. `alpha_nda` removed from preferences whitelist so it can't be forged client-side.
+- **Baseline security headers** in `next.config.mjs`: CSP (with Sentry/Stripe origins), HSTS w/ preload, frame-ancestors none, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy.
+- **Vitest test runner** + 8 critical-path tests on `consumeCredits` + `checkAuthAndUsage` + `isInActiveTutorial`. Lightweight in-memory Supabase fake instead of mocking the full client.
+- **GitHub Actions CI** running lint + typecheck + tests on every PR + push to main. First merge gate the project has had.
+
+Production now has error visibility, cost-spike protection, server-authoritative billing, audit-trail integrity, and a regression-blocking CI gate. Solo-founder ops went from "git push to main = deploy + pray" to "PR → CI green → safe merge."
+
+### 🎓 Tutorial Phase 1 — bug-fix sweep + replay lock
+
+Continuing from morning's tutorial work, fixed several mid-flow bugs surfaced by manual testing:
+
+- Channel Analysis was tier-gated on top of credit-gated — bypass extended to feature-gate too
+- Hashtags step was POSTing to a GET-only endpoint (405) — switched to GET with query params + correct category enum
+- Viral Ideas had no fallback when niche didn't carry through — added inline niche input
+- Channel Analysis got a 5-stage progress indicator (animated bar + cycling messages); same pattern then applied to Viral Ideas
+- Tutorial credit bypass extended to all 4 generation steps (was only step 1)
+- **Replay lock**: once any step is finished, server-side `shouldGrantTutorialBypass` denies further free runs by querying the `generations` table for prior `tutorialMode: true` rows. Client-side: sidebar Tutorial link hidden + `/onboarding` redirects to `/dashboard` when `tutorial_progress.completed === true`.
+- **Tutorial ctx persistence** — niche / captionTopic / selectedChannel now persist to `profiles.preferences.tutorial_progress` on every step transition. Refresh mid-flow no longer resets state.
+
+### 🧹 Dead code cleanup (security review H2/H3)
+
+- Deleted orphaned `src/app/login/actions.ts` (H2) — bypassed access-control gate
+- Deleted dead `src/lib/supabase.ts` (H3) — exposed service-role key via `createBrowserClient` factory; verified zero callers before delete
+- Deleted `MOCK_BEST_TIMES` dead-code constant from `src/lib/constants.ts`
+
+### 🎙 Voice Trainer — 3 polish items
+
+- **Voice analyze timeout** was hitting the 15 s default `apiFetch` timeout while Claude was still processing 11 trait dimensions. Bumped to 120 s. Same root cause pattern as the tutorial Channel Analysis fix earlier in the session.
+- **Voice retrofit sweep** — added `loadVoicePromptSnippet` injection on 6 voice-relevant routes (brand-pitch, comment-reply, dm-template, polls, viral-ideas, youtube-seo). 5 → 11 voice-aware routes. Skipped intentionally on 9 analytical routes where voice shouldn't bias the answer (hashtags, best-times, rate-calculator, trend-radar, sounds, competitor-analysis, channel-analysis, platform-tips, collab-finder).
+- **Caption-clarity copy** — rewrote 8 surfaces on `/dashboard/voice` to lead with "paste captions" instead of burying them in lists of 4–6 content types. Feature name stays "Voice Trainer" (captions are the input; voice is the output).
+
+### 📚 Onboarding Phase 2 — 10-tool discovery checklist
+
+New `<NextToolsCard>` on `/dashboard` that surfaces post-tutorial. Auto-checks each tool when the matching feature key appears in `generations.feature` — no manual marking. Tools (ranked by impact per ROADMAP): Scripts, Repurpose, Channel Analysis, Trend Radar, Platform Tips, Bio Optimizer, Sound Tracker, Blog→Social, Comment Replies, Brand Pitch.
+
+Visibility: `tutorial_progress.completed === true` OR `onboarded_at` set (backfill for grandfathered alpha testers). Auto-hides at 10/10 or user dismisses (persists via `preferences.next_tools_dismissed`).
+
+### 🆕 Two new feature builds
+
+**Thumbnail Analyzer** (`/dashboard/thumbnail-analyzer`) — first multimodal feature in the platform. Drag-drop upload → Claude vision critique with structured output:
+
+- Click prediction (1–10 score + reasoning)
+- Visual hierarchy / emotional hook / subject framing / color contrast / platform fit
+- Text legibility (score + specific issues, sized to platform's actual thumbnail-display dimensions)
+- 2–3 strengths + 3–5 prioritized improvements (high/medium/low badges, with the "why")
+
+4 credits, all tiers (acquisition feature), Sonnet for Starter+Creator, Opus for Elite. API calls Anthropic SDK directly since `crispGenerate` doesn't yet accept image content blocks; auth + credits + rate limit still flow through `checkAuthAndUsage`. Image stays in the request → Anthropic → discarded; only metadata lands in `generations.input_data`.
+
+**Brand Readiness Score lite** (IDEA-10) — deterministic 0–100 dashboard hero card. Score across 5 dimensions (channel coverage 20pts / voice training 20pts / tool variety 25pts / saved library 15pts / recent activity 20pts), letter grade A–F, top 3 highest-leverage actions sorted by points-to-gain. Pure rule-based: no AI call, no credit cost, instant, predictable. Lives in `src/lib/brand-readiness.ts` with 6 unit tests covering scoring + grade thresholds + action sorting.
+
+### Sentry runtime debugging (live in production)
+
+End-to-end Sentry verification took multiple hours of debugging across the session:
+
+1. Built and shipped initial Sentry config + DSN inlined in bundle — confirmed via probing `_next/static/chunks/main-app-*.js`
+2. First test event → **403** from Sentry — Brave / extensions ruled out as ad-blocker locally
+3. Discovered DSN's public key in bundle (`7a0329d8...`) didn't match the active Sentry project key (`f412bc85...`) — old DSN was stale
+4. Updated `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in Vercel env vars → forced fresh build (uncheck build-cache)
+5. Bundle re-probed: new key inlined ✅
+6. Browser test → **403** persisted → fixed Allowed Domains on the new client key
+7. Final test → **200**, event landed in `crusher-brands-llc/javascript-nextjs` Issues. End-to-end verified.
+
+Lessons captured: Vercel env-var changes don't take effect until next build (must redeploy with build-cache off); Sentry's "Allowed Domains" is per-Client-Key, not project-wide.
+
+---
+
+## Status snapshot
+
+| Step | Status |
+|---|---|
+| Step 1 — Polish existing | ✅ Done |
+| Step 2 — Admin Phase 1 (AI config) | ✅ Done |
+| Step 3 — Tiers | ✅ Done |
+| Step 4 — 16+ AI features (now 17 with Thumbnail Analyzer) | ✅ Done |
+| Step 5 — Moderate features (Calendar, Media Kit, Analytics) | ⏸ Deferred post-launch |
+| Step 5.5 — Brand palette | ✅ Done 2026-04-22 |
+| Step 6 — Landing page | ✅ Done |
+| Step 6.5 — Cost optimization | ✅ Done |
+| Step 6.75 — Credit system | ✅ Done |
+| Admin Phase 2 — Users + Analytics + Cost + Audit + Access | ✅ Done sessions 6–8 |
+| Admin Phase 2 — Password reset + recovery | ✅ Done session 9 |
+| Admin Phase 2 — Billing admin / Moderation | ⏳ Remaining |
+| Voice Trainer v1 + retrofit (11 of 20 routes) | ✅ Done (session 10 + 12) |
+| Channels + Living Dashboard v1-lite | ✅ Done session 11 |
+| Guided onboarding v1 (3-step) | ✅ Done session 11 |
+| Alpha Tester Agreement + acceptance gate | ✅ Done session 11 |
+| Progressive tutorial Phase 1 (5-step) | ✅ Done 2026-04-25 |
+| Phase 2 onboarding (10-tool discovery) | ✅ Done 2026-04-25 |
+| Thumbnail Analyzer (multimodal) | ✅ Done 2026-04-25 |
+| Brand Readiness Score lite (IDEA-10) | ✅ Done 2026-04-25 |
+| **Phase 0 hardening sprint** (Sentry + rate limit + headers + Stripe + alpha_nda + Vitest + CI) | ✅ Done 2026-04-25 |
+| **Alpha deployment** | ✅ Live on Vercel (postcrisp.vercel.app) |
+| Step 7 — Launch prep (custom domain, MFA, Stripe prod, mobile audit, Next.js 15) | 🟡 Partial |
+
+---
+
+## ⏭️ Next session — recommended order
+
+**Manual items (yours, ~10 min total):**
+1. Sentry alert rule — create at https://crusher-brands-llc.sentry.io/alerts/rules/ → "When new issue created" → email yourself
+2. SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT env vars in Vercel — eliminates build warnings + symbolicates stack traces. Token: Sentry → Settings → Account → API → Auth Tokens, scope `project:releases` + `org:read`
+
+**Code (next big build — pick one):**
+3. **Next.js 15 upgrade** on its own branch. Semver-major, half-day work. Closes known DoS vulns in 14.2.35. Should be its own focused session.
+4. **CTA Optimizer** (IDEA-08) — depends on Voice Trainer (now solid). 2–3 hrs.
+5. **Brand Deal Maker** (IDEA-09) — needs separate scoping session.
+6. Phase 3 daily-suggestion widget — only build if Phase 2 NextToolsCard data shows drop-off.
+
+**Pre-public-launch (Step 7 remaining):**
+7. Custom domain `postcrisp.com` → Vercel + Supabase Site URL update
+8. Stripe production prices (6 price IDs) + webhook for production
+9. MFA enrollment for `captain@postcrisp.com`
+10. Mobile responsive audit
+11. Next.js 15 upgrade (above)
+12. Error boundary audit on new pages
+
+---
+
+## Background routine scheduled
+
+A one-time agent fires **Sat May 2 2026 at 9 AM Pacific** to produce a week-1 retrospective punch list. Reads commits since `1c782ec`, checks CI run status, surfaces what's still pending. Manage at https://claude.ai/code/routines/trig_01CzDXzPumyCMQVxYsbdorgV
+
+---
+
+## Earlier session history (kept for context)
+
+### Session 11 (2026-04-22) — brand palette + channels + onboarding wizard
+
+Brand palette adopted (Gunmetal + Electric Blue), Channels + Living Dashboard v1-lite, 3-step guided onboarding wizard, Alpha Tester Agreement + in-product acceptance gate. Voice Trainer URL import parked.
+
+### Session 10 (2026-04-21) — Voice Trainer v1
+
+`voice_profiles` schema + `/dashboard/voice` UI + Claude trait extraction + 5 feature retrofits (captions, scripts, repurpose, blog→social, bio-optimizer). Remaining 6 voice-relevant routes retrofitted in session 12.
+
+### Session 9 — admin password reset + recovery flow fix
 
 ### 🔑 Admin-initiated password reset
 - New **Send password reset** button on `/admin/users/[id]` (Account actions panel, next to Save changes)
@@ -29,129 +174,6 @@ Three compounding bugs prevented users from completing password recovery in prod
 
 **Flow end-to-end:**
 Email link → Supabase verify → `/auth/callback?next=/auth/reset-password` → code exchange creates recovery session → redirected to reset form → submit updates password → `/dashboard` signed in.
-
----
-
-## Session 11 shipped — brand palette + channels + living dashboard + onboarding
-
-Four strategic pieces, all architecturally aligned so they compound.
-
-### 1. Brand palette adopted — Gunmetal + Electric Blue (`133fc2d`)
-- Official hex values locked per user spec. Aviation/naval theme.
-  - Gunmetal Black `#0E1216` / Deep Steel `#181E24` / Gunmetal `#2D343C`
-  - Electric Blue `#4A9EE0` (brand-500) / Warship Grey `#8C949C` / Hangar White `#E8ECEF`
-- `tailwind.config.ts` brand ramp rebuilt around Electric Blue. `surface-*` → Gunmetal family. `shadow-glow` pulses Electric Blue. New `crisp-*` + `paper` semantic tokens.
-- `globals.css` fully migrated — new `--brand-*` variables, legacy `--violet-*` aliased for backwards compat, every hardcoded rgba violet → Electric Blue rgba.
-- Per-component hex fixes: landing hero gradient, dashboard usage ring, demo usage ring, demo heatmap, billing pill.
-- New memory: `project_brand_palette.md` captures naming + conventions. Strategic decision record updated — prior "defer palette until post-launch" call was superseded.
-
-### 2. Channels + Living Dashboard v1-lite (`3fc7481`)
-- New `channels` table (user_id, platform, handle, label, url, sort_order). RLS + 20/user cap + updated_at trigger.
-- `saved_content.channel_id` FK added (nullable, backwards-compatible).
-- `src/lib/channels.ts` — typed helpers, `PLATFORM_META` with branded chip styles, `loadChannels`, `defaultChannelForPlatform`.
-- Four API routes: `GET/POST /api/channels`, `PATCH/DELETE /api/channels/[id]`.
-- `ChannelsSection` reusable component — dropped into Settings + Onboarding.
-- Dashboard rebuilt: **typed daily briefing** (deterministic, references user's channels + usage, typewriter on mount), **channels row** (horizontal-scroll cards with per-channel week counts + add-channel affordance), metrics grid + credits (reordered into one row), **proactive suggestions panel** (rule-based: low credits / no channels / quiet channel / unused Voice Trainer, max 3, urgency-colored left border), recent content list with branded platform chips.
-
-### 3. Guided onboarding (`d99f519`)
-- 3-step wizard at `/onboarding`: Welcome → Channels → Pick impact feature. Skippable.
-- Signup action now redirects to `/onboarding` instead of `/dashboard` (existing login flow untouched).
-- Six impact-feature cards: Captions, Viral Ideas, Hashtags, Best Times, Bio Optimizer, Repurpose. Each has icon + 1-liner + ETA + "Try it" deep link.
-- Captions tool reads URL params (topic/platform/from) and auto-prefills + shows welcome banner.
-- New `GettingStartedCard` component — persistent 5-item checklist on dashboard, progress bar, live-computed from real state (channels / first gen / first save / 3 features / voice trained). Dismissible or auto-hides at 100%.
-- No schema changes — `onboarded_at` + `getting_started_dismissed` live in `profiles.preferences` JSONB (whitelist extended).
-
-### 4. Alpha Tester Agreement + in-product acceptance gate (`b74f2d4` + `8663f90`)
-
-Prepping for wider tester wave. Legal + product pieces:
-
-- **NDA template** at `docs/alpha-tester-agreement.md` — one-page agreement for sending to testers out-of-band if ever needed. Includes usage flow, email script, future-us checklist. Governing law: Nevada.
-- **In-product acceptance gate** at `/accept-terms` — every authenticated non-admin user must accept before reaching `/dashboard/**` or `/onboarding/**`. Typed full-name signature (min 2 chars) + explicit "I have read and agree" checkbox + submit. Both required before button enables.
-- **Audit record** saved to `profiles.preferences.alpha_nda = { accepted_at, full_name, version, user_agent }`. Versioned via `ALPHA_AGREEMENT_VERSION` constant — bump version to force re-acceptance after text changes.
-- **Server-side guard** `requireAlphaAcceptance()` in `src/lib/alpha-agreement-server.ts` — called from dashboard + onboarding layouts. Admins (role='admin') bypass entirely.
-- **Canonical agreement text** in `src/lib/alpha-agreement.ts` (version-locked with code, no runtime file reads).
-- **Reset path** for testing: `UPDATE profiles SET preferences = preferences - 'alpha_nda' WHERE id = '<uuid>';`
-- **Fit for Klar brothers onboarding** — Ken and Kevin will hit the gate automatically on first sign-in. No paper NDA needed; clickwrap + typed signature + ESIGN compliance covers the legal moment in-product.
-
-### 5. Voice Trainer UX refactor — put on hold (`94a4f20`)
-- YouTube URL import confirmed to be blocked by Vercel IP bot-detection (`player_response_json_length: 3820` diagnostic — see memory).
-- Removed URL import UI block. Reframed the page as caption/written-content analyzer. Added "How this works" 3-step section + clear "coming soon" note listing the deferred integrations.
-- Server-side importer lib + API route kept in repo (ready to re-activate when we pick a real transcript solution — SearchAPI.io / YouTube OAuth / browser extension).
-- Voice Trainer is off the critical path per the new strategic direction — channels + dashboard + onboarding now carry the "platform starts feeling personalized" role.
-
-### 6. Failed-but-learned-from Voice Trainer URL import attempts (earlier today)
-- `b4d96e1` → `091cf30` → `f5cffb9` → `9b973f9` → `de9bd47` — four successive approaches (youtube-transcript pkg → youtubei.js → timedtext endpoint → HTML scrape → full diagnostic output). All ultimately blocked by YouTube's IP detection on Vercel's datacenter range.
-- Lesson captured: server-side YouTube scraping from Vercel is a dead end. Long-term options are paid APIs (SearchAPI.io) or YouTube OAuth (own-content only). Deferred both.
-
----
-
-## Session 10 shipped — Voice Trainer v1 (IDEA-12 from brainstorm)
-
-The foundational personalization layer is live. Previously locked as the
-Phase 1 priority per the 2026-04-20 strategic decision record.
-
-### Architecture
-- New `voice_profiles` table (one row per user; `samples` jsonb array, `traits` jsonb)
-- `src/lib/voice-profile.ts` — read/write helpers, Claude-driven trait extraction, and
-  `loadVoicePromptSnippet()` that generates a system-prompt fragment from stored traits
-- `crispGenerate()` extended with an optional `voiceSnippet` arg that gets appended to
-  the system prompt when provided — one-line retrofit per feature
-- User control at `/dashboard/voice` — add samples, analyze, view extracted traits,
-  clear profile. Samples are capped at 25 per user, 10k chars each.
-
-### User flow
-1. New user lands on Voice Trainer (top-level nav, tagged "New" badge)
-2. Pastes 3+ content samples with optional platform/label tags
-3. Clicks "Analyze voice" → Claude returns structured traits (tone, rhythm,
-   vocabulary, signature phrases, openers, closers, emoji style, punctuation,
-   energy, avoid patterns, notes)
-4. Traits auto-feed into content-generation features going forward
-
-### Features retrofitted with voice injection (v1)
-- Captions (`/api/generate`) — highest volume
-- Scripts (`/api/script`)
-- Repurpose (`/api/repurpose`)
-- Blog → Social (`/api/blog-to-social`)
-- Bio Optimizer (`/api/bio-optimizer`)
-
-Remaining 15+ routes degrade gracefully — they work without voice injection;
-next session can retrofit them in a sweep since the pattern is now established.
-
-### Things deliberately NOT built in v1
-- Multiple voice profiles per user (TikTok voice ≠ newsletter voice). Single profile
-  for v1; add later when there's demand.
-- Voice-profile feedback loop ("this output didn't sound like me, adjust").
-- Auto-triggered analysis after adding a sample — user must click "Analyze" explicitly
-  so they don't burn credits on every paste.
-
-### Schema migration to run
-```sql
-CREATE TABLE IF NOT EXISTS public.voice_profiles (
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
-  samples JSONB NOT NULL DEFAULT '[]'::jsonb,
-  traits JSONB,
-  last_analyzed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-ALTER TABLE public.voice_profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users read own voice profile" ON public.voice_profiles FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users insert own voice profile" ON public.voice_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users update own voice profile" ON public.voice_profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users delete own voice profile" ON public.voice_profiles FOR DELETE USING (auth.uid() = user_id);
-CREATE OR REPLACE TRIGGER voice_profiles_updated_at BEFORE UPDATE ON public.voice_profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-```
-
----
-
-## Session 9 shipped (earlier today)
-
-- Feedback system: floating FAB, `/admin/feedback` triage view, overview widget on admin home
-- Email notification to admin on every feedback submission (Resend REST)
-- Admin "Set temporary password" button on user detail — Outlook-safe onboarding
-- Admin "Send password reset" button with working PKCE recovery flow
-- Password recovery flow fixed (routes directly to `/auth/reset-password` to let
-  SDK auto-detect PKCE code; admin-initiated reset uses same plumbing)
 
 ---
 
