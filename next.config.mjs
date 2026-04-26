@@ -17,7 +17,12 @@ const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  // Avatar fetch chain: unavatar.io serves channel profile pictures,
+  // typically via 302 redirect to the platform's CDN. CSP checks redirect
+  // targets too, so each major CDN must be allowlisted. Failing pictures
+  // fall back to the platform emoji client-side, so an incomplete list
+  // here only degrades aesthetics, never breaks the dashboard.
+  "img-src 'self' data: blob: https://*.supabase.co https://unavatar.io https://*.unavatar.io https://*.googleusercontent.com https://*.ggpht.com https://*.cdninstagram.com https://*.fbcdn.net https://*.twimg.com https://*.tiktokcdn-us.com https://*.tiktokcdn.com https://*.licdn.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",

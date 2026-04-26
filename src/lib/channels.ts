@@ -78,3 +78,33 @@ export async function defaultChannelForPlatform(
   const channels = await loadChannels(supabase, userId)
   return channels.find((c) => c.platform === platform) ?? null
 }
+
+// ─── Profile-picture URL builder ─────────────────────────────────────────
+// Routes through unavatar.io — a free public proxy that fetches profile
+// pictures from major social platforms by handle. No OAuth, no API keys,
+// no schema changes needed.
+//
+// Caveat: unavatar's reliability varies by platform. Instagram and TikTok
+// occasionally fail due to those platforms' anti-scraping measures. The
+// dashboard component renders a platform-emoji fallback on image-load
+// failure, so a broken avatar URL never breaks the UI.
+export function avatarUrlFor(platform: string, handle: string): string {
+  const clean = handle.replace(/^@/, '').trim()
+  if (!clean) return ''
+  const encoded = encodeURIComponent(clean)
+  // Map our platform IDs to unavatar's path segments. Threads handles
+  // mirror Instagram, so we fetch from there. LinkedIn / Facebook /
+  // newsletter / blog / other don't have a great unavatar provider —
+  // we still return a unavatar URL but the component will fall back to
+  // the platform emoji when fetch fails.
+  switch (platform) {
+    case 'instagram': return `https://unavatar.io/instagram/${encoded}`
+    case 'threads':   return `https://unavatar.io/instagram/${encoded}`
+    case 'tiktok':    return `https://unavatar.io/tiktok/${encoded}`
+    case 'youtube':   return `https://unavatar.io/youtube/${encoded}`
+    case 'x':         return `https://unavatar.io/x/${encoded}`
+    case 'linkedin':  return `https://unavatar.io/${encoded}`
+    case 'facebook':  return `https://unavatar.io/${encoded}`
+    default:          return `https://unavatar.io/${encoded}`
+  }
+}

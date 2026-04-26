@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { SkeletonDashboard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
-import { PLATFORM_META, type Channel } from '@/lib/channels'
+import { PLATFORM_META, avatarUrlFor, type Channel } from '@/lib/channels'
 import { GettingStartedCard, type GettingStartedState } from '@/components/GettingStartedCard'
 import { NextToolsCard, type NextToolsState } from '@/components/NextToolsCard'
 import { BrandReadinessCard } from '@/components/BrandReadinessCard'
@@ -411,6 +411,47 @@ function TypedBriefing({ text }: { text: string }) {
   )
 }
 
+// Channel avatar with platform-emoji fallback. Tries unavatar.io first;
+// if the image fails to load (CSP block, network error, platform not
+// supported, or the user's handle is wrong), the emoji icon shows instead.
+// Either way the dashboard stays intact.
+function ChannelAvatar({ platform, handle }: { platform: Channel['platform']; handle: string }) {
+  const [errored, setErrored] = useState(false)
+  const meta = PLATFORM_META[platform]
+  const url = avatarUrlFor(platform, handle)
+
+  if (errored || !url) {
+    return (
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${meta.chip.split(' ').slice(0, 2).join(' ')}`}>
+        {meta.icon}
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-brand-500/20 bg-surface-tertiary flex-shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={handle}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setErrored(true)}
+        className="w-full h-full object-cover"
+      />
+      {/* Tiny platform emoji overlay so the user can still tell which channel
+          this is at a glance, even when the avatar loads — helps when two
+          channels have similar profile pictures. */}
+      <span
+        aria-hidden
+        className="absolute bottom-0 right-0 text-[10px] leading-none bg-surface-primary/90 rounded-tl-md px-0.5 py-0.5"
+      >
+        {meta.icon}
+      </span>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -605,12 +646,10 @@ export default function DashboardPage() {
               return (
                 <div
                   key={c.id}
-                  className="flex-shrink-0 min-w-[200px] rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/25 transition-all p-4 group"
+                  className="flex-shrink-0 min-w-[220px] rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/25 transition-all p-4 group"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base ${meta.chip.split(' ').slice(0, 2).join(' ')}`}>
-                      {meta.icon}
-                    </div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <ChannelAvatar platform={c.platform} handle={c.handle} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">{meta.label}</div>
                       <div className="text-sm text-zinc-200 truncate">{c.handle}</div>
