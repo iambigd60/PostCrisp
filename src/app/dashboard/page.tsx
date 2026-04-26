@@ -9,6 +9,8 @@ import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
 import { PLATFORM_META, type Channel } from '@/lib/channels'
 import { GettingStartedCard, type GettingStartedState } from '@/components/GettingStartedCard'
 import { NextToolsCard, type NextToolsState } from '@/components/NextToolsCard'
+import { BrandReadinessCard } from '@/components/BrandReadinessCard'
+import { computeBrandReadiness, type BrsResult } from '@/lib/brand-readiness'
 
 interface Profile {
   full_name: string | null
@@ -52,6 +54,9 @@ interface DashboardStats {
   nextTools: NextToolsState
   nextToolsDismissed: boolean
   showNextTools: boolean
+  // Brand Readiness Score — deterministic 0-100 scored across 5 dimensions
+  // from the same inputs already loaded above. No additional fetches.
+  brs: BrsResult
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
@@ -451,9 +456,10 @@ export default function DashboardPage() {
           supabase.from('generations')
             .select('feature')
             .eq('user_id', user.id),
-          // Voice profile traits — populated means user trained their voice.
+          // Voice profile traits + samples — populated traits means analyzed,
+          // samples count drives Brand Readiness Score.
           supabase.from('voice_profiles')
-            .select('traits')
+            .select('traits, samples')
             .eq('user_id', user.id)
             .maybeSingle(),
         ])
@@ -511,6 +517,20 @@ export default function DashboardPage() {
         // (onboarded_at set, no tutorial_progress yet) shouldn't be skipped.
         const showNextTools = tutorialDone || !!onboardedAt
 
+        // Brand Readiness Score — pure-function compute from the inputs we
+        // already loaded. Re-runs on every dashboard load so it always
+        // reflects current state.
+        const voiceRow = voiceRes.data as { traits: unknown; samples: unknown[] | null } | null
+        const brs = computeBrandReadiness({
+          channelCount: channels.length,
+          voiceProfileExists: !!voiceRow,
+          voiceSamples: Array.isArray(voiceRow?.samples) ? voiceRow.samples.length : 0,
+          voiceAnalyzed: voiceTrained,
+          uniqueFeaturesUsed: featuresUsed.size,
+          savedCount,
+          weekGenerations: (weekGensRes.data ?? []).length,
+        })
+
         setStats({
           profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
           totalGenerations,
@@ -525,6 +545,7 @@ export default function DashboardPage() {
           nextTools,
           nextToolsDismissed: Boolean(prefs?.next_tools_dismissed),
           showNextTools,
+          brs,
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
@@ -598,6 +619,9 @@ export default function DashboardPage() {
           onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
         />
       )}
+
+      {/* Brand Readiness Score — always visible, deterministic, free. */}
+      {stats && <BrandReadinessCard result={stats.brs} />}
 
       {/* Channels row — personalizes everything below */}
       {stats && stats.channels.length > 0 && (
