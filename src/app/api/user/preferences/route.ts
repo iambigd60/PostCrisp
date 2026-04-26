@@ -17,6 +17,7 @@ const ALLOWED_KEYS = new Set([
   'channels',
   'onboarded_at',              // ISO timestamp set when user finishes /onboarding
   'getting_started_dismissed', // boolean set when user dismisses the dashboard checklist
+  'next_tools_dismissed',      // boolean set when user dismisses the Phase 2 NextToolsCard
   'tutorial_progress',         // structured record: {step, completed, analysis_id, saved_caption_topic}
 ])
 

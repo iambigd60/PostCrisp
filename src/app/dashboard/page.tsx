@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
 import { PLATFORM_META, type Channel } from '@/lib/channels'
 import { GettingStartedCard, type GettingStartedState } from '@/components/GettingStartedCard'
+import { NextToolsCard, type NextToolsState } from '@/components/NextToolsCard'
 
 interface Profile {
   full_name: string | null
@@ -19,6 +20,8 @@ interface Profile {
   preferences?: {
     getting_started_dismissed?: boolean
     onboarded_at?: string | null
+    next_tools_dismissed?: boolean
+    tutorial_progress?: { completed?: boolean } | null
   } | null
 }
 
@@ -44,6 +47,11 @@ interface DashboardStats {
   // Getting-started checklist state (persisted via profiles.preferences).
   gettingStarted: GettingStartedState
   gettingStartedDismissed: boolean
+  // Phase 2 — 10 next tools checklist. Only shown after the 5-step tutorial
+  // is marked completed in tutorial_progress.
+  nextTools: NextToolsState
+  nextToolsDismissed: boolean
+  showNextTools: boolean
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
@@ -480,6 +488,28 @@ export default function DashboardPage() {
           voiceTrained,
         }
 
+        // Phase 2 — 10 next-tool checklist. Auto-checks each tool when the
+        // matching feature key appears in generations.feature for this user.
+        const nextTools: NextToolsState = {
+          script:           featuresUsed.has('script'),
+          repurpose:        featuresUsed.has('repurpose'),
+          channel_analysis: featuresUsed.has('channel_analysis'),
+          trend_radar:      featuresUsed.has('trend_radar'),
+          platform_tips:    featuresUsed.has('platform_tips'),
+          bio_optimizer:    featuresUsed.has('bio_optimizer'),
+          sound_tracker:    featuresUsed.has('sound_tracker'),
+          blog_to_social:   featuresUsed.has('blog_to_social'),
+          comment_reply:    featuresUsed.has('comment_reply'),
+          brand_pitch:      featuresUsed.has('brand_pitch'),
+        }
+        // Only surface Phase 2 once the 5-step tutorial is marked completed.
+        // Pre-tutorial users still see GettingStartedCard for the basics.
+        const tutorialDone = !!prefs?.tutorial_progress?.completed
+        const onboardedAt = prefs?.onboarded_at
+        // Backfill: pre-tutorial alpha testers who already finished onboarding
+        // (onboarded_at set, no tutorial_progress yet) shouldn't be skipped.
+        const showNextTools = tutorialDone || !!onboardedAt
+
         setStats({
           profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
           totalGenerations,
@@ -491,6 +521,9 @@ export default function DashboardPage() {
           featuresUsed,
           gettingStarted,
           gettingStartedDismissed: Boolean(prefs?.getting_started_dismissed),
+          nextTools,
+          nextToolsDismissed: Boolean(prefs?.next_tools_dismissed),
+          showNextTools,
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
@@ -553,6 +586,15 @@ export default function DashboardPage() {
           state={stats.gettingStarted}
           dismissed={stats.gettingStartedDismissed}
           onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
+        />
+      )}
+
+      {/* Phase 2 — 10 next tools to try. Only surfaces post-tutorial. */}
+      {stats?.showNextTools && (
+        <NextToolsCard
+          state={stats.nextTools}
+          dismissed={stats.nextToolsDismissed}
+          onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
         />
       )}
 
