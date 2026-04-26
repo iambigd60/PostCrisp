@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface ReplyResult {
   short: string
@@ -47,9 +48,11 @@ Return ONLY valid JSON:
 }`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'comment-reply',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 1200,
     })

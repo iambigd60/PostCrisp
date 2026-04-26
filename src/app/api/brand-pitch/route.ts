@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface BrandPitchResult {
   formal: { subject: string; body: string }
@@ -69,9 +70,11 @@ Rules:
 - Never use generic filler like "hope this finds you well"`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'brand-pitch',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 2500,
     })

@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface Poll {
   question: string
@@ -51,9 +52,11 @@ Rules:
 - Each question should be niche-specific and genuinely interesting to answer`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'polls',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 2500,
     })

@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface DMTemplate {
   subject?: string
@@ -44,9 +45,11 @@ Rules:
 - Never "Hey, love your content!" or similar cliches — be specific`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'dm-template',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 1500,
     })

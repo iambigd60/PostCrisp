@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { consumeCredits } from '@/lib/credits'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface YouTubeSEOResult {
   titles: { text: string; charCount: number; keywordPlacement: string }[]
@@ -59,9 +60,11 @@ Rules:
 - Thumbnail text is 2-5 words, high contrast, attention-grabbing`
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'youtube-seo',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens: 2500,
     })

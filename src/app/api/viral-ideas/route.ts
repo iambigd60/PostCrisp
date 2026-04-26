@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
+import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 export interface ViralIdea {
   title: string
@@ -152,9 +153,11 @@ Rules:
   const maxTokens = Math.min(8000, 800 + safeCount * 520)
 
   try {
+    const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'viral-ideas',
       tier: auth.tier,
+      voiceSnippet,
       prompt,
       maxTokens,
     })
