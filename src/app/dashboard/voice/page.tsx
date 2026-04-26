@@ -186,10 +186,11 @@ export default function VoiceTrainerPage() {
           </span>
         </div>
         <p className="text-zinc-400 mt-2 leading-relaxed">
-          Teach PostCrisp how <strong className="text-zinc-200">you</strong> write. Paste 3+ captions, scripts,
-          or posts you&apos;ve already written, we analyze the patterns — tone, rhythm, signature phrases,
-          how you open and close — and every caption/script/bio PostCrisp generates from then on matches your
-          style instead of sounding like generic AI.
+          Teach PostCrisp how <strong className="text-zinc-200">you</strong> write.{' '}
+          <strong className="text-zinc-200">Paste 3+ captions you&apos;ve written</strong> (scripts and posts work
+          too) and we analyze the patterns — tone, rhythm, signature phrases, how you open and close. Every
+          caption, script, and bio PostCrisp generates from then on matches your style instead of sounding
+          like generic AI.
         </p>
       </div>
 
@@ -200,9 +201,9 @@ export default function VoiceTrainerPage() {
           <li className="flex gap-3">
             <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-500/15 text-brand-300 flex items-center justify-center text-xs font-bold">1</span>
             <span>
-              <strong className="text-zinc-200">Paste written content you&apos;ve created</strong> — captions, scripts,
-              email newsletters, blog posts, LinkedIn posts, DMs. Anything you wrote that sounds like <em>you</em>.
-              The more varied and the longer each sample, the better.
+              <strong className="text-zinc-200">Paste 3+ captions you&apos;ve written.</strong> Anything else
+              you&apos;ve written works too (scripts, posts, newsletter intros), but captions are the easiest
+              place to start — pull them straight from your Instagram, TikTok, or LinkedIn. Longer is better.
             </span>
           </li>
           <li className="flex gap-3">
@@ -246,10 +247,10 @@ export default function VoiceTrainerPage() {
                 ? "Voice profile active"
                 : canAnalyze
                   ? "Ready to analyze"
-                  : `Add ${samplesNeeded} more sample${samplesNeeded === 1 ? "" : "s"} to get started`}
+                  : `Paste ${samplesNeeded} more caption${samplesNeeded === 1 ? "" : "s"} to get started`}
             </div>
             <div className="text-xs text-zinc-500">
-              {sampleCount} of {MAX_SAMPLES} samples
+              {sampleCount} of {MAX_SAMPLES} captions added
               {profile.last_analyzed_at && <> · last analyzed {relativeTime(profile.last_analyzed_at)}</>}
             </div>
           </div>
@@ -271,9 +272,9 @@ export default function VoiceTrainerPage() {
         {/* Samples */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-200">Content samples</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">Your captions</h2>
             <Button size="sm" variant="secondary" onClick={() => setAddOpen((v) => !v)} disabled={sampleCount >= MAX_SAMPLES}>
-              {addOpen ? "Cancel" : "+ Add sample"}
+              {addOpen ? "Cancel" : "+ Add caption"}
             </Button>
           </div>
 
@@ -284,7 +285,7 @@ export default function VoiceTrainerPage() {
                 onChange={(e) => setSampleContent(e.target.value)}
                 rows={8}
                 maxLength={MAX_SAMPLE_CHARS}
-                placeholder="Paste a caption, script, email, or post you've written. The longer and more natural, the better."
+                placeholder="Paste a caption you've written here. Scripts, posts, and newsletters work too — but captions are easiest. Longer = better."
                 className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
               />
               <div className="flex flex-wrap gap-2">
@@ -318,10 +319,10 @@ export default function VoiceTrainerPage() {
           {sampleCount === 0 && !addOpen && (
             <div className="rounded-xl border border-dashed border-brand-500/20 bg-surface-secondary p-8 text-center">
               <p className="text-sm text-zinc-400">
-                No samples yet. Add 3 or more pieces of your real content for the best results.
+                No captions added yet. Paste 3+ captions you&apos;ve written for the best results.
               </p>
               <Button size="sm" onClick={() => setAddOpen(true)} className="mt-3">
-                Add your first sample
+                Add your first caption
               </Button>
             </div>
           )}
