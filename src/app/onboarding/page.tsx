@@ -69,7 +69,24 @@ export default function OnboardingPage() {
   const [tutorialCtx, setTutorialCtx] = useState<TutorialContext>(initialTutorialContext)
   const [finishing, setFinishing] = useState(false)
 
-  // Load profile name + channels on mount
+  // Shape of tutorial_progress as we now persist it. Older records may be
+  // missing fields below — we treat anything absent as 'no carry-over' and
+  // hydrate from defaults.
+  type SavedTutorialProgress = {
+    step?: Step
+    completed?: boolean
+    analysis_id?: string | null
+    caption_topic?: string | null
+    niche?: string | null
+    selected_channel_id?: string | null
+    has_saved_item?: boolean
+    // Legacy field name preserved for back-compat with records written before
+    // this change. Read it as a fallback for caption_topic.
+    saved_caption_topic?: string | null
+  }
+
+  // Load profile name + channels on mount, then resume tutorial from the
+  // last persisted step + ctx so a refresh mid-flow doesn't lose state.
   useEffect(() => {
     const supabase = createClient()
     ;(async () => {
@@ -90,20 +107,43 @@ export default function OnboardingPage() {
       // Gate replay: once the tutorial is completed, send them to the dashboard.
       // The server-side bypass guard would still deny free credits anyway, so
       // re-running the wizard would just charge them — bad UX, send home instead.
-      const prefs = (profileRes.data?.preferences ?? {}) as { tutorial_progress?: { completed?: boolean } }
-      if (prefs.tutorial_progress?.completed) {
+      const prefs = (profileRes.data?.preferences ?? {}) as { tutorial_progress?: SavedTutorialProgress }
+      const tp = prefs.tutorial_progress
+      if (tp?.completed) {
         router.replace('/dashboard')
         return
       }
 
       const name = profileRes.data?.full_name?.split(' ')[0]?.trim()
       if (name) setUserFirstName(name)
-      setChannels((channelsRes.data ?? []) as Channel[])
+
+      const channelList = (channelsRes.data ?? []) as Channel[]
+      setChannels(channelList)
+
+      // Hydrate ctx + step from saved progress so a refresh resumes where we left off.
+      if (tp) {
+        const carriedTopic = tp.caption_topic ?? tp.saved_caption_topic ?? ''
+        const carriedChannel = tp.selected_channel_id
+          ? channelList.find((c) => c.id === tp.selected_channel_id) ?? null
+          : null
+        setTutorialCtx((prev) => ({
+          ...prev,
+          analysisId: tp.analysis_id ?? null,
+          niche: tp.niche ?? '',
+          captionTopic: carriedTopic,
+          selectedChannel: carriedChannel,
+          hasSavedItem: !!tp.has_saved_item,
+        }))
+        if (tp.step && STEPS.includes(tp.step)) {
+          setStep(tp.step)
+        }
+      }
     })()
   }, [router])
 
-  // Persist tutorial progress as user moves through steps
-  const saveProgress = async (nextStep: Step, completed: boolean) => {
+  // Persist tutorial progress as user moves through steps. Now writes the
+  // full ctx so a mid-flow refresh can recover niche / caption topic / etc.
+  const saveProgress = async (nextStep: Step, completed: boolean, ctx: TutorialContext = tutorialCtx) => {
     try {
       await apiFetch('/api/user/preferences', {
         method: 'PUT',
@@ -111,8 +151,11 @@ export default function OnboardingPage() {
           tutorial_progress: {
             step: nextStep,
             completed,
-            analysis_id: tutorialCtx.analysisId,
-            saved_caption_topic: tutorialCtx.captionTopic || null,
+            analysis_id: ctx.analysisId,
+            caption_topic: ctx.captionTopic || null,
+            niche: ctx.niche || null,
+            selected_channel_id: ctx.selectedChannel?.id ?? null,
+            has_saved_item: !!ctx.hasSavedItem,
           },
         }),
       })
@@ -123,7 +166,9 @@ export default function OnboardingPage() {
 
   const goToStep = (next: Step) => {
     setStep(next)
-    saveProgress(next, false)
+    // Pass a snapshot of the ctx at transition time so the persisted record
+    // captures whatever the previous step set on its way out (niche, captionTopic, etc.)
+    saveProgress(next, false, tutorialCtx)
   }
 
   const finish = async (skipped = false) => {
@@ -137,7 +182,10 @@ export default function OnboardingPage() {
             step: 'save',
             completed: true,
             analysis_id: tutorialCtx.analysisId,
-            saved_caption_topic: tutorialCtx.captionTopic || null,
+            caption_topic: tutorialCtx.captionTopic || null,
+            niche: tutorialCtx.niche || null,
+            selected_channel_id: tutorialCtx.selectedChannel?.id ?? null,
+            has_saved_item: !!tutorialCtx.hasSavedItem,
           },
         }),
       })
