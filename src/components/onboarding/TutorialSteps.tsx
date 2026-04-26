@@ -653,6 +653,60 @@ interface ViralIdea {
   hook: string
 }
 
+/**
+ * Same fake-progress pattern as Channel Analysis. Viral ideas typically takes
+ * 30–60s; without this users wonder if anything is happening.
+ */
+function ViralIdeasProgress({ niche, platform }: { niche: string; platform: string }) {
+  const [progress, setProgress] = useState(2)
+  const [stageIdx, setStageIdx] = useState(0)
+  const platformLabel = PLATFORM_META[platform as keyof typeof PLATFORM_META]?.label ?? platform
+
+  const stages = [
+    `Scanning ${platformLabel} trends in your niche…`,
+    'Sourcing pattern-interrupt formats…',
+    'Drafting hooks and angles…',
+    'Finalizing 5 ideas tailored to you…',
+  ]
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 95) return p
+        const remaining = 95 - p
+        return Math.min(95, p + Math.max(0.4, remaining * 0.045))
+      })
+    }, 500)
+    const stageTick = setInterval(() => {
+      setStageIdx((i) => Math.min(i + 1, stages.length - 1))
+    }, 9000)
+    return () => {
+      clearInterval(tick)
+      clearInterval(stageTick)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-5 h-5 rounded-full border-2 border-brand-500/30 border-t-brand-500 animate-spin flex-shrink-0" />
+        <div className="text-sm text-zinc-200 font-medium flex-1">{stages[stageIdx]}</div>
+        <div className="text-xs text-zinc-500 tabular-nums font-semibold">{Math.round(progress)}%</div>
+      </div>
+      <div className="h-1.5 bg-surface-tertiary rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <p className="text-xs text-zinc-500 leading-relaxed">
+        Generating ideas around <strong className="text-zinc-300">{niche}</strong> for {platformLabel}. Usually 30–60 seconds.
+      </p>
+    </div>
+  )
+}
+
 export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
   const [niche, setNiche] = useState<string>(() => ctx.niche || ctx.captionTopic || '')
   const [generating, setGenerating] = useState(false)
@@ -735,9 +789,7 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
       )}
 
       {generating && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-8 text-center text-zinc-500">
-          <div className="animate-pulse">Generating 5 viral ideas tailored to your niche…</div>
-        </div>
+        <ViralIdeasProgress niche={niche.trim() || 'your niche'} platform={platform} />
       )}
 
       {!generating && ideas.length > 0 && (
