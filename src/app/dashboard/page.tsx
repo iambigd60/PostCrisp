@@ -70,6 +70,7 @@ const FEATURE_META: Record<string, { icon: string; label: string; href: string }
   bio_optimizer:    { icon: '🧬', label: 'Bio Optimizer',    href: '/dashboard/bio-optimizer' },
   platform_tips:    { icon: '💡', label: 'Platform Tips',    href: '/dashboard/platform-tips' },
   channel_analysis: { icon: '🪞', label: 'Channel Analysis', href: '/dashboard/channel-analysis' },
+  thumbnail_analyzer: { icon: '🖼️', label: 'Thumbnail Analyzer', href: '/dashboard/thumbnail-analyzer' },
   // Grow
   viral_ideas:   { icon: '🚀', label: 'Viral Ideas',     href: '/dashboard/viral-ideas' },
   trend_radar:   { icon: '📡', label: 'Trend Radar',     href: '/dashboard/trends' },

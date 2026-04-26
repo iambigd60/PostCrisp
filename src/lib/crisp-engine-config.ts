@@ -85,6 +85,8 @@ export type CrispTask =
   | 'media-kit-bio'
   // Self-analysis
   | 'channel-analysis'
+  // Vision (multimodal)
+  | 'thumbnail-analyzer'
 
 export type PowerProfile = 'FAST' | 'STANDARD' | 'PREMIUM'
 
@@ -139,6 +141,10 @@ export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, Power
   // Channel analysis — users benefit most from premium quality here since
   // it's a strategic self-assessment. Premium even at Creator tier.
   'channel-analysis':     { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  // Thumbnail analyzer — Claude vision required regardless of tier (OpenAI
+  // path also supports vision but we anchor on Anthropic for image quality).
+  // STANDARD = Sonnet for everyone; Elite gets Opus for nuanced critique.
+  'thumbnail-analyzer':   { starter: 'STANDARD', creator: 'STANDARD', elite: 'PREMIUM' },
 }
 
 export const TASK_LABELS: Record<CrispTask, string> = {
@@ -163,6 +169,7 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'competitor-analysis': 'Competitor Analysis',
   'media-kit-bio':       'Media Kit Bio Optimizer',
   'channel-analysis':    'Channel Analysis',
+  'thumbnail-analyzer':  'Thumbnail Analyzer',
 }
 
 export const ALL_TASKS: CrispTask[] = Object.keys(TASK_TIER_PROFILE) as CrispTask[]
@@ -193,6 +200,8 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
   'collab-finder': 3,
   'trend-radar':   3,
   'sound-tracker': 3,
+  // VISION tier (multimodal — image input + analysis output) — 4 credits
+  'thumbnail-analyzer':   4,
   // PREMIUM tier (Opus-class + strategic outputs) — 5 credits
   'brand-pitch':          5,
   'rate-calculator':      5,
