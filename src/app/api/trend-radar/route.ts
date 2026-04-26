@@ -53,16 +53,50 @@ Rules:
 - trending array = 8 items, rising array = 6 items, niche array = 6 items
 - Based on general knowledge and platform patterns as of training — acknowledge trend data is approximate`
 
+  let text = ''
+  let totalTokens = 0
   try {
-    const { text, totalTokens } = await crispGenerate({
+    const result = await crispGenerate({
       task: 'trend-radar',
       tier: auth.tier,
       prompt,
-      maxTokens: 4000,
+      // Bumped from 4000 → 6000. The prompt asks for 20 trends × ~8 fields
+      // each, which can easily exceed 4000 tokens of output and produce
+      // truncated JSON that crashes parseLooseJson downstream.
+      maxTokens: 6000,
     })
+    text = result.text
+    totalTokens = result.totalTokens
+  } catch (error) {
+    console.error('Trend radar — model call failed:', error)
+    return NextResponse.json(
+      { error: 'AI provider error. Please try again in a moment.' },
+      { status: 502 },
+    )
+  }
 
-    const parsed = parseLooseJson<{ trending: Trend[]; rising: Trend[]; niche: Trend[] }>(text)
+  let parsed: { trending: Trend[]; rising: Trend[]; niche: Trend[] }
+  try {
+    parsed = parseLooseJson<{ trending: Trend[]; rising: Trend[]; niche: Trend[] }>(text)
+  } catch (error) {
+    console.error('Trend radar — JSON parse failed. First 500 chars of model output:', text.slice(0, 500), error)
+    return NextResponse.json(
+      { error: 'AI returned malformed output. Please try again.' },
+      { status: 502 },
+    )
+  }
 
+  // Defensive: even if parse succeeds, the shape may be wrong. Surface a
+  // clear error rather than silently rendering empty arrays on the client.
+  if (!Array.isArray(parsed.trending) || !Array.isArray(parsed.rising) || !Array.isArray(parsed.niche)) {
+    console.error('Trend radar — unexpected response shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    return NextResponse.json(
+      { error: 'AI returned an unexpected response. Please try again.' },
+      { status: 502 },
+    )
+  }
+
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
     await auth.supabase.from('generations').insert({
@@ -75,10 +109,12 @@ Rules:
     })
 
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'trend-radar')
-
-    return NextResponse.json(parsed)
   } catch (error) {
-    console.error('Trend radar error:', error)
-    return NextResponse.json({ error: 'Failed to load trends. Please try again.' }, { status: 500 })
+    // Persistence failed but we have the trends — return them anyway. The
+    // user gets value; we lose the audit row + skip the credit debit. Logged
+    // to Sentry via instrumentation.ts onRequestError.
+    console.error('Trend radar — persistence failed (non-fatal, returning trends):', error)
   }
+
+  return NextResponse.json(parsed)
 }
