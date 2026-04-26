@@ -796,6 +796,37 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer affordance — only renders if user has dismissed at least one
+          of the onboarding cards. One-click reset to bring them back. */}
+      {stats && (stats.gettingStartedDismissed || stats.nextToolsDismissed) && (
+        <div className="flex justify-center pt-4 pb-2 border-t border-brand-500/5">
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/user/preferences', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    getting_started_dismissed: false,
+                    next_tools_dismissed: false,
+                  }),
+                })
+                setStats((prev) => prev ? {
+                  ...prev,
+                  gettingStartedDismissed: false,
+                  nextToolsDismissed: false,
+                } : prev)
+              } catch {
+                // Non-fatal — toggling visibility shouldn't error-out the dashboard.
+              }
+            }}
+            className="text-xs text-zinc-500 hover:text-brand-300 transition-colors"
+          >
+            ↩  Show hidden checklists
+          </button>
+        </div>
+      )}
     </div>
   )
 }
