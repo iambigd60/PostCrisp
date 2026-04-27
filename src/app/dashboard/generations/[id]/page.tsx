@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 
 interface GenerationRow {
   id: string;
+  user_id: string;
   feature: string;
   platform: string | null;
   input_data: Record<string, unknown> | null;
@@ -107,6 +108,7 @@ export default function GenerationDetailPage() {
   const router = useRouter();
   const id = params?.id as string;
   const [gen, setGen] = useState<GenerationRow | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -117,9 +119,14 @@ export default function GenerationDetailPage() {
   useEffect(() => {
     (async () => {
       const supabase = createClient();
+      // Capture the viewer so we can detect admin-viewing-someone-else's-row.
+      // The detail page is reachable from /admin/users/[id] for admins.
+      const { data: { user } } = await supabase.auth.getUser();
+      setViewerId(user?.id ?? null);
+
       const { data, error } = await supabase
         .from('generations')
-        .select('id, feature, platform, input_data, output_data, tokens_used, created_at')
+        .select('id, user_id, feature, platform, input_data, output_data, tokens_used, created_at')
         .eq('id', id)
         .maybeSingle();
       if (error) setError(error.message);
@@ -128,6 +135,12 @@ export default function GenerationDetailPage() {
       setLoading(false);
     })();
   }, [id]);
+
+  // True when an admin is viewing another user's generation. Hides the
+  // owner-only actions (Save to library, Delete) so an admin doesn't
+  // accidentally save someone else's content into their own library or
+  // destroy a tester's audit row mid-investigation.
+  const isViewingOthers = !!gen && !!viewerId && gen.user_id !== viewerId;
 
   const meta = gen ? (FEATURE_META[gen.feature] ?? { icon: '✨', label: gen.feature, backHref: '/dashboard' }) : null;
 
@@ -199,15 +212,27 @@ export default function GenerationDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          {isViewingOthers && (
+            <span
+              title="You're viewing this through admin access. Owner-only actions are hidden."
+              className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30"
+            >
+              👁 Admin view
+            </span>
+          )}
           <Link
             href={meta.backHref}
             className="px-3 py-1.5 rounded-lg border border-brand-500/20 text-brand-300 hover:bg-brand-500/10 text-sm font-medium transition-colors"
           >
             Run again
           </Link>
-          <Button variant="secondary" size="sm" onClick={handleSaveToLibrary} loading={saving}>💾 Save to library</Button>
-          <Button variant="danger" size="sm" onClick={handleDelete} loading={deleting}>🗑️ Delete</Button>
+          {!isViewingOthers && (
+            <>
+              <Button variant="secondary" size="sm" onClick={handleSaveToLibrary} loading={saving}>💾 Save to library</Button>
+              <Button variant="danger" size="sm" onClick={handleDelete} loading={deleting}>🗑️ Delete</Button>
+            </>
+          )}
         </div>
       </div>
 

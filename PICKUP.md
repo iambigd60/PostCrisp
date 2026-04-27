@@ -392,6 +392,25 @@ Session 10 `voice_profiles` migration still applicable if not already run.
 
 ---
 
+## ⚠️ SQL migration from session 13 (run this in Supabase)
+
+```sql
+-- Admins can read every user's generation rows so the admin user-detail
+-- view can show 'Recent generations' and the per-row detail page works.
+-- Without this, admins clicking another user's generation get
+-- "Generation not found" because RLS filters the row.
+CREATE POLICY "Admins can view all generations"
+  ON public.generations FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+```
+
+The detail page UI also now hides Save / Delete buttons when an admin is
+viewing someone else's generation, with a small "👁 Admin view" pill in
+the header. So even before you run the migration, the UI is safe — it
+just won't load anyone else's row until the policy is in place.
+
+---
+
 ## SQL migrations run in earlier sessions (for your records)
 
 ```sql

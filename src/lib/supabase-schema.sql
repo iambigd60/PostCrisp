@@ -328,6 +328,17 @@ CREATE POLICY "Users can view own generations"
   ON public.generations FOR SELECT
   USING (auth.uid() = user_id);
 
+-- Admins can read every user's generation rows so the admin user-detail
+-- view can show 'Recent generations' and the per-row detail page works
+-- without RLS-filtering the row away. Same pattern as credit_transactions
+-- and admin_actions admin-read policies. SELECT only — admins do not get
+-- INSERT/UPDATE/DELETE on other users' generations through this path;
+-- the detail page also hides Save and Delete buttons when the viewer is
+-- not the row's owner.
+CREATE POLICY "Admins can view all generations"
+  ON public.generations FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
 CREATE POLICY "Users can insert own generations"
   ON public.generations FOR INSERT
   WITH CHECK (auth.uid() = user_id);
