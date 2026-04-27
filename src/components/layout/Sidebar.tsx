@@ -50,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard/platform-tips",     label: "Platform Tips",    icon: "💡" },
       { href: "/dashboard/channel-analysis",  label: "Channel Analysis", icon: "🪞" },
       { href: "/dashboard/thumbnail-analyzer",label: "Thumbnail Analyzer",icon: "🖼️" },
+      { href: "/dashboard/cta-optimizer",     label: "CTA Optimizer",    icon: "🎯" },
     ],
   },
   {

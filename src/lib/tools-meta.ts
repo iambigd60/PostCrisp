@@ -153,6 +153,15 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
     bestFor: 'A/B-deciding before you publish a thumbnail.',
     href: '/dashboard/thumbnail-analyzer',
   },
+  {
+    key: 'cta_optimizer',
+    category: 'optimize',
+    icon: '🎯',
+    label: 'CTA Optimizer',
+    tagline: 'Recommended CTA + 4 alternatives, scored for your platform + goal.',
+    bestFor: 'Squeezing more conversions out of content you\'ve already drafted.',
+    href: '/dashboard/cta-optimizer',
+  },
 ]
 
 // GROW — discovery + reach tools.

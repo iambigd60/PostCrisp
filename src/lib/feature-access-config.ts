@@ -41,4 +41,6 @@ export const DEFAULT_MIN_TIER: Record<CrispTask, Tier> = {
   // Vision — all tiers (acquisition feature). Heavier credit cost (4)
   // already reflects the multimodal compute; tier gate not needed.
   'thumbnail-analyzer':  'starter',
+  // CTA Optimizer — content-quality tool, all tiers.
+  'cta-optimizer':       'starter',
 }

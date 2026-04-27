@@ -87,6 +87,8 @@ export type CrispTask =
   | 'channel-analysis'
   // Vision (multimodal)
   | 'thumbnail-analyzer'
+  // Conversion / call-to-action
+  | 'cta-optimizer'
 
 export type PowerProfile = 'FAST' | 'STANDARD' | 'PREMIUM'
 
@@ -145,6 +147,10 @@ export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, Power
   // path also supports vision but we anchor on Anthropic for image quality).
   // STANDARD = Sonnet for everyone; Elite gets Opus for nuanced critique.
   'thumbnail-analyzer':   { starter: 'STANDARD', creator: 'STANDARD', elite: 'PREMIUM' },
+  // CTA Optimizer — conversion-focused output. Quality matters because the
+  // CTA is what the audience actually sees and acts on. Premium at Elite,
+  // standard everywhere else.
+  'cta-optimizer':        { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
 }
 
 export const TASK_LABELS: Record<CrispTask, string> = {
@@ -170,6 +176,7 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'media-kit-bio':       'Media Kit Bio Optimizer',
   'channel-analysis':    'Channel Analysis',
   'thumbnail-analyzer':  'Thumbnail Analyzer',
+  'cta-optimizer':       'CTA Optimizer',
 }
 
 export const ALL_TASKS: CrispTask[] = Object.keys(TASK_TIER_PROFILE) as CrispTask[]
@@ -202,6 +209,8 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
   'sound-tracker': 3,
   // VISION tier (multimodal — image input + analysis output) — 4 credits
   'thumbnail-analyzer':   4,
+  // CTA Optimizer — multi-CTA output with reasoning per option, 2 credits.
+  'cta-optimizer':        2,
   // PREMIUM tier (Opus-class + strategic outputs) — 5 credits
   'brand-pitch':          5,
   'rate-calculator':      5,

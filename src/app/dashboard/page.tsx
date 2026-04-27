@@ -76,6 +76,7 @@ const FEATURE_META: Record<string, { icon: string; label: string; href: string }
   platform_tips:    { icon: '💡', label: 'Platform Tips',    href: '/dashboard/platform-tips' },
   channel_analysis: { icon: '🪞', label: 'Channel Analysis', href: '/dashboard/channel-analysis' },
   thumbnail_analyzer: { icon: '🖼️', label: 'Thumbnail Analyzer', href: '/dashboard/thumbnail-analyzer' },
+  cta_optimizer:     { icon: '🎯', label: 'CTA Optimizer',     href: '/dashboard/cta-optimizer' },
   // Grow
   viral_ideas:   { icon: '🚀', label: 'Viral Ideas',     href: '/dashboard/viral-ideas' },
   trend_radar:   { icon: '📡', label: 'Trend Radar',     href: '/dashboard/trends' },
