@@ -1,9 +1,86 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-26 (session 13 — defensive error handling + UX polish + per-category hub pages)
-**Build status:** ✅ Live on Vercel — production verified end-to-end
+**Last updated:** 2026-04-26 (session 14 — Sentry close-out, admin RLS fix, parser hardening, CTA Optimizer, Next.js 15 upgrade shipped)
+**Build status:** ✅ Live on Vercel — Next.js 15 in production as of `3bc8dcd`
 **Production URL:** https://postcrisp.vercel.app/
 **Dev server:** `npm run dev` (port 3000 or next available)
+
+---
+
+## Session 14 shipped — Sentry close-out + admin RLS + parser hardening + CTA Optimizer + Next.js 15
+
+9 commits across 5 themes. Started where session 13 left off (just-shipped tracker) and ran straight through into the Next.js 15 upgrade by end of session.
+
+### 🔭 Sentry close-out (commits dfbd5e8, 5f96848, a8b5e7b)
+
+Closed the observability loop opened in session 12:
+
+- **Per-request user tagging** in `src/lib/auth-usage.ts` — `Sentry.setUser({ id: user.id })` + `Sentry.setTag('tier' | 'role' | 'task')` after profile load. Issues now show *who* hit them.
+- **`src/app/global-error.tsx`** — App Router catch-all that wraps an `<html><body>` shell; reports the error via `Sentry.captureException` and shows a minimal inline-styled fallback. Required because `error.tsx` doesn't catch root-layout failures.
+- **Alert rule live** — Sentry → Alerts → "When new issue created" → email captain@postcrisp.com → environment filter set on production. Verified on test event.
+- **Source-map upload** — created Sentry auth token (scopes: `project:releases` Admin + `org:read`), added `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` to Vercel; pushed a no-op README commit (`a8b5e7b`) to force a rebuild that picks up the env. Release `a8b5e7bd...` showed up in Sentry → Releases. Stack traces now symbolicated end-to-end.
+
+Net: build warnings gone, every Sentry issue has user identity + tier + role + task, root-level crashes captured, stack traces are real instead of minified.
+
+### 🔐 Admin RLS fix — admins viewing another user's generation (commit dfbd5e8)
+
+Triggered by tester report: "I click Rodney's generation in admin panel and get '⚠️ Generation not found'."
+
+Two-part fix:
+
+1. **SQL migration** — added admin SELECT policy on `generations` matching the pattern already used on `credit_transactions` and `admin_actions`:
+   ```sql
+   CREATE POLICY "Admins can view all generations"
+     ON public.generations FOR SELECT
+     USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+   ```
+2. **UI guard in `src/app/dashboard/generations/[id]/page.tsx`** — detects `gen.user_id !== viewerId`, hides Save / Delete actions, shows an amber "👁 Admin view" pill. Even without the migration the UI was safe; the migration just unlocks the data.
+
+User ran the migration in Supabase. Verified.
+
+### 🩹 Thumbnail Analyzer fixes — defensive errors + parser rewrite (commits caf9fb2, 6720626, ea51e86)
+
+Tester report: "Failed to analyze thumbnail. Please try again." Generic catch-all hid the real cause. Two-step fix:
+
+1. **`src/app/api/thumbnail-analyzer/route.ts` — defensive 4-phase split** (model / parse / shape / persistence) following session 13's pattern, plus **status-aware error messages**: 429 → "AI provider is rate-limiting us", 413 → "image too large", 5xx → "AI provider issues, try again". Each phase logs structured Sentry context.
+2. **`src/lib/safe-json.ts` — brace-balanced extraction** — the real bug surfaced in user's second test: "AI returned malformed output". Diagnosed `parseLooseJson`'s greedy regex `/\{[\s\S]*\}/` matching from the first `{` to the *last* `}` in the string — when LLM output had trailing prose containing a `}`, this swallowed garbage. Rewrote as a string-aware brace-depth walker (`extractFirstBalancedObject`) that tracks `inString` / escape state and returns at depth 0. Affects all 20+ AI routes that go through `parseLooseJson`, not just thumbnail.
+3. **`src/lib/__tests__/safe-json.test.ts`** — 14 new unit tests: happy path, LLM-quirk tolerance (markdown fences, trailing commas, `//` comments, raw newlines in strings), brace-balanced extraction (preamble/trailing prose, `}` in trailing prose, fenced JSON with surrounding prose, `}` inside string literals), and failure modes (no JSON, truncated JSON throws as load-bearing signal). All 28 tests green.
+
+User retested: "everything tested and good".
+
+### ✨ CTA Optimizer (IDEA-08) shipped (commit b56bded)
+
+First Optimize-hub feature past launch-day. End-to-end:
+
+- **`src/app/api/cta-optimizer/route.ts`** — validates `goal` against `ALLOWED_GOALS` (clicks/comments/follows/shares/signups/purchases/dms/other), `MAX_CONTENT_LEN` 8000, voice-aware via `loadVoicePromptSnippet`, 4-phase defensive errors. Persists with `feature: 'cta_optimizer'`.
+- **`src/app/dashboard/cta-optimizer/page.tsx`** — form (textarea + platform pills + goal select + optional audience/linkUrl), result UI (hero "★ Recommended" card + 4 alternatives + 3 patterns + optional warnings), save-to-library wired with `type='cta_optimization'`, `formatResultAsText` helper for markdown output.
+- **System prompt** — added `cta-optimizer` task role in `src/lib/system-prompts.ts` addressing goal-fit, platform-fit, friction, voice match, anti-spam (no '🔥 CLICK HERE', no DM-pyramid energy).
+- **Tier ladder** — registered in `crisp-engine-config.ts` with FAST/STANDARD/PREMIUM profile, 2-credit cost. All-tier access in `feature-access-config.ts`.
+- **Surfaces** — sidebar Optimize group, dashboard `FEATURE_META`, saved-page `TYPE_META` badge (🎯 brand tone), `tools-meta.ts` Optimize hub card.
+
+2 credits per run. Lives at `/dashboard/cta-optimizer`.
+
+### ⬆️ Next.js 14 → 15 upgrade — shipped to production (commits 64e3d2f, a8b5e7b, 3bc8dcd)
+
+Closed the highest-priority deferred security debt (known DoS vulns in 14.2.35).
+
+**Branch workflow:**
+- Built on isolated `nextjs-15-upgrade` branch. Smoke-tested as Vercel preview.
+- Merged main → branch mid-stream to bring the 4 hot commits above (admin RLS, thumbnail fixes, parser tests, CTA Optimizer) onto the upgrade branch. Clean merge.
+- Merged via GitHub PR #1 button → `3bc8dcd` on main → auto-deployed to production.
+
+**What changed (41 files):**
+- `package.json`: `next` 14.2.35 → ^15.5.15, `eslint-config-next` ^15. React 18 retained intentionally to decouple risk.
+- `src/utils/supabase/server.ts`: `cookies()` → `await cookies()`, `createClient` becomes async.
+- 29 server-side files: `createClient()` → `await createClient()`.
+- 4 lib files use `type ServerClient = Awaited<ReturnType<typeof createClient>>` to unwrap the now-async return.
+- 6 dynamic route handlers: `params: { id: string }` → `params: Promise<{ id: string }>` + `const { id } = await params`.
+
+**Verification before merge:** local typecheck clean, 28/28 vitest, lint warnings pre-existing only, `next build` green.
+
+**Smoke test (preview deploy):** user verified login → dashboard → caption → thumbnail → admin user view → generation detail → voice all worked. "Everything seems to be working."
+
+Production URL now serves Next 15. Sentry observability + smoke-test affordance means any regression should surface fast.
 
 ---
 
@@ -154,37 +231,41 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | Per-category hub pages (Create / Optimize / Grow / Monetize) + Library relabel | ✅ Done 2026-04-26 |
 | Dashboard polish (channels promoted, profile pictures, show-hidden affordance, Saved badges) | ✅ Done 2026-04-26 |
 | Thumbnail Analyzer save-to-library | ✅ Done 2026-04-26 |
+| **Sentry close-out** (global-error + user tagging + alert rule + source-map upload) | ✅ Done 2026-04-26 (s14) |
+| Admin RLS fix — admin generation view | ✅ Done 2026-04-26 (s14) |
+| `parseLooseJson` brace-balanced rewrite + 14 unit tests | ✅ Done 2026-04-26 (s14) |
+| Thumbnail Analyzer defensive error handling + status-aware messages | ✅ Done 2026-04-26 (s14) |
+| CTA Optimizer (IDEA-08) | ✅ Done 2026-04-26 (s14) |
+| **Next.js 14 → 15 upgrade — shipped to production** | ✅ Done 2026-04-26 (s14) |
 | **Alpha deployment** | ✅ Live on Vercel (postcrisp.vercel.app) |
-| Step 7 — Launch prep (custom domain, MFA, Stripe prod, mobile audit, Next.js 15) | 🟡 Partial |
+| Step 7 — Launch prep (custom domain, MFA, Stripe prod, mobile audit) | 🟡 Partial — Next 15 done, 4 items remain |
 
 ---
 
 ## ⏭️ Next session — recommended order
 
-**Manual items (yours, ~10 min total):**
-1. Sentry alert rule — create at https://crusher-brands-llc.sentry.io/alerts/rules/ → "When new issue created" → email yourself
-2. SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT env vars in Vercel — eliminates build warnings + symbolicates stack traces. Token: Sentry → Settings → Account → API → Auth Tokens, scope `project:releases` + `org:read`
+**Pre-public-launch (Step 7 remaining — order = lowest-friction first):**
+1. **Custom domain** `postcrisp.com` → Vercel (Domains tab + DNS A/CNAME) + Supabase Site URL update + Resend verified-sender check after switch (~30 min)
+2. **MFA** enrollment for `captain@postcrisp.com` via Supabase Auth (external, ~10 min)
+3. **Stripe production prices** — create 6 price IDs (Creator/Team/Elite × Monthly/Yearly) in live mode, swap env vars, register prod webhook → /api/stripe/webhook (~45 min)
+4. **Mobile responsive audit** — sidebar drawer touch targets, hub pages on mobile, generation detail page, modal forms (~1 hr)
 
 **Code (next big build — pick one):**
-3. **Next.js 15 upgrade** on its own branch. Semver-major, half-day work. Closes known DoS vulns in 14.2.35. Should be its own focused session.
-4. **CTA Optimizer** (IDEA-08) — depends on Voice Trainer (now solid). 2–3 hrs.
-5. **Brand Deal Maker** (IDEA-09) — needs separate scoping session.
-6. Phase 3 daily-suggestion widget — only build if Phase 2 NextToolsCard data shows drop-off.
+5. **Brand Deal Maker** (IDEA-09) — needs separate scoping session before build
+6. Phase 3 daily-suggestion widget — only build if Phase 2 NextToolsCard data shows drop-off
+7. **Billing admin** — replace list-price MRR estimate with real Stripe API pull
 
 **Smaller polish (queue up if you want low-effort wins):**
-- Mobile sidebar audit — the new clickable category-label + arrow-button split should be eyeballed on mobile to confirm touch targets aren't cramped
+- Mobile sidebar audit — the clickable category-label + arrow-button split should be eyeballed on mobile to confirm touch targets aren't cramped
 - Settings + Billing currently nested under Library group; future "Account" group could split them off cleanly
 - Defensive error-handling sweep on the remaining short-output AI routes (captions, hashtags, polls, comment-reply, etc.) — pattern is established; only worth doing if Sentry shows them losing audit rows
 - Tool-level channel picker (~1 hr) — replace platform dropdown on tools with the user's channels picker
 - Library reorg by channel tabs (~1 hr)
+- Error boundary audit on the newer pages (CTA Optimizer, hubs, Voice Trainer, Thumbnail Analyzer)
 
-**Pre-public-launch (Step 7 remaining):**
-7. Custom domain `postcrisp.com` → Vercel + Supabase Site URL update
-8. Stripe production prices (6 price IDs) + webhook for production
-9. MFA enrollment for `captain@postcrisp.com`
-10. Mobile responsive audit (full app, not just sidebar)
-11. Next.js 15 upgrade (above)
-12. Error boundary audit on new pages
+**Watch first 24–48 hrs after Next 15 deploy:**
+- Sentry issue rate vs. baseline — async cookie/params migration is the riskiest surface; any regression should fire there first
+- A few production smoke-test runs on the live URL (login → dashboard → caption → admin user view) to confirm prod parity with the smoke-tested preview
 
 ---
 
@@ -441,8 +522,8 @@ No other DB changes this session.
 - Generations don't log `provider` + `model` — analytics cost shown is current-routing inference, not historical accuracy
 - Anthropic cache-read tokens count at full value in analytics but bill at ~10%; cost totals skew high when caching is hot
 - Est. MRR uses list prices, ignores yearly discounts — replaced once Billing admin ships
-- `src/app/login/actions.ts` is orphaned (the real login action is at `src/app/(auth)/login/actions.ts`). Safe to delete.
-- `MOCK_BEST_TIMES` constant still dead code
+- ~~`src/app/login/actions.ts` orphaned~~ deleted in s12 hardening sprint
+- ~~`MOCK_BEST_TIMES` dead code~~ deleted in s12 hardening sprint
 
 ## Manual setup still pending (for production)
 
