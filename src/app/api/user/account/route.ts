@@ -3,7 +3,7 @@ import { createClient as createServerClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export async function DELETE() {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {

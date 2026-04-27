@@ -12,11 +12,11 @@ function getAdminClient() {
 // POST body: { enabled: boolean, reason?: string }
 // enabled=false → bans the user in auth (can't log in)
 // enabled=true  → unbans
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
-  const userId = params.id
+  const { id: userId } = await params
   const { enabled, reason } = (await request.json()) as { enabled?: boolean; reason?: string }
 
   if (typeof enabled !== 'boolean') {

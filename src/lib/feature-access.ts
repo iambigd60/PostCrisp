@@ -42,7 +42,7 @@ async function loadAccess(): Promise<Map<string, AccessRow>> {
   if (_cache && Date.now() - _cache.fetchedAt < CACHE_TTL_MS) return _cache.rows
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('feature_access')
       .select('feature, min_tier, enabled')

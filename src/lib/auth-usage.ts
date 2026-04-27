@@ -9,7 +9,9 @@ import { checkAiRateLimit } from './rate-limit'
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
 export const FREE_DAILY_LIMIT = 10
 
-type ServerClient = ReturnType<typeof createClient>
+// createClient is async on Next.js 15 (cookies() is now async). Unwrap the
+// Promise so callers receive the actual client type, not a Promise.
+type ServerClient = Awaited<ReturnType<typeof createClient>>
 
 type AuthUsageOk = {
   ok: true
@@ -47,7 +49,7 @@ export interface CheckAuthOptions {
 }
 
 export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions = {}): Promise<AuthUsageOk | AuthUsageDenied> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {

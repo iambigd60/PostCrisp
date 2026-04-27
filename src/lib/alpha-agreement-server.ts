@@ -16,7 +16,7 @@ import { hasCurrentAcceptance, type AlphaNdaAcceptance } from './alpha-agreement
  * @param nextPath — path to return to after acceptance. Defaults to '/dashboard'.
  */
 export async function requireAlphaAcceptance(nextPath: string = '/dashboard'): Promise<void> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // No user = not authenticated; let other guards (middleware/login) handle it.

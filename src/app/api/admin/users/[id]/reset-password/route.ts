@@ -6,11 +6,11 @@ import { createClient } from '@/utils/supabase/server'
 // Uses the same flow as /forgot-password, just initiated by an admin.
 // The user clicks the email link → /auth/callback exchanges the code for a
 // recovery session → redirects to /auth/reset-password where they set a new pw.
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
-  const userId = params.id
+  const { id: userId } = await params
 
   // Look up target email via service role (bypasses RLS on profiles)
   const { data: target, error: lookupError } = await auth.supabaseAdmin
@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   // auto-exchanges it and establishes the recovery session. Routing through
   // /auth/callback doesn't work for recovery because of query-string
   // mangling (our ?next= + Supabase's ?code= don't combine cleanly).
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(target.email, {
     redirectTo: `${origin}/auth/reset-password`,
   })

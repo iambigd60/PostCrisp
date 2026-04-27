@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server'
 import { readAccessControl } from '@/lib/platform-settings'
 
 export async function login(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: formData.get('email') as string,

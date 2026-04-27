@@ -17,7 +17,7 @@ import {
   type Tier,
 } from './crisp-engine-config'
 
-type ServerClient = ReturnType<typeof createClient>
+type ServerClient = Awaited<ReturnType<typeof createClient>>
 
 export interface CreditProfile {
   balance: number

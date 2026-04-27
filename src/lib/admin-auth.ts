@@ -19,7 +19,7 @@ function serviceRoleClient() {
  *                      (listing users, editing another user's profile, reading their generations).
  */
 export async function requireAdmin() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
@@ -44,7 +44,7 @@ export async function requireAdmin() {
  * (caller should redirect).
  */
 export async function checkAdminAccess(): Promise<{ isAdmin: boolean; userId: string | null }> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { isAdmin: false, userId: null }
 

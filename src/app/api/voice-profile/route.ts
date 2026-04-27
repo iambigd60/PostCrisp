@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 // GET — return the current user's voice profile (creates empty row on first visit)
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +25,7 @@ export async function GET() {
 // PATCH — manual override of traits (admin/user adjustments like
 // "I'm more sarcastic than this"). Body: { traits: VoiceTraits }
 export async function PATCH(request: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -52,7 +52,7 @@ export async function PATCH(request: Request) {
 // DELETE — wipe the whole profile (samples + traits). Useful if the user
 // wants a fresh start.
 export async function DELETE() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

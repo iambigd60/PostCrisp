@@ -14,11 +14,11 @@ function getAdminClient() {
 }
 
 // ─── GET — user detail with aggregates ────────────────────────────────────
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
-  const userId = params.id
+  const { id: userId } = await params
 
   const [profileRes, genAggregateRes, recentGensRes, creditTxRes, adminActionsRes, savedCountRes] = await Promise.all([
     auth.supabaseAdmin
@@ -105,11 +105,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 // ─── PATCH — change tier or role ──────────────────────────────────────────
 // Body: { tier?: string, role?: string, reason?: string }
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
-  const userId = params.id
+  const { id: userId } = await params
   const body = await request.json()
   const { tier, role, reason } = body as { tier?: string; role?: string; reason?: string }
 
