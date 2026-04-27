@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/utils/supabase/server'
 import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
@@ -102,6 +103,15 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
 
   const tier = tierFromDbValue(profile.subscription_tier)
   const role: 'user' | 'admin' = profile.role === 'admin' ? 'admin' : 'user'
+
+  // Tag the active Sentry scope with the authenticated user so any error
+  // captured during this request lands in Sentry attributed to them. Tier
+  // + role + task surface as searchable tags for triage. PII is limited to
+  // user_id (we don't pass the email — sendDefaultPii stays off in config).
+  Sentry.setUser({ id: user.id })
+  Sentry.setTag('tier', tier)
+  Sentry.setTag('role', role)
+  if (task) Sentry.setTag('task', task)
 
   // Admins bypass every gate (tier + usage cap + feature access + credits)
   const isAdmin = role === 'admin'
