@@ -124,6 +124,10 @@ Rules:
 - Include 3-5 improvements. At least one MUST be priority: "high".
 - If the image is genuinely good, say so — don't manufacture critique.`
 
+  // Phase 1: vision call to Anthropic. Most likely failure point — large
+  // base64 image, network hiccup, or 5xx from their API.
+  let text = ''
+  let totalTokens = 0
   try {
     const response = await getAnthropic().messages.create({
       model,
@@ -147,20 +151,47 @@ Rules:
       ],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    text = response.content[0].type === 'text' ? response.content[0].text : ''
     const usage = response.usage as { input_tokens: number; output_tokens: number }
-    const totalTokens = usage.input_tokens + usage.output_tokens
-
-    const parsed = parseLooseJson<ThumbnailAnalysisResult>(text)
-    if (!parsed) {
-      return NextResponse.json(
-        { error: 'Could not parse the analysis. Please try again.' },
-        { status: 500 },
-      )
+    totalTokens = usage.input_tokens + usage.output_tokens
+  } catch (error) {
+    // Anthropic SDK errors carry .status / .message. Surface the status to
+    // the client so the message can be specific (overload vs auth vs
+    // image-too-big), and log the full error to Sentry via the route handler's
+    // captureRequestError instrumentation.
+    const err = error as { status?: number; message?: string; name?: string }
+    const status = err?.status
+    console.error('Thumbnail analyzer — vision call failed:', { status, name: err?.name, message: err?.message }, error)
+    if (status === 429) {
+      return NextResponse.json({ error: 'AI provider is rate-limiting us. Try again in a few seconds.' }, { status: 429 })
     }
+    if (status === 413 || (err?.message ?? '').toLowerCase().includes('too large')) {
+      return NextResponse.json({ error: 'Image is too large for the AI provider. Try one under 5 MB.' }, { status: 413 })
+    }
+    if (status && status >= 500) {
+      return NextResponse.json({ error: 'AI provider is having issues. Please retry in a moment.' }, { status: 502 })
+    }
+    return NextResponse.json({ error: 'AI vision call failed. Please try again.' }, { status: 502 })
+  }
 
+  // Phase 2: parse the structured JSON the model returned.
+  let parsed: ThumbnailAnalysisResult
+  try {
+    parsed = parseLooseJson<ThumbnailAnalysisResult>(text)
+  } catch (error) {
+    console.error('Thumbnail analyzer — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
+  }
+
+  if (!parsed?.clickPrediction || !Array.isArray(parsed.improvements)) {
+    console.error('Thumbnail analyzer — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
+  }
+
+  // Phase 3: persist + debit. Best-effort — if any of these throw, the user
+  // still gets the analysis. Audit row is the loss; logged for follow-up.
+  try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-
     await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'thumbnail_analyzer',
@@ -171,15 +202,10 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     })
-
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'thumbnail-analyzer')
-
-    return NextResponse.json(parsed)
   } catch (error) {
-    console.error('Thumbnail analyzer error:', error)
-    return NextResponse.json(
-      { error: 'Failed to analyze thumbnail. Please try again.' },
-      { status: 500 },
-    )
+    console.error('Thumbnail analyzer — persistence failed (non-fatal):', error)
   }
+
+  return NextResponse.json(parsed)
 }
