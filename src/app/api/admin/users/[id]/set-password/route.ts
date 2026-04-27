@@ -6,11 +6,11 @@ import { requireAdmin } from '@/lib/admin-auth'
 // (e.g., Outlook SafeLinks consuming the one-time token) or for support
 // when a user is locked out. Admin shares the new password out-of-band.
 // Body: { password: string }
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
-  const userId = params.id
+  const { id: userId } = await params
 
   if (userId === auth.userId) {
     return NextResponse.json(

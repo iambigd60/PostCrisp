@@ -5,8 +5,9 @@ import { loadVoiceProfile, type VoiceSample } from '@/lib/voice-profile'
 export const dynamic = 'force-dynamic'
 
 // DELETE — remove a single sample from the user's profile.
-export async function DELETE(_request: Request, { params }: { params: { sampleId: string } }) {
-  const supabase = createClient()
+export async function DELETE(_request: Request, { params }: { params: Promise<{ sampleId: string }> }) {
+  const { sampleId } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,7 +19,7 @@ export async function DELETE(_request: Request, { params }: { params: { sampleId
   }
 
   const existing = Array.isArray(profile.samples) ? profile.samples : []
-  const filtered = existing.filter((s: VoiceSample) => s.id !== params.sampleId)
+  const filtered = existing.filter((s: VoiceSample) => s.id !== sampleId)
 
   if (filtered.length === existing.length) {
     return NextResponse.json({ error: 'Sample not found' }, { status: 404 })

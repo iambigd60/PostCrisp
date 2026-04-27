@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 // to the voice_profiles row. Idempotent — safe to re-run after adding
 // more samples.
 export async function POST() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

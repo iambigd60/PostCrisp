@@ -10,7 +10,7 @@ const MAX_SAMPLES = 25
 // POST — append a new sample to the user's voice profile.
 // Body: { content: string, label?: string, platform?: string }
 export async function POST(request: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

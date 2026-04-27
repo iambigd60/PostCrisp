@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   // intact. Validated via the shared tutorial-state guard.
   let allowBypass = false
   if (tutorialMode) {
-    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const supabase = await (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'channel_analysis')
   }

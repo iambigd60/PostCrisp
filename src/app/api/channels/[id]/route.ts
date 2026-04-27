@@ -8,8 +8,9 @@ const MAX_HANDLE_LEN = 120
 const MAX_LABEL_LEN = 80
 const MAX_URL_LEN = 500
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient()
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -52,22 +53,23 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { error } = await supabase
     .from('channels')
     .update(updates)
-    .eq('id', params.id)
+    .eq("id", id)
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient()
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { error } = await supabase
     .from('channels')
     .delete()
-    .eq('id', params.id)
+    .eq("id", id)
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

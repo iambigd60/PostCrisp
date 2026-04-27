@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   // Tutorial mode: PostCrisp absorbs credit + tier cost. Server-validated.
   let allowBypass = false
   if (tutorialMode) {
-    const supabase = (await import('@/utils/supabase/server')).createClient()
+    const supabase = await (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'viral_ideas')
   }

@@ -1,6 +1,6 @@
 import type { createClient } from '@/utils/supabase/server'
 
-type ServerClient = ReturnType<typeof createClient>
+type ServerClient = Awaited<ReturnType<typeof createClient>>
 
 export interface UserChannels {
   instagram?: string

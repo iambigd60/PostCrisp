@@ -58,7 +58,7 @@ async function loadOverrides(): Promise<Map<string, ProfileConfig>> {
   if (_cache && Date.now() - _cache.fetchedAt < CACHE_TTL_MS) return _cache.overrides
 
   try {
-    const supabase = createSupabaseServer()
+    const supabase = await createSupabaseServer()
     const { data, error } = await supabase
       .from('ai_config_overrides')
       .select('task, tier, provider, model')

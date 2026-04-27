@@ -3,7 +3,7 @@ import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/utils/supabase/server'
 
 export async function POST() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
