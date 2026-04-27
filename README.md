@@ -4,6 +4,8 @@ AI-powered content platform for social-media creators. Built on Next.js 14 (App 
 
 Currently in invite-only alpha. Operated by Crusher Brands, LLC.
 
+Production: https://postcrisp.vercel.app/
+
 ## Local development
 
 ```bash
