@@ -1,9 +1,31 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-26 (session 14 — Sentry close-out, admin RLS fix, parser hardening, CTA Optimizer, Next.js 15 upgrade shipped)
+**Last updated:** 2026-04-27 (session 14b — custom domain `postcrisp.com` live)
 **Build status:** ✅ Live on Vercel — Next.js 15 in production as of `3bc8dcd`
-**Production URL:** https://postcrisp.vercel.app/
+**Production URL:** **https://postcrisp.com** (primary) — https://postcrisp.vercel.app still resolves
 **Dev server:** `npm run dev` (port 3000 or next available)
+
+---
+
+## Session 14b shipped — custom domain `postcrisp.com` live (no code changes)
+
+External setup only — no commits. Step 7 of Step-7 launch prep done.
+
+**Done:**
+- Vercel → PostCrisp project → Domains → added `postcrisp.com` and `www.postcrisp.com` (apex canonical, www redirects)
+- Squarespace Domains → DNS → custom A record `@` → `216.150.1.1` (Vercel rotated from the legacy `76.76.21.21`); CNAME `www` → `cname.vercel-dns.com.`
+- SSL cert auto-issued by Vercel after DNS propagation
+- **`NEXT_PUBLIC_APP_URL`** added fresh in Vercel env vars (Production + Preview + Development) → `https://postcrisp.com`. **Latent bug surfaced**: this var was never set, so any Stripe checkout in production would have built `success_url=undefined/dashboard/billing?success=true`. Caught now before launch. After save, force-redeployed with build-cache off so the new value lands in the bundle.
+- Supabase → Authentication → URL Configuration → Site URL = `https://postcrisp.com`; Redirect URLs = `https://postcrisp.com/**` (with wildcard) + kept `https://postcrisp.vercel.app/**` for transition
+- Resend sender (`noreply@postcrisp.com`) was already verified in session 8 — no change needed
+
+**Lessons captured (session 14b):**
+- **Vercel edge IP rotated** from `76.76.21.21` → `216.150.1.1`. Vercel's docs lag the rotation; trust the IP shown in the Domains page over any tutorial. Wrong IP produces `DEPLOYMENT_NOT_FOUND` (Vercel's edge sees the request but routes to the "no project" handler).
+- **Supabase Redirect URLs need the `/**` wildcard** to match paths. A bare `https://postcrisp.com` entry only matches that exact URL — not `/auth/reset-password`. When the redirectTo doesn't match the allowlist, Supabase silently falls back to **Site URL** with no path (so users land on the homepage with a `?code=...` query param that's never exchanged).
+- **`NEXT_PUBLIC_*` env-var changes require a build-cache-off redeploy** to actually land in the client bundle. Same gotcha that bit Sentry DSN updates in session 12.
+- **Squarespace's Domain Connect CNAME** (`_domainconnect`) is harmless — it's a separate namespace from `@` and `www`; don't remove it.
+
+**Pre-launch list now:** MFA, Stripe prod prices, mobile audit. (Custom domain ✅, Next 15 ✅.)
 
 ---
 
@@ -237,16 +259,17 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | Thumbnail Analyzer defensive error handling + status-aware messages | ✅ Done 2026-04-26 (s14) |
 | CTA Optimizer (IDEA-08) | ✅ Done 2026-04-26 (s14) |
 | **Next.js 14 → 15 upgrade — shipped to production** | ✅ Done 2026-04-26 (s14) |
-| **Alpha deployment** | ✅ Live on Vercel (postcrisp.vercel.app) |
-| Step 7 — Launch prep (custom domain, MFA, Stripe prod, mobile audit) | 🟡 Partial — Next 15 done, 4 items remain |
+| **Custom domain postcrisp.com live** | ✅ Done 2026-04-27 (s14b) |
+| **Alpha deployment** | ✅ Live (https://postcrisp.com) |
+| Step 7 — Launch prep (MFA, Stripe prod, mobile audit) | 🟡 Partial — domain + Next 15 done, 3 items remain |
 
 ---
 
 ## ⏭️ Next session — recommended order
 
 **Pre-public-launch (Step 7 remaining — order = lowest-friction first):**
-1. **Custom domain** `postcrisp.com` → Vercel (Domains tab + DNS A/CNAME) + Supabase Site URL update + Resend verified-sender check after switch (~30 min)
-2. **MFA** enrollment for `captain@postcrisp.com` via Supabase Auth (external, ~10 min)
+1. ~~Custom domain~~ ✅ Done s14b — postcrisp.com live
+2. **MFA hardening** — Tier 1 = external accounts first (Supabase Dashboard, GitHub, Vercel, Stripe, Anthropic, Resend, Sentry — ~15 min, biggest blast-radius reduction). Tier 2 = build in-app `/dashboard/settings/security` panel (TOTP enroll via `supabase.auth.mfa.enroll`, login `aal2` upgrade flow, ~4–6 hrs). Defer Tier 2 until after launch checklist if alpha-only.
 3. **Stripe production prices** — create 6 price IDs (Creator/Team/Elite × Monthly/Yearly) in live mode, swap env vars, register prod webhook → /api/stripe/webhook (~45 min)
 4. **Mobile responsive audit** — sidebar drawer touch targets, hub pages on mobile, generation detail page, modal forms (~1 hr)
 
@@ -527,9 +550,10 @@ No other DB changes this session.
 
 ## Manual setup still pending (for production)
 
-- Custom domain `postcrisp.com` → Vercel (add in Vercel → Domains, update DNS)
-- Update Supabase Site URL + Resend sender if custom domain ships
-- Create Stripe products: Creator/Team/Elite Monthly/Yearly (6 price IDs)
+- ~~Custom domain `postcrisp.com` → Vercel~~ ✅ Done 2026-04-27
+- ~~Update Supabase Site URL + Resend sender~~ ✅ Done 2026-04-27
+- Create Stripe products in live mode: Creator/Team/Elite Monthly/Yearly (6 price IDs)
 - Register Stripe webhook endpoint for production
 - Google OAuth in Supabase Auth settings (currently disabled in our invite-only flow anyway)
-- MFA enrollment for `captain@postcrisp.com`
+- MFA on platform accounts (Supabase Dashboard, GitHub, Vercel, Stripe, Anthropic, Resend, Sentry — Tier 1 priority)
+- MFA in-app for captain@postcrisp.com (Tier 2, requires UI build)
