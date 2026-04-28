@@ -38,5 +38,14 @@ if (dsn) {
       }
       return breadcrumb
     },
+    // Suppress transient Supabase Auth network errors. These fire when a
+    // user's auth fetch gets a transient 5xx, network blip, or ad-blocker
+    // intercept. Our actions handle the {error} return cleanly and the
+    // user just sees a "try again" toast — surfacing every blip as a
+    // Sentry event drowns out signal.
+    ignoreErrors: [
+      'An unexpected response was received from the server.',
+      'AuthRetryableFetchError',
+    ],
   })
 }
