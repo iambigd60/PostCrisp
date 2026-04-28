@@ -204,11 +204,21 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   // falls back to first-pass output. Refinement is additive value, never
   // gating — enabling refine should never make a request fail that would
   // have succeeded without it.
+  //
+  // Critic always uses the STANDARD profile (Sonnet) regardless of caller
+  // tier. The critic's job is rewriting based on QA criteria — not
+  // reasoning-heavy enough to need Opus. Using Sonnet for the critic keeps
+  // refined-Elite responses under the Vercel function timeout while still
+  // delivering the depth lift Elite users are paying for via Opus on
+  // pass 1.
   try {
+    const criticConfig = DEFAULT_PROFILE_CONFIG['STANDARD']
+    const criticProvider = getProvider(criticConfig.provider)
+
     const critiquePrompt = `Original task instructions:\n${args.prompt}\n\n────────\n\nFirst-pass output to critique and rewrite:\n${firstPass.text}`
 
-    const refinedPass = await providerImpl.generate({
-      model: config.model,
+    const refinedPass = await criticProvider.generate({
+      model: criticConfig.model,
       system: CRITIC_SYSTEM,
       prompt: critiquePrompt,
       maxTokens: args.maxTokens,
@@ -236,6 +246,8 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
       inputTokens: firstPass.inputTokens + refinedPass.inputTokens,
       outputTokens: firstPass.outputTokens + refinedPass.outputTokens,
       totalTokens: firstPass.inputTokens + firstPass.outputTokens + refinedPass.inputTokens + refinedPass.outputTokens,
+      // providerUsed/modelUsed reflect pass 1 (the user-tier model). The
+      // critic (Sonnet) is an internal QA layer not exposed in analytics.
       providerUsed: config.provider,
       modelUsed: config.model,
       tierUsed: effective,

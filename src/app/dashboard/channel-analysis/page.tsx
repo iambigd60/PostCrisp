@@ -57,7 +57,9 @@ export default function ChannelAnalysisPage() {
           contentFocus: contentFocus.join(", "),
           currentChallenges, analyzeHandle,
         }),
-        timeout: 60000,
+        // 90s — matches the route's maxDuration. Refine pass for Elite tier
+        // can take up to ~50s; allow headroom over that.
+        timeout: 90000,
       });
       setResult(data);
     } catch (err) {

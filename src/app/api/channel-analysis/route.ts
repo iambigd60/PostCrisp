@@ -6,6 +6,12 @@ import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
+// Vercel function timeout. Default is 10s (Hobby) / 60s (Pro). Channel
+// Analysis with refine on for Elite tier needs more headroom — pass 1
+// (Opus) + pass 2 (Sonnet critic) can hit ~50s on long outputs.
+// Set to 90s; Pro plan allows up to 300s.
+export const maxDuration = 90
+
 export interface ChannelAnalysisResult {
   overallAssessment: string
   strengths: string[]
