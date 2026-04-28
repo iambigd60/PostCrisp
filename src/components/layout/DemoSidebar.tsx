@@ -1,14 +1,69 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const NAV_ITEMS = [
-  { href: "/demo", label: "Dashboard", icon: "📊" },
-  { href: "/demo/captions", label: "Caption Generator", icon: "✍️" },
-  { href: "/demo/hashtags", label: "Hashtag Finder", icon: "🏷️" },
-  { href: "/demo/best-times", label: "Best Times", icon: "⏰" },
-  { href: "/demo/viral-ideas", label: "Viral Ideas", icon: "🚀" },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  /** Whether this tool has a working demo page. The 4 originals do; the
+   *  rest land on /signup so visitors convert instead of clicking dead
+   *  links. */
+  interactive?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const DASHBOARD_ITEM: NavItem = { href: "/demo", label: "Dashboard", icon: "📊", interactive: true };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Create",
+    items: [
+      { href: "/demo/captions",       label: "Captions",        icon: "✍️", interactive: true },
+      { href: "/demo/hashtags",       label: "Hashtags",        icon: "🏷️", interactive: true },
+      { href: "/signup?from=demo&tool=scripts",         label: "Scripts",          icon: "🎬" },
+      { href: "/signup?from=demo&tool=repurpose",       label: "Repurpose",        icon: "♻️" },
+      { href: "/signup?from=demo&tool=blog-to-social",  label: "Blog → Social",    icon: "📰" },
+      { href: "/signup?from=demo&tool=polls",           label: "Polls",            icon: "📊" },
+      { href: "/signup?from=demo&tool=dm-templates",    label: "DM Templates",     icon: "✉️" },
+      { href: "/signup?from=demo&tool=comment-replies", label: "Comment Replies",  icon: "💬" },
+    ],
+  },
+  {
+    label: "Optimize",
+    items: [
+      { href: "/demo/best-times",     label: "Best Times",      icon: "⏰", interactive: true },
+      { href: "/signup?from=demo&tool=youtube-seo",        label: "YouTube SEO",        icon: "📺" },
+      { href: "/signup?from=demo&tool=bio-optimizer",      label: "Bio Optimizer",      icon: "🧬" },
+      { href: "/signup?from=demo&tool=platform-tips",      label: "Platform Tips",      icon: "💡" },
+      { href: "/signup?from=demo&tool=channel-analysis",   label: "Channel Analysis",   icon: "🪞" },
+      { href: "/signup?from=demo&tool=thumbnail-analyzer", label: "Thumbnail Analyzer", icon: "🖼️" },
+      { href: "/signup?from=demo&tool=cta-optimizer",      label: "CTA Optimizer",      icon: "🎯" },
+    ],
+  },
+  {
+    label: "Grow",
+    items: [
+      { href: "/demo/viral-ideas",    label: "Viral Ideas",     icon: "🚀", interactive: true },
+      { href: "/signup?from=demo&tool=trends",        label: "Trend Radar",   icon: "📡" },
+      { href: "/signup?from=demo&tool=sounds",        label: "Sound Tracker", icon: "🎵" },
+      { href: "/signup?from=demo&tool=collab-finder", label: "Collab Finder", icon: "🤝" },
+    ],
+  },
+  {
+    label: "Monetize",
+    items: [
+      { href: "/signup?from=demo&tool=brand-pitch",         label: "Brand Pitch",         icon: "📧" },
+      { href: "/signup?from=demo&tool=rate-calculator",     label: "Rate Calculator",     icon: "💵" },
+      { href: "/signup?from=demo&tool=competitor-analysis", label: "Competitor Analysis", icon: "🔍" },
+    ],
+  },
 ];
 
 export function DemoSidebar() {
@@ -16,40 +71,69 @@ export function DemoSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) =>
-    href === "/demo" ? pathname === "/demo" : pathname.startsWith(href);
+    href === "/demo" ? pathname === "/demo" : pathname === href;
+
+  const renderItem = (item: NavItem) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={() => setMobileOpen(false)}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] group ${
+        isActive(item.href)
+          ? "bg-brand-600/20 text-brand-300 border border-brand-500/20 shadow-glow"
+          : item.interactive
+          ? "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
+          : "text-zinc-500 hover:text-brand-300 hover:bg-surface-hover"
+      }`}
+      title={item.interactive ? undefined : "Sign up to try this tool"}
+    >
+      <span className={`text-lg flex-shrink-0 ${isActive(item.href) ? "" : "group-hover:scale-110 transition-transform"}`}>
+        {item.icon}
+      </span>
+      <span className="flex-1">{item.label}</span>
+      {!item.interactive && (
+        <span className="text-2xs text-zinc-600 group-hover:text-brand-400 transition-colors">🔒</span>
+      )}
+    </Link>
+  );
 
   const navContent = (
     <>
       <div className="flex items-center gap-3 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-lg shadow-glow">
-          ⚡
-        </div>
-        <span className="text-lg font-bold bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
-          PostCrisp
-        </span>
+        <Link href="/" aria-label="PostCrisp home" className="flex items-center">
+          <Image
+            src="/postcrisp-logo-header.png"
+            alt="PostCrisp"
+            width={1162}
+            height={431}
+            priority
+            className="h-9 w-auto"
+          />
+        </Link>
       </div>
 
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] group ${
-              isActive(item.href)
-                ? "bg-brand-600/20 text-brand-300 border border-brand-500/20 shadow-glow"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
-            }`}
-          >
-            <span className={`text-lg flex-shrink-0 ${isActive(item.href) ? "" : "group-hover:scale-110 transition-transform"}`}>
-              {item.icon}
-            </span>
-            <span>{item.label}</span>
-          </Link>
+      <nav className="flex-1 py-4 px-3 space-y-3 overflow-y-auto">
+        {/* Top-level Dashboard link */}
+        {renderItem(DASHBOARD_ITEM)}
+
+        {/* Grouped tool nav */}
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="space-y-0.5">
+            <div className="px-3 py-1 text-2xs uppercase tracking-wider text-zinc-600 font-semibold">
+              {group.label}
+            </div>
+            {group.items.map(renderItem)}
+          </div>
         ))}
       </nav>
 
-      <div className="mt-auto px-3 py-4 border-t border-brand-500/10">
+      <div className="mt-auto px-3 py-4 border-t border-brand-500/10 space-y-2">
+        <Link
+          href="/signup"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-all hover:shadow-glow min-h-[44px]"
+        >
+          🚀 Start free
+        </Link>
         <Link
           href="/"
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover text-sm transition-colors min-h-[44px]"
