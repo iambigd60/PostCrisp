@@ -146,7 +146,17 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface-primary overflow-x-hidden">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-end">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" aria-label="PostCrisp home" className="flex items-center">
+            <Image
+              src="/postcrisp-logo.png"
+              alt="PostCrisp"
+              width={1536}
+              height={1024}
+              priority
+              className="h-10 w-auto"
+            />
+          </Link>
           <div className="flex items-center gap-2">
             <Link
               href="/demo"
@@ -470,9 +480,15 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-brand-500/10 py-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⚡</span>
-            <span>PostCrisp © {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/postcrisp-logo.png"
+              alt="PostCrisp"
+              width={1536}
+              height={1024}
+              className="h-8 w-auto"
+            />
+            <span>© {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6">
             <Link href="#features" className="hover:text-zinc-300">Features</Link>
