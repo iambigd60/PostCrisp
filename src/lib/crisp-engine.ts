@@ -220,7 +220,13 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   try {
     const criticConfig: ProfileConfig = { provider: 'openai', model: 'gpt-4o-mini' }
     const criticProvider = getProvider(criticConfig.provider)
-    const criticMaxTokens = Math.min(args.maxTokens, 3500)
+    // Hard cap critic output at 2500 — rewriting an existing JSON doesn't
+    // need a bigger budget than the original output. Real-world data on
+    // channel-analysis showed the critic generating ~3800 total tokens
+    // (input+output), with output around 2500-3000. Capping at 2500 trims
+    // ~20-30% off pass 2 wall-clock. If a feature ever genuinely needs
+    // more critic output, lift this cap per-task in a future change.
+    const criticMaxTokens = Math.min(args.maxTokens, 2500)
 
     const critiquePrompt = `Original task instructions:\n${args.prompt}\n\n────────\n\nFirst-pass output to critique and rewrite:\n${firstPass.text}`
 
