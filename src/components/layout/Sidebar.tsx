@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -180,14 +181,24 @@ export function Sidebar() {
   const navContent = (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-lg shadow-glow">
-          ⚡
-        </div>
-        {!collapsed && (
-          <span className="text-lg font-bold bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
-            PostCrisp
-          </span>
+      <div className="flex items-center px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
+        {collapsed ? (
+          // No room for the wordmark logo at 72px collapsed width — render
+          // a small icon-only placeholder so the header has presence.
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-lg shadow-glow">
+            ⚡
+          </div>
+        ) : (
+          <Link href="/dashboard" aria-label="PostCrisp dashboard" className="flex items-center">
+            <Image
+              src="/postcrisp-logo-header.png"
+              alt="PostCrisp"
+              width={1162}
+              height={431}
+              priority
+              className="h-9 w-auto"
+            />
+          </Link>
         )}
       </div>
 

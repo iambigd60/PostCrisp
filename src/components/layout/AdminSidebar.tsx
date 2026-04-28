@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -27,14 +28,20 @@ export function AdminSidebar() {
 
   const navContent = (
     <>
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-red-600 flex items-center justify-center text-lg shadow-glow">
-          🛡️
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-bold text-zinc-100">PostCrisp</span>
-          <span className="text-2xs uppercase tracking-wider text-amber-400">Admin</span>
-        </div>
+      <div className="flex items-center justify-between gap-2 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
+        <Link href="/dashboard" aria-label="PostCrisp dashboard" className="flex items-center">
+          <Image
+            src="/postcrisp-logo-header.png"
+            alt="PostCrisp"
+            width={1162}
+            height={431}
+            priority
+            className="h-8 w-auto"
+          />
+        </Link>
+        <span className="text-2xs uppercase tracking-wider text-amber-400 font-semibold border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 rounded-md">
+          Admin
+        </span>
       </div>
 
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
