@@ -137,6 +137,7 @@ Rules:
   let text = ''
   let totalTokens = 0
   let refined = false
+  const tStart = Date.now()
   try {
     const result = await crispGenerate({
       task: 'channel-analysis',
@@ -150,8 +151,9 @@ Rules:
     text = result.text
     totalTokens = result.totalTokens
     refined = result.refined
+    console.log(`[channel-analysis] crispGenerate done — tier=${auth.tier} refined=${refined} elapsedMs=${Date.now() - tStart} tokens=${totalTokens} model=${result.modelUsed}`)
   } catch (error) {
-    console.error('Channel analysis — model call failed:', error)
+    console.error(`[channel-analysis] model call failed after ${Date.now() - tStart}ms:`, error)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
