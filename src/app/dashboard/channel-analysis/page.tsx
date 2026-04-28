@@ -57,9 +57,10 @@ export default function ChannelAnalysisPage() {
           contentFocus: contentFocus.join(", "),
           currentChallenges, analyzeHandle,
         }),
-        // 90s — matches the route's maxDuration. Refine pass for Elite tier
-        // can take up to ~50s; allow headroom over that.
-        timeout: 90000,
+        // 120s — matches the route's maxDuration. Refine pass for Elite tier
+        // can take up to ~50s; this gives us comfortable headroom over that
+        // plus Anthropic Opus latency variance.
+        timeout: 120000,
       });
       setResult(data);
     } catch (err) {
@@ -207,7 +208,7 @@ export default function ChannelAnalysisPage() {
         </Button>
       </div>
 
-      {loading && <GenerationLoader messages={["Auditing your channel...", "Identifying strengths and gaps...", "Building quick wins...", "Planning long-term moves..."]} />}
+      {loading && <GenerationLoader messages={["Auditing your channel...", "Identifying strengths and gaps...", "Building quick wins...", "Planning long-term moves...", "Refining for sharper insights — this can take up to a minute on the deepest tier.", "Critiquing every recommendation for specificity..."]} />}
       {error && !loading && <InlineError message={error} onRetry={handleAnalyze} />}
 
       {result && !loading && (

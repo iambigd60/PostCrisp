@@ -8,9 +8,9 @@ import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 // Vercel function timeout. Default is 10s (Hobby) / 60s (Pro). Channel
 // Analysis with refine on for Elite tier needs more headroom — pass 1
-// (Opus) + pass 2 (Sonnet critic) can hit ~50s on long outputs.
-// Set to 90s; Pro plan allows up to 300s.
-export const maxDuration = 90
+// (Opus) can hit ~60s on long outputs alone, plus ~10s for the gpt-4o-mini
+// critic. 120s gives comfortable headroom under the Vercel Pro 300s cap.
+export const maxDuration = 120
 
 export interface ChannelAnalysisResult {
   overallAssessment: string
@@ -123,16 +123,11 @@ Rules:
 - Every recommendation must reference ${platform}-specific mechanics or ${niche}-specific dynamics
 - Never use generic "post consistently" / "engage with your audience" advice — be specific about what/when/how`
 
-  // Refinement temporarily disabled — Phase 1 rollout was hitting Vercel
-  // function timeout in production (>90s wall-clock for Opus pass 1 +
-  // Sonnet critic). Re-enable once we have:
-  //   - Proper timing instrumentation to know which pass is slow
-  //   - Either streaming or async/poll architecture so latency isn't a
-  //     hard ceiling
-  //   - A maxTokens cap on the critic pass to bound output time
-  // crispGenerate's refine infrastructure is still in place for when we
-  // bring it back.
-  const useRefine = false
+  // Refine pass: Elite tier only, gpt-4o-mini critic capped at 3500
+  // tokens. Pass 1 (user-tier Opus) generates ~30-40s, pass 2 critic
+  // adds ~5-10s. Total comfortably under 120s maxDuration.
+  // crisp-engine logs per-pass timing — check Vercel logs to monitor.
+  const useRefine = auth.tier === 'elite'
 
   let text = ''
   let totalTokens = 0

@@ -171,6 +171,7 @@ export async function resolveTaskConfig(
 }
 
 export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGenerateResult> {
+  const tStart = Date.now()
   const { config, effective } = await resolveTaskConfig(args.task, args.tier)
   const providerImpl = getProvider(config.provider)
 
@@ -189,6 +190,7 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   })
 
   if (!args.refine) {
+    console.log(`[crisp-engine] task=${args.task} done (no refine) — model=${config.model} tokens=${firstPass.inputTokens + firstPass.outputTokens} elapsedMs=${Date.now() - tStart}`)
     return {
       ...firstPass,
       totalTokens: firstPass.inputTokens + firstPass.outputTokens,
@@ -205,15 +207,20 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   // gating — enabling refine should never make a request fail that would
   // have succeeded without it.
   //
-  // Critic always uses the STANDARD profile (Sonnet) regardless of caller
-  // tier. The critic's job is rewriting based on QA criteria — not
-  // reasoning-heavy enough to need Opus. Using Sonnet for the critic keeps
-  // refined-Elite responses under the Vercel function timeout while still
-  // delivering the depth lift Elite users are paying for via Opus on
-  // pass 1.
+  // Critic uses gpt-4o-mini regardless of caller tier — fast (~5-10s on
+  // 3500-token rewrites), instruction-following, cheap. The job is QA +
+  // rewriting against criteria, not deep reasoning. Pass 1 still uses the
+  // user-tier model, so Elite users still get Opus on the actual content.
+  // Critic maxTokens capped at 3500: rewriting an existing JSON doesn't
+  // need the full first-pass budget, and the cap keeps total wall-clock
+  // bounded even if pass 1 was generous.
+  const tFirstDone = Date.now()
+  console.log(`[crisp-engine] task=${args.task} pass1 done — model=${config.model} tokens=${firstPass.inputTokens + firstPass.outputTokens} elapsedMs=${tFirstDone - tStart}`)
+
   try {
-    const criticConfig = DEFAULT_PROFILE_CONFIG['STANDARD']
+    const criticConfig: ProfileConfig = { provider: 'openai', model: 'gpt-4o-mini' }
     const criticProvider = getProvider(criticConfig.provider)
+    const criticMaxTokens = Math.min(args.maxTokens, 3500)
 
     const critiquePrompt = `Original task instructions:\n${args.prompt}\n\n────────\n\nFirst-pass output to critique and rewrite:\n${firstPass.text}`
 
@@ -221,8 +228,10 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
       model: criticConfig.model,
       system: CRITIC_SYSTEM,
       prompt: critiquePrompt,
-      maxTokens: args.maxTokens,
+      maxTokens: criticMaxTokens,
     })
+
+    console.log(`[crisp-engine] task=${args.task} pass2 done — critic=${criticConfig.model} tokens=${refinedPass.inputTokens + refinedPass.outputTokens} elapsedMs=${Date.now() - tFirstDone}`)
 
     // Refine target tasks all return JSON. If the critic's rewrite isn't
     // loose-parseable, drop it and keep the first pass — better to ship
