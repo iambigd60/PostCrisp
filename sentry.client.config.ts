@@ -22,5 +22,21 @@ if (dsn) {
     replaysOnErrorSampleRate: 0,
     replaysSessionSampleRate: 0,
     sendDefaultPii: false,
+    // Drop hydration-mismatch breadcrumbs caused by browser extensions
+    // (Grammarly, LastPass, etc.) injecting attributes onto <body>. These
+    // are false positives — the actual fix is suppressHydrationWarning on
+    // the body in layout.tsx; this just stops the noise from reaching
+    // Sentry breadcrumbs in case any sneak through.
+    beforeBreadcrumb(breadcrumb) {
+      if (
+        breadcrumb.category === 'console' &&
+        breadcrumb.level === 'error' &&
+        typeof breadcrumb.message === 'string' &&
+        breadcrumb.message.includes("hydrat")
+      ) {
+        return null
+      }
+      return breadcrumb
+    },
   })
 }

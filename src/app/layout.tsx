@@ -44,7 +44,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="antialiased font-sans">
+      {/* suppressHydrationWarning on <body> because browser extensions
+          (Grammarly, password managers, etc.) inject attributes onto it
+          after SSR but before hydration. The mismatch is a false positive
+          and React's recommended fix is to suppress only on this one node. */}
+      <body className="antialiased font-sans" suppressHydrationWarning>
         <ToastProvider>
           <ErrorBoundary>
             <OfflineBanner />
