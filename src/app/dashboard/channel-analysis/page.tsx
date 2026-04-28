@@ -208,7 +208,15 @@ export default function ChannelAnalysisPage() {
         </Button>
       </div>
 
-      {loading && <GenerationLoader messages={["Auditing your channel...", "Identifying strengths and gaps...", "Building quick wins...", "Planning long-term moves...", "Refining for sharper insights — this can take up to a minute on the deepest tier.", "Critiquing every recommendation for specificity..."]} />}
+      {loading && <GenerationLoader messages={[
+        "Running deep analysis — this takes 30-60 seconds because we're going further than a typical AI tool.",
+        "Auditing your channel against 2026 platform dynamics...",
+        "Identifying strengths, gaps, and missed opportunities...",
+        "Building quick wins you can ship this week...",
+        "Planning long-term moves over 30/60/90 days...",
+        "Critiquing every recommendation for specificity (Elite tier)...",
+        "Almost there — finalizing your audit.",
+      ]} />}
       {error && !loading && <InlineError message={error} onRetry={handleAnalyze} />}
 
       {result && !loading && (
