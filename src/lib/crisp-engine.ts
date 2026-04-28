@@ -41,15 +41,24 @@ export type {
   ConfigurableTier,
 } from './crisp-engine-config'
 
-// ─── Override cache (60s) ───────────────────────────────────────────────────
+// ─── Override cache (10s) ───────────────────────────────────────────────────
 // Keyed by `${task}::${tier}` to scope overrides per-tier.
+//
+// TTL reduced 60s → 10s in 2026-04-28 because Vercel's horizontal scaling
+// means each function instance has its own in-memory cache, and a single
+// invalidateOverrideCache() call from the admin save route only clears the
+// instance that handled the save. Other instances kept serving stale config
+// for up to 60s. With a 10s TTL the worst-case staleness is brief enough
+// that admin-config edits feel responsive without the DB-load tradeoff of
+// disabling caching entirely. (Per-request DB cost is ~10ms, dwarfed by AI
+// call latency — could remove the cache entirely if this still feels stale.)
 
 interface CacheEntry {
   overrides: Map<string, ProfileConfig>
   fetchedAt: number
 }
 let _cache: CacheEntry | null = null
-const CACHE_TTL_MS = 60_000
+const CACHE_TTL_MS = 10_000
 
 function cacheKey(task: CrispTask, tier: ConfigurableTier): string {
   return `${task}::${tier}`
