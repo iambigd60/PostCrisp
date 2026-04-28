@@ -117,8 +117,14 @@ Rules:
 - Every recommendation must reference ${platform}-specific mechanics or ${niche}-specific dynamics
 - Never use generic "post consistently" / "engage with your audience" advice — be specific about what/when/how`
 
+  // Refinement is on for Elite tier only (Phase 1 rollout — see crisp-engine
+  // for the critique+rewrite pipeline). Elite users get a measurably deeper
+  // analysis as a tier differentiator. ~2x model cost, ~2x latency.
+  const useRefine = auth.tier === 'elite'
+
   let text = ''
   let totalTokens = 0
+  let refined = false
   try {
     const result = await crispGenerate({
       task: 'channel-analysis',
@@ -127,9 +133,11 @@ Rules:
       // Bumped 3500 → 4500. Output shape: 3 strengths + 4 gaps + 3 quick wins
       // + 3 long-term moves + observations + recommendations. Tight at 3500.
       maxTokens: 4500,
+      refine: useRefine,
     })
     text = result.text
     totalTokens = result.totalTokens
+    refined = result.refined
   } catch (error) {
     console.error('Channel analysis — model call failed:', error)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
@@ -159,7 +167,7 @@ Rules:
       user_id: auth.userId,
       feature: 'channel_analysis',
       platform,
-      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: allowBypass },
+      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: allowBypass, refined },
       output_data: parsed,
       tokens_used: totalTokens,
     }).select('id').single()

@@ -9,6 +9,7 @@
 import { createClient as createSupabaseServer } from '@/utils/supabase/server'
 import { getProvider, type ProviderId } from './providers'
 import { systemPromptFor } from './system-prompts'
+import { parseLooseJson } from './safe-json'
 import {
   type CrispTask,
   type PowerProfile,
@@ -94,6 +95,20 @@ export interface CrispGenerateArgs {
   voiceSnippet?: string     // optional — user voice profile, appended to system prompt
   prompt: string
   maxTokens: number
+  /**
+   * If true, runs a second "critique + rewrite" pass that takes the first
+   * output, identifies weaknesses (vague claims, generic advice, missing
+   * specifics), and rewrites it. Costs 2 model calls instead of 1.
+   *
+   * Falls back to the first-pass output silently if the critique pass
+   * throws or returns malformed JSON, so enabling refine never makes a
+   * task strictly worse than the single-pass version.
+   *
+   * Designed for analytical tasks where insight depth matters
+   * (channel analysis, brand pitch, CTA optimizer). Skip for short-output
+   * tasks (hashtags, polls) — no perceptible quality lift, just latency.
+   */
+  refine?: boolean
 }
 
 export interface CrispGenerateResult {
@@ -104,7 +119,34 @@ export interface CrispGenerateResult {
   providerUsed: ProviderId
   modelUsed: string
   tierUsed: ConfigurableTier
+  /** True if the output went through a second critique + rewrite pass. */
+  refined: boolean
 }
+
+const CRITIC_SYSTEM = `You are a strict expert critic and rewriter for a creator-tool platform.
+
+You will receive:
+1. The original task instructions
+2. A first-pass output someone produced for that task
+
+Internally critique the first-pass output for these weaknesses, then rewrite the ENTIRE output fixing every one. Return ONLY the rewritten output in the same shape — no preamble, no explanation, no critique text.
+
+Weaknesses to catch + fix:
+- Vague or generic claims (e.g. "post consistently", "engage with your audience") — replace with concrete tactics
+- Missing concrete examples, numbers, or platform-specific details
+- Recommendations that don't tie back to the user's stated niche, platform, or situation
+- Surface-level analysis where one more level of depth would land harder
+- Repetition or redundancy across sections
+- Generic advice that could apply to ANY creator — delete or rewrite as niche-specific
+- Insights from the input the first pass overlooked
+
+Rewrite rules:
+- Keep the EXACT same shape (same JSON keys, same array sizes)
+- Make every claim more specific to the user's inputs
+- Replace any generic advice with a tactic the user can act on this week
+- Tone stays the same as first pass
+
+Return ONLY the rewritten JSON. No prefix, no suffix.`
 
 export async function resolveTaskConfig(
   task: CrispTask,
@@ -139,18 +181,75 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   const baseSystem = args.system ?? systemPromptFor(args.task)
   const finalSystem = args.voiceSnippet ? `${baseSystem}${args.voiceSnippet}` : baseSystem
 
-  const result = await providerImpl.generate({
+  const firstPass = await providerImpl.generate({
     model: config.model,
     system: finalSystem,
     prompt: args.prompt,
     maxTokens: args.maxTokens,
   })
 
-  return {
-    ...result,
-    totalTokens: result.inputTokens + result.outputTokens,
-    providerUsed: config.provider,
-    modelUsed: config.model,
-    tierUsed: effective,
+  if (!args.refine) {
+    return {
+      ...firstPass,
+      totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+      providerUsed: config.provider,
+      modelUsed: config.model,
+      tierUsed: effective,
+      refined: false,
+    }
+  }
+
+  // ─── Refine pass: critique + rewrite ──────────────────────────────────────
+  // Wrapped in try/catch + JSON validation so any failure here silently
+  // falls back to first-pass output. Refinement is additive value, never
+  // gating — enabling refine should never make a request fail that would
+  // have succeeded without it.
+  try {
+    const critiquePrompt = `Original task instructions:\n${args.prompt}\n\n────────\n\nFirst-pass output to critique and rewrite:\n${firstPass.text}`
+
+    const refinedPass = await providerImpl.generate({
+      model: config.model,
+      system: CRITIC_SYSTEM,
+      prompt: critiquePrompt,
+      maxTokens: args.maxTokens,
+    })
+
+    // Refine target tasks all return JSON. If the critic's rewrite isn't
+    // loose-parseable, drop it and keep the first pass — better to ship
+    // good-enough than risk a malformed-output error.
+    try {
+      parseLooseJson(refinedPass.text)
+    } catch {
+      console.warn(`[crisp-engine] refine pass for task=${args.task} produced non-JSON output, falling back to first pass`)
+      return {
+        ...firstPass,
+        totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+        providerUsed: config.provider,
+        modelUsed: config.model,
+        tierUsed: effective,
+        refined: false,
+      }
+    }
+
+    return {
+      text: refinedPass.text,
+      inputTokens: firstPass.inputTokens + refinedPass.inputTokens,
+      outputTokens: firstPass.outputTokens + refinedPass.outputTokens,
+      totalTokens: firstPass.inputTokens + firstPass.outputTokens + refinedPass.inputTokens + refinedPass.outputTokens,
+      providerUsed: config.provider,
+      modelUsed: config.model,
+      tierUsed: effective,
+      refined: true,
+    }
+  } catch (error) {
+    console.warn(`[crisp-engine] refine pass for task=${args.task} threw, falling back to first pass:`, error)
+    return {
+      ...firstPass,
+      totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+      providerUsed: config.provider,
+      modelUsed: config.model,
+      tierUsed: effective,
+      refined: false,
+    }
   }
 }
