@@ -98,6 +98,30 @@ INSERT INTO public.platform_settings (key, value)
 
 -- No INSERT/UPDATE RLS — writes go through service role from admin API routes
 
+-- invite_codes — single-use signup codes for invite-only mode. Each row
+-- is one unique code; atomic UPDATE on used_at IS NULL prevents two
+-- testers from racing on the same code.
+CREATE TABLE IF NOT EXISTS public.invite_codes (
+  code        TEXT PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by  UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  notes       TEXT,
+  used_at     TIMESTAMPTZ,
+  used_by     UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS invite_codes_used_at_idx ON public.invite_codes (used_at);
+CREATE INDEX IF NOT EXISTS invite_codes_created_at_idx ON public.invite_codes (created_at DESC);
+
+ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins read invite_codes"
+  ON public.invite_codes FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- No INSERT/UPDATE/DELETE RLS — all writes go through service role from
+-- admin API routes (generation) or the signup action (atomic claim).
+
 -- channels — a creator's social accounts. Feeds the dashboard, the tool
 -- picker, and the library's organization. One row per account per user.
 CREATE TABLE IF NOT EXISTS public.channels (

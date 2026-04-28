@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/admin/moderation",       label: "Moderation",        icon: "🚧",  enabled: false },
   { href: "/admin/audit",            label: "Audit Log",         icon: "📋",  enabled: true },
   { href: "/admin/access-control",   label: "Access Control",    icon: "🚪",  enabled: true },
+  { href: "/admin/invite-codes",     label: "Invite Codes",      icon: "🎟️",  enabled: true },
   { href: "/admin/feedback",         label: "Feedback",          icon: "💬",  enabled: true },
 ];
 

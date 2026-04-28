@@ -496,6 +496,36 @@ Session 10 `voice_profiles` migration still applicable if not already run.
 
 ---
 
+## ⚠️ SQL migration from session 14b (run this in Supabase)
+
+```sql
+-- Single-use invite codes for beta tester rollout. Replaces the shared
+-- invite_code in platform_settings.access_control as the primary path.
+CREATE TABLE IF NOT EXISTS public.invite_codes (
+  code        TEXT PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by  UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  notes       TEXT,
+  used_at     TIMESTAMPTZ,
+  used_by     UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS invite_codes_used_at_idx ON public.invite_codes (used_at);
+CREATE INDEX IF NOT EXISTS invite_codes_created_at_idx ON public.invite_codes (created_at DESC);
+ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins read invite_codes"
+  ON public.invite_codes FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+-- No INSERT/UPDATE/DELETE RLS — all writes go through service role from
+-- admin API routes (generation) or the signup action (atomic claim).
+```
+
+After running, generate codes at `/admin/invite-codes`. The signup action
+checks the new table first, then falls back to the legacy shared code in
+`platform_settings.access_control.invite_code` (if set) for a clean
+transition.
+
+---
+
 ## ⚠️ SQL migration from session 13 (run this in Supabase)
 
 ```sql

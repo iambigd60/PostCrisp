@@ -44,10 +44,6 @@ export default function AdminAccessControlPage() {
   const onChange = (update: () => void) => { update(); setDirty(true); };
 
   const save = async () => {
-    if (mode === "invite" && !inviteCode.trim()) {
-      addToast("Invite code is required in invite-only mode", "error");
-      return;
-    }
     setSaving(true);
     try {
       const res = await apiFetch<{ ok: true; settings: AccessControl }>("/api/admin/access-control", {
@@ -115,19 +111,24 @@ export default function AdminAccessControlPage() {
         </div>
 
         {mode === "invite" && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
+            <div className="rounded-lg border border-brand-500/20 bg-brand-500/5 p-3 text-xs text-brand-200/90">
+              <strong className="block text-brand-200 mb-0.5">🎟️ Single-use codes recommended</strong>
+              For beta tester rollout, generate one-time codes at <a href="/admin/invite-codes" className="underline hover:text-brand-100">Invite Codes</a> instead of using a shared code below. One-time codes consume on signup, so testers can&apos;t share them around.
+            </div>
+
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Invite code
+              Shared invite code (legacy)
             </label>
             <input
               type="text"
               value={inviteCode}
               onChange={(e) => onChange(() => setInviteCode(e.target.value))}
-              placeholder="e.g. alpha-2026-pickle"
+              placeholder="Leave blank to require single-use codes only"
               className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
             />
             <p className="text-xs text-zinc-600 mt-1.5">
-              Testers paste this into the signup form. Change it any time to revoke access.
+              Optional. A single shared code anyone can paste — fine for in-person events, but not for beta testers who might share it. Single-use codes always work in addition to this.
             </p>
           </div>
         )}

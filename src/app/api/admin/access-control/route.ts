@@ -28,9 +28,9 @@ export async function PATCH(request: Request) {
   if (!VALID_MODES.includes(next.signup_mode)) {
     return NextResponse.json({ error: 'Invalid signup_mode' }, { status: 400 })
   }
-  if (next.signup_mode === 'invite' && !next.invite_code?.trim()) {
-    return NextResponse.json({ error: 'Invite code is required when signup_mode is "invite"' }, { status: 400 })
-  }
+  // Note: invite_code is now optional in invite-only mode — single-use codes
+  // (invite_codes table) can stand alone. The shared code is the legacy
+  // fallback path.
 
   await writeAccessControl(next, auth.userId)
 
