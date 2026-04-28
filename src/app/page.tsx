@@ -1,13 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { PLANS } from "@/lib/stripe";
 import { CREDIT_PACKS } from "@/lib/crisp-engine-config";
 
 export const metadata: Metadata = {
-  title: "PostCrisp — Your AI Social Media Copilot",
-  description: "Generate viral captions, find trending hashtags, and discover the best times to post. Your AI-powered social media copilot.",
+  title: "PostCrisp — Your Social Media Creation Gateway",
+  description: "Generate viral captions, find trending hashtags, and discover the best times to post. Your AI-powered social media creation gateway.",
   openGraph: {
-    title: "PostCrisp — Your AI Social Media Copilot",
+    title: "PostCrisp — Your Social Media Creation Gateway",
     description: "Generate viral captions, find trending hashtags, and discover the best times to post.",
     type: "website",
     siteName: "PostCrisp",
@@ -145,15 +146,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface-primary overflow-x-hidden">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-lg shadow-glow">
-              ⚡
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
-              PostCrisp
-            </span>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-end">
           <div className="flex items-center gap-2">
             <Link
               href="/demo"
@@ -183,6 +176,15 @@ export default function HomePage() {
         <div className="absolute top-40 left-1/4 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto">
+          <Image
+            src="/postcrisp-logo.png"
+            alt="PostCrisp"
+            width={1536}
+            height={1024}
+            priority
+            className="mx-auto mb-8 w-full max-w-md sm:max-w-lg h-auto"
+          />
+
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-sm font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
             AI-Powered Content Creation
@@ -193,7 +195,7 @@ export default function HomePage() {
               Your Social Media
             </span>
             <br />
-            <span className="text-white">Copilot</span>
+            <span className="text-white">Creation Gateway</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
