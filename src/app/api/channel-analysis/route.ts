@@ -123,10 +123,16 @@ Rules:
 - Every recommendation must reference ${platform}-specific mechanics or ${niche}-specific dynamics
 - Never use generic "post consistently" / "engage with your audience" advice — be specific about what/when/how`
 
-  // Refinement is on for Elite tier only (Phase 1 rollout — see crisp-engine
-  // for the critique+rewrite pipeline). Elite users get a measurably deeper
-  // analysis as a tier differentiator. ~2x model cost, ~2x latency.
-  const useRefine = auth.tier === 'elite'
+  // Refinement temporarily disabled — Phase 1 rollout was hitting Vercel
+  // function timeout in production (>90s wall-clock for Opus pass 1 +
+  // Sonnet critic). Re-enable once we have:
+  //   - Proper timing instrumentation to know which pass is slow
+  //   - Either streaming or async/poll architecture so latency isn't a
+  //     hard ceiling
+  //   - A maxTokens cap on the critic pass to bound output time
+  // crispGenerate's refine infrastructure is still in place for when we
+  // bring it back.
+  const useRefine = false
 
   let text = ''
   let totalTokens = 0
