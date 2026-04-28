@@ -149,10 +149,10 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" aria-label="PostCrisp home" className="flex items-center">
             <Image
-              src="/postcrisp-logo.png"
+              src="/postcrisp-logo-header.png"
               alt="PostCrisp"
-              width={1536}
-              height={1024}
+              width={1162}
+              height={431}
               priority
               className="h-10 w-auto"
             />
@@ -482,10 +482,10 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
           <div className="flex items-center gap-3">
             <Image
-              src="/postcrisp-logo.png"
+              src="/postcrisp-logo-header.png"
               alt="PostCrisp"
-              width={1536}
-              height={1024}
+              width={1162}
+              height={431}
               className="h-8 w-auto"
             />
             <span>© {new Date().getFullYear()}</span>
