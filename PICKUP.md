@@ -1,9 +1,135 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-27 (session 14b — custom domain `postcrisp.com` live)
-**Build status:** ✅ Live on Vercel — Next.js 15 in production as of `3bc8dcd`
-**Production URL:** **https://postcrisp.com** (primary) — https://postcrisp.vercel.app still resolves
+**Last updated:** 2026-04-28 (session 14c — brand refresh, single-use invite codes, Phase 1 refine, mobile audit, MFA Tier 1)
+**Build status:** ✅ Live on Vercel — `9e75280` in production
+**Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
+**Pre-launch status:** 🟡 1 item blocking — **Stripe production verification (up to 2 days)**
+
+---
+
+## Session 14c shipped — brand refresh + single-use invite codes + Phase 1 refine + mobile audit + MFA hardening
+
+**17 commits + significant external work.** Pre-launch went from "5 items remain" to "1 item blocking" (Stripe verification).
+
+### 🎨 Brand refresh — new logo, "Creation Gateway" tagline (commits 26e6478, 9b69450, 9c1b186, 7e521bf, 5c0ea88)
+
+User shipped a new PostCrisp logo (with sparkles + wordmark + tagline). Two variants:
+- `public/postcrisp-logo.png` — full art with grey background, used in landing hero
+- `public/postcrisp-logo-header.png` — wordmark-only, transparent BG, used in headers + footers + sidebars
+
+Surfaces updated:
+- Landing page: hero logo above the badge, header bar (top-left), footer (bottom-left). Header logo wrapped in `<Link href="/">` for click-home.
+- App sidebar: collapsed state shows ⚡ icon, expanded state shows wordmark logo.
+- Admin sidebar: wordmark logo + "Admin" pill on the right (preserves the admin-context cue).
+- Demo sidebar: same wordmark logo, links to `/`.
+- Demo dashboard: refreshed to mirror real dashboard structure (channels row, BRS card, browse-all-22-tools grid, diversified recent generations including CTA Optimizer + Thumbnail Analyzer + Channel Analysis + Brand Pitch).
+- Demo sidebar nav: regrouped into Create / Optimize / Grow / Monetize. Interactive demos (4) link to their pages; rest get 🔒 + redirect to `/signup?from=demo&tool=<key>`.
+
+**Tagline change**: "Your Social Media Copilot" → "Your Social Media Creation Gateway" — applied to:
+- Hero H1
+- `<title>` (browser tab + Google search)
+- OpenGraph title (social link previews)
+
+**Layout decision worth knowing**: removed the original ⚡ + "PostCrisp" placeholder header on the landing page first (user wanted minimal), then re-added it as the new wordmark logo. Header is `justify-between` again with logo left + buttons right.
+
+### 🎟️ Single-use invite codes for beta (commit dab6278)
+
+Real feature, not just config. Replaces the shared invite_code in `platform_settings.access_control` as the primary path for beta tester rollout.
+
+- **New `invite_codes` table** — `code` PK (8-char alphanumeric, no ambiguous chars 0/O/1/I/L), `created_at`, `created_by`, `notes`, `used_at`, `used_by`. RLS: admin-only SELECT; all writes through service role. SQL migration documented in PICKUP.md SQL block (user already ran).
+- **`src/lib/invite-codes.ts`** — `generateCode()`, `formatCodeForDisplay()` (XXXX-XXXX), `normalizeCode()` (case-insensitive, dash-tolerant), `claimInviteCode()` (atomic UPDATE...WHERE used_at IS NULL — race-safe), `generateInviteCodeBatch()` (1-100 with retry on collision), `isInviteCodeAvailable()`.
+- **`/api/admin/invite-codes`** — GET list+stats, POST batch generate (1-100 + optional notes), DELETE unused.
+- **`/admin/invite-codes` page** — stats cards (total/used/available), batch generate form, filter pills, table with per-row Copy + Delete, "📋 Copy all available" bulk action.
+- **Signup action** — validates against `invite_codes` first, falls back to legacy shared code (transition path), atomically claims the code post-signup. Code input normalized (case-insensitive, dashes stripped).
+- **Sidebar nav** — new 🎟️ Invite Codes admin nav item.
+- **Access Control admin page** — labels the legacy shared code as legacy + points users to `/admin/invite-codes`.
+
+**Race behavior**: atomic UPDATE-WHERE-NULL means two testers racing on the same code → only one wins. Other gets a soft "code already used" log on signup; their account still creates. Acceptable for beta scale.
+
+### 🤖 Phase 1 refine pass — Channel Analysis (commits 3af72e7, 3a26fb8, c63ec98, 9d15b5c, 5065853, 52efbcc, e7d1ee3, a2da5ed)
+
+The agentic pipeline experiment. **Shipped + quality-validated.**
+
+**What it does**: After the first-pass model output, runs a second "critique + rewrite" model call that flags vague claims, generic advice, and missing specifics — then rewrites the entire JSON to fix them. Result is measurably more niche-specific and actionable.
+
+**Architecture in `src/lib/crisp-engine.ts`**:
+- `crispGenerate({..., refine: true })` — opt-in per call
+- Pass 1: caller's tier model (Opus for Elite)
+- Pass 2: hardcoded `gpt-4o-mini` regardless of caller tier (3-5x faster than Sonnet for QA-style rewriting)
+- Critic system prompt flags vague claims, generic advice, missing specifics, surface depth, redundancy, niche-irrelevance
+- Critic `maxTokens` capped at min(args.maxTokens, **2500**) — rewriting doesn't need full output budget
+- **Safety nets**: throw → fall back to first-pass; refined output isn't loose-parseable JSON → fall back to first-pass. Refinement is additive value, never gating.
+- Per-pass timing logs: `[crisp-engine] task=X pass1 done — model=Y tokens=N elapsedMs=N`. Visible in Vercel function logs.
+
+**Wired only on Channel Analysis Elite tier** in `src/app/api/channel-analysis/route.ts`:
+- `useRefine = auth.tier === 'elite'`
+- `export const maxDuration = 120` (function timeout headroom)
+- Persisted `refined: true|false` in `generations.input_data` for future A/B cohort comparison
+- Client `apiFetch` timeout bumped to 120s
+- `GenerationLoader` rotates 7 messages including `"Running deep analysis — this takes 30-60 seconds because we're going further than a typical AI tool."` so the wait feels intentional
+
+**Real-world timing** (from production runs):
+- Creator (Sonnet, no refine): ~50s
+- Elite (Opus + gpt-4o-mini critic, refined): ~62-66s
+
+Both are long but acceptable for a quarterly-checkup feature. **Not** acceptable for high-frequency features (captions/hashtags) — refine correctly gated to analytical-depth tasks only.
+
+**Iteration story (the messy bit)** — first attempt used Sonnet for the critic at the same maxTokens as pass 1; that blew the timeout. Fix v1 used Sonnet (still slow), fix v2 swapped to gpt-4o-mini and capped maxTokens. Lesson: critic latency budget is non-negotiable. Don't reuse pass-1's model or token budget for the critic.
+
+**Side effect — caching gotcha discovered**: `/admin/ai-config` overrides weren't taking effect on Vercel because each function instance has its own in-memory override cache. `invalidateOverrideCache()` only clears the local cache. **Fix**: dropped TTL 60s → 10s in `crisp-engine.ts` so config edits propagate within 10s across instances. Could remove the cache entirely (10ms DB cost is dwarfed by AI call latency) if 10s still feels stale.
+
+### 🤫 Sentry noise suppression (commits 0fb6525, 093d23c)
+
+Two false-positive classes filtered:
+
+1. **Hydration mismatch from browser extensions** — Grammarly + LastPass + 1Password inject attributes onto `<body>` after SSR but before hydration. Fix: `suppressHydrationWarning` on `<body>` in `layout.tsx` (React-recommended for known-extension cases) + `beforeBreadcrumb` filter in Sentry config dropping `console.error` breadcrumbs containing "hydrat".
+2. **Transient Supabase Auth fetch errors** — `'An unexpected response was received from the server.'` and `'AuthRetryableFetchError'` added to Sentry `ignoreErrors`. These fire when a user's auth fetch hits a transient 5xx, network blip, or ad-blocker intercept. Our actions handle them gracefully via `{error}` returns; no need to surface every blip as a Sentry event.
+
+Server-side `captureException` calls still fire — those carry actual diagnostic context with the user/tier/role/task tags from session 14.
+
+### 📱 Mobile audit (commit 9e75280)
+
+Audited all user-facing pages with the Explore agent. Real blockers vs cosmetic noise:
+
+**Fixed (real blockers):**
+- Landing page stats: `grid-cols-2 md:grid-cols-4 gap-6` → `grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6`. Bumps 4-col layout from 768px to 640px breakpoint, tightens gap on mobile.
+- 3 sidebar drawer close buttons (Sidebar.tsx, DemoSidebar.tsx, AdminSidebar.tsx): `w-9 h-9` (36px) → `w-11 h-11` (44px). Apple HIG touch target minimum. Real tester win — 36px next to tappable nav items meant accidental nav clicks.
+
+**Skipped (audit was over-cautious):**
+- Dashboard metrics 2-col grid (renders fine at 320px with short numeric content)
+- Settings channel URLs (already responsive: `grid-cols-1 sm:grid-cols-2`)
+- Hashtags action bar (flex-wrap handles wrapping fine)
+- Channel-analysis platform buttons (usable, wrap correctly)
+
+Lesson: Explore agent identifies aesthetic concerns + real blockers indistinguishably. Triage carefully; ship the real wins, defer the cosmetics.
+
+### 🔐 MFA — Tier 1 external accounts complete
+
+External work, no commits. User enabled TOTP MFA on all 7 highest-blast-radius accounts:
+- Supabase Dashboard
+- Vercel
+- GitHub
+- Stripe
+- Anthropic
+- Resend
+- Sentry
+
+All backup codes saved. Order matters: Supabase first (service role key, can drop tables), Vercel second (env vars, deploy attacks), GitHub third (push-to-deploy), Stripe (revenue), Anthropic (API key burn), Resend (phishing email from postcrisp.com), Sentry (source code disclosure).
+
+**Tier 2 (in-app MFA UI for end users)** is still deferred until post-launch. Builds a `/dashboard/settings/security` panel using `supabase.auth.mfa.enroll()` + `aal2` upgrade flow on login. Estimate 4-6 hrs.
+
+### 💰 Stripe production prep — BLOCKED
+
+User initiated Stripe live-mode activation. Stripe is verifying business info (up to 2 days). Once cleared, the playbook is:
+1. Create 9 products in live mode: 6 subscription prices (Creator/Team/Elite × Monthly/Yearly) + 3 credit packs (Small $5/100, Medium $15/500, Large $40/1500)
+2. Add 11 env vars to Vercel Production: `STRIPE_SECRET_KEY` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (live), 6 subscription price IDs, 3 credit pack price IDs
+3. Register webhook at `https://postcrisp.com/api/stripe/webhook` for: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Add `STRIPE_WEBHOOK_SECRET` to Vercel.
+4. Activate Customer Portal in Stripe → Settings → Billing
+5. Force redeploy (build-cache off — `NEXT_PUBLIC_*` env vars only inline in bundle on rebuild)
+6. **Smoke test**: real $19 Creator-Monthly upgrade in incognito → verify success_url + DB tier update + webhook delivery → refund yourself
+
+Note: `STRIPE_PRO_*` is the legacy var name for Creator (pre-rename). Code reads `STRIPE_PRO_MONTHLY_PRICE_ID || STRIPE_CREATOR_MONTHLY_PRICE_ID`. Keep the `_PRO_` name when adding env var or rename the fallback in code.
 
 ---
 
@@ -260,18 +386,48 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | CTA Optimizer (IDEA-08) | ✅ Done 2026-04-26 (s14) |
 | **Next.js 14 → 15 upgrade — shipped to production** | ✅ Done 2026-04-26 (s14) |
 | **Custom domain postcrisp.com live** | ✅ Done 2026-04-27 (s14b) |
+| Brand refresh — new logo + 'Creation Gateway' tagline | ✅ Done 2026-04-28 (s14c) |
+| Single-use invite codes for beta tester rollout | ✅ Done 2026-04-28 (s14c) |
+| Phase 1 refine pass — Channel Analysis on Elite | ✅ Done 2026-04-28 (s14c) |
+| Sentry false-positive suppression (hydration + Supabase fetch) | ✅ Done 2026-04-28 (s14c) |
+| Mobile audit — landing stats + 44px touch targets on sidebar drawers | ✅ Done 2026-04-28 (s14c) |
+| MFA on Tier 1 external accounts (Supabase/Vercel/GitHub/Stripe/Anthropic/Resend/Sentry) | ✅ Done 2026-04-28 (s14c) |
 | **Alpha deployment** | ✅ Live (https://postcrisp.com) |
-| Step 7 — Launch prep (MFA, Stripe prod, mobile audit) | 🟡 Partial — domain + Next 15 done, 3 items remain |
+| Step 7 — Launch prep | 🟡 1 item blocking (Stripe verification, up to 2 days) |
 
 ---
 
 ## ⏭️ Next session — recommended order
 
-**Pre-public-launch (Step 7 remaining — order = lowest-friction first):**
-1. ~~Custom domain~~ ✅ Done s14b — postcrisp.com live
-2. **MFA hardening** — Tier 1 = external accounts first (Supabase Dashboard, GitHub, Vercel, Stripe, Anthropic, Resend, Sentry — ~15 min, biggest blast-radius reduction). Tier 2 = build in-app `/dashboard/settings/security` panel (TOTP enroll via `supabase.auth.mfa.enroll`, login `aal2` upgrade flow, ~4–6 hrs). Defer Tier 2 until after launch checklist if alpha-only.
-3. **Stripe production prices** — create 6 price IDs (Creator/Team/Elite × Monthly/Yearly) in live mode, swap env vars, register prod webhook → /api/stripe/webhook (~45 min)
-4. **Mobile responsive audit** — sidebar drawer touch targets, hub pages on mobile, generation detail page, modal forms (~1 hr)
+**Pre-public-launch (Step 7 remaining):**
+1. ~~Custom domain~~ ✅ Done s14b
+2. ~~MFA Tier 1 external accounts~~ ✅ Done s14c
+3. ~~Mobile responsive audit~~ ✅ Done s14c (real blockers fixed; cosmetic noise deferred)
+4. **Stripe production prices + webhook — BLOCKED on Stripe verification (up to 2 days)**. Playbook captured in session 14c block above. Resume with the 6-step checklist when verification clears.
+
+**Pre-beta launch — soft (do once Stripe clears + first wave of testers in):**
+5. Generate first batch of invite codes at `/admin/invite-codes` and DM to TikTok-recruited testers
+6. Set Anthropic monthly spending cap ($50-100) in Billing settings — defense in depth even if API key leaks
+7. Verify Resend SMTP delivers to first wave from the production domain
+
+**Post-launch experiments to watch:**
+8. **Phase 2 refine expansion** — roll refine to CTA Optimizer + Brand Pitch + Competitor Analysis IF Phase 1 cohort metrics validate the lift. Don't pre-emptively expand.
+9. **Refine cohort A/B** — query `generations` filtered to channel_analysis, group by `input_data->>'refined'` boolean, compare save-to-library rates after 1-2 weeks of beta data. Decides Phase 2.
+10. **In-app MFA Tier 2** — `/dashboard/settings/security` panel using `supabase.auth.mfa.enroll()` + `aal2` upgrade flow (~4-6 hrs).
+
+**Smaller polish (queue up if you want low-effort wins):**
+- Mobile audit: revisit channel-analysis platform buttons, hashtags action bar — both work but feel cramped at 320px
+- Modal form max-width on iPhone SE (cosmetic, not a blocker)
+- Defensive sweep on remaining short-output AI routes if Sentry shows audit-row losses
+- Tool-level channel picker (~1 hr)
+- Library reorg by channel tabs (~1 hr)
+- Error boundary audit on newer pages (CTA Optimizer, Voice Trainer, Thumbnail Analyzer)
+
+**First 24-48 hrs after Stripe ships + beta announcement:**
+- Watch Sentry issue rate vs baseline
+- Watch Stripe webhook delivery success rate
+- Check that first tester signups consume invite codes correctly
+- Spot-check refined Channel Analysis outputs are landing well
 
 **Code (next big build — pick one):**
 5. **Brand Deal Maker** (IDEA-09) — needs separate scoping session before build
@@ -582,8 +738,9 @@ No other DB changes this session.
 
 - ~~Custom domain `postcrisp.com` → Vercel~~ ✅ Done 2026-04-27
 - ~~Update Supabase Site URL + Resend sender~~ ✅ Done 2026-04-27
-- Create Stripe products in live mode: Creator/Team/Elite Monthly/Yearly (6 price IDs)
-- Register Stripe webhook endpoint for production
-- Google OAuth in Supabase Auth settings (currently disabled in our invite-only flow anyway)
-- MFA on platform accounts (Supabase Dashboard, GitHub, Vercel, Stripe, Anthropic, Resend, Sentry — Tier 1 priority)
-- MFA in-app for captain@postcrisp.com (Tier 2, requires UI build)
+- ~~MFA on platform accounts~~ ✅ Done 2026-04-28 (Tier 1 — all 7 accounts)
+- 🟡 **Create Stripe products in live mode** — BLOCKED on Stripe verification. Playbook in session 14c block.
+- 🟡 **Register Stripe webhook endpoint for production** — same blocker
+- Set Anthropic monthly spending cap ($50-100) — defense in depth (5 min, do anytime)
+- Google OAuth in Supabase Auth settings (currently disabled in invite-only flow anyway)
+- MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
