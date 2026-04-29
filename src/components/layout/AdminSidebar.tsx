@@ -111,7 +111,7 @@ export function AdminSidebar() {
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
           aria-label="Close menu"
         >
           ✕
