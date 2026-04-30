@@ -222,15 +222,14 @@ Runtime-configurable AI provider/model per task so we can swap providers (Anthro
 
 **New strategic decision (2026-04-19):** Each subscription tier maps to a different AI quality tier in the PostCrisp Engine. This becomes a core product differentiator, not just an internal cost optimization.
 
-**Locked tier names: Starter / Creator / Elite** (+ Team as a seat-count variant of Creator).
+**Locked tier names: Starter / Creator / Elite** (Team tier dropped 2026-04-30 — zero subscribers; may return later as a separate "Agency" SKU).
 
 Tier model:
 - **Starter (Free, $0/mo)**: cheapest models — Haiku / GPT-4o-mini. Per-user cost ~$1-2/mo even at heavy usage; sustainable as acquisition channel.
 - **Creator ($19-29/mo)**: mid models — Sonnet / GPT-4o. Unlimited generations. Main revenue tier.
-- **Team ($49/mo, up to 5 seats)**: Creator-quality AI + multi-seat management. Same AI as Creator — value is seats, not better AI.
-- **Elite ($59-99/mo — price TBD)**: premium models — Opus / flagship OpenAI, with Opus forced on monetization-critical features (Brand Pitch, Competitor Analysis, Media Kit, Rate Calculator). Unlimited generations. For serious creators whose brand deals justify the spend.
+- **Elite ($59-99/mo — price TBD)**: premium models — Opus / flagship OpenAI, with Opus forced on monetization-critical features (Brand Pitch, Competitor Analysis, Media Kit, Rate Calculator). Unlimited generations. Foundation Analysis included. For serious creators whose brand deals justify the spend.
 
-**DB → UI label mapping:** `profiles.subscription_tier` DB values stay as-is (`free`, `pro`, `business`) and get mapped to display labels (`Starter`, `Creator`, `Elite`) in UI code. Add new `business` = Elite row in a migration, or rename later. Team tier needs a new schema treatment (either `team_id` on profiles or a separate `team_members` table) — decide during Step 3.
+**DB → UI label mapping:** `profiles.subscription_tier` DB values stay as-is (`free`, `pro`, `business`) and get mapped to display labels (`Starter`, `Creator`, `Elite`) in UI code. Add new `business` = Elite row in a migration, or rename later.
 
 Implementation:
 
@@ -239,8 +238,7 @@ Implementation:
 - [ ] **Update `crispGenerate()`** to look up caller's tier (pass through from `auth-usage` result)
 - [ ] **Admin UI** changes: 3-column grid per task (Starter / Creator / Elite) with independent provider+model dropdowns per column; bulk edit extends to per-tier bulk changes
 - [ ] **Add Elite tier** ($59-99/mo — price TBD after internal cost modeling): Stripe product, billing page card, landing page column
-- [ ] **Add Team tier** ($49/mo, up to 5 members): Stripe product + either `team_members` table or `team_id` column on profiles. AI quality = Creator.
-- [ ] **Per-feature gating**: helper in `auth-usage.ts` for `requireTier('creator' | 'team' | 'elite')` for tier-locked features (e.g., Brand Pitch is Creator+, Competitor Analysis is Elite-only)
+- [ ] **Per-feature gating**: helper in `auth-usage.ts` for `requireTier('creator' | 'elite')` for tier-locked features (e.g., Brand Pitch is Creator+, Competitor Analysis is Elite-only)
 - [ ] **User-facing "powered by" badges**: subtle tag on generation results — "🧠 PostCrisp Engine" (Starter) / "🧠 PostCrisp Engine Pro" (Creator) / "🧠 PostCrisp Engine Elite" (Elite). Never expose underlying provider names.
 - [ ] **Rename UI strings**: search and replace "Pro" / "Upgrade to Pro" → "Creator" / "Upgrade to Creator" across `billing/page.tsx`, `UpgradePrompt.tsx`, `dashboard/page.tsx`, landing page, etc. (~15-20 locations)
 

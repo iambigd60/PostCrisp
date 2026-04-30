@@ -58,8 +58,8 @@ export const PLANS = {
     dailyLimit: Infinity,
     engine: 'PostCrisp Engine Elite',
     features: [
-      '🧬 Foundation Analysis — your reusable Creator Profile that powers every other tool',
       'Everything in Creator',
+      '🧬 Foundation Analysis — your reusable Creator Profile that powers every other tool',
       'PostCrisp Engine Elite — premium quality across every feature',
       'Highest-tier AI on brand pitches, competitor analysis, and media kits',
       'Early access to new features',
