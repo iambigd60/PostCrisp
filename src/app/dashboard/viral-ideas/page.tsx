@@ -340,7 +340,7 @@ export default function ViralIdeasPage() {
       {/* Loading */}
       {loading && (
         <div className="rounded-xl border border-brand-500/10 bg-surface-secondary">
-          <GenerationLoader messages={GENERATION_MESSAGES} />
+          <GenerationLoader variant="rocket" messages={GENERATION_MESSAGES} />
         </div>
       )}
 

@@ -73,7 +73,7 @@ export default function SoundsPage() {
         </div>
       )}
 
-      {loading && <GenerationLoader messages={["Scanning TikTok and Reels...", "Ranking by momentum...", "Matching to niches..."]} />}
+      {loading && <GenerationLoader variant="rocket" messages={["Scanning TikTok and Reels...", "Ranking by momentum...", "Matching to niches..."]} />}
       {error && !loading && <InlineError message={error} onRetry={handleLoad} />}
 
       {loaded && !loading && (

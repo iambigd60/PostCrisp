@@ -394,3 +394,39 @@ body {
     border: 1px solid var(--border-default);
   }
 }
+
+/* ─── Rocket loader (variant="rocket" on GenerationLoader) ─────────────── */
+
+@keyframes rocket-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-4px) rotate(2deg); }
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1);    opacity: 0.95; }
+  50%      { transform: scaleY(0.85); opacity: 0.70; }
+}
+
+@keyframes puff-rise {
+  0%   { transform: translateY(0);    opacity: 0.5; }
+  100% { transform: translateY(24px); opacity: 0;   }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.9; }
+}
+
+.animate-rocket-bob    { animation: rocket-bob   1.4s ease-in-out infinite; }
+.animate-flame-flicker { animation: flame-flicker 0.4s ease-in-out infinite; transform-origin: top center; }
+.animate-puff-rise     { animation: puff-rise   1.5s ease-out     infinite; }
+.animate-twinkle       { animation: twinkle     2.0s ease-in-out  infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rocket-bob,
+  .animate-flame-flicker,
+  .animate-puff-rise,
+  .animate-twinkle {
+    animation: none !important;
+  }
+}

@@ -81,7 +81,7 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {loading && <GenerationLoader messages={["Scanning platforms...", "Ranking by virality...", "Finding niche-specific opportunities..."]} />}
+      {loading && <GenerationLoader variant="rocket" messages={["Scanning platforms...", "Ranking by virality...", "Finding niche-specific opportunities..."]} />}
       {error && !loading && <InlineError message={error} onRetry={handleLoad} />}
 
       {loaded && !loading && (

@@ -214,7 +214,7 @@ export default function BrandPitchPage() {
         </Button>
       </div>
 
-      {loading && <GenerationLoader messages={LOADING_MESSAGES} />}
+      {loading && <GenerationLoader variant="rocket" messages={LOADING_MESSAGES} />}
       {error && !loading && <InlineError message={error} onRetry={handleGenerate} />}
 
       {result && !loading && (

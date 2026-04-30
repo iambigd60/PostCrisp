@@ -119,7 +119,7 @@ export default function RepurposePage() {
         </Button>
       </div>
 
-      {loading && <GenerationLoader messages={LOADING_MESSAGES} />}
+      {loading && <GenerationLoader variant="rocket" messages={LOADING_MESSAGES} />}
       {error && !loading && <InlineError message={error} onRetry={handleRepurpose} />}
 
       {items.length > 0 && !loading && (

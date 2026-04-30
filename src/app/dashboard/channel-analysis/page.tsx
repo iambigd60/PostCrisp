@@ -204,7 +204,7 @@ export default function ChannelAnalysisPage() {
         </Button>
       </div>
 
-      {loading && <GenerationLoader messages={[
+      {loading && <GenerationLoader variant="rocket" messages={[
         "Running deep analysis — this takes 30-60 seconds because we're going further than a typical AI tool.",
         "Auditing your channel against 2026 platform dynamics...",
         "Identifying strengths, gaps, and missed opportunities...",
