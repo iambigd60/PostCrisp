@@ -18,6 +18,10 @@ interface FeatureGateProps {
   featureIcon?: string
   featureTagline?: string
   valueProps?: string[]
+  /** Optional preview screenshot rendered below the value-prop list in the
+   * paywall card. Used by Foundation Analysis to show a redacted example of
+   * what's behind the gate so the upgrade decision has more signal. */
+  previewSnapshotUrl?: string
   children: React.ReactNode
 }
 
@@ -28,7 +32,7 @@ interface FeatureGateProps {
  *
  * The real API still enforces the gate — this is purely UX.
  */
-export function FeatureGate({ feature, featureLabel, featureIcon, featureTagline, valueProps, children }: FeatureGateProps) {
+export function FeatureGate({ feature, featureLabel, featureIcon, featureTagline, valueProps, previewSnapshotUrl, children }: FeatureGateProps) {
   const [tier, setTier] = useState<Tier | null>(null)
   const [role, setRole] = useState<'user' | 'admin'>('user')
   const [loading, setLoading] = useState(true)
@@ -102,6 +106,17 @@ export function FeatureGate({ feature, featureLabel, featureIcon, featureTagline
                 </li>
               ))}
             </ul>
+          )}
+
+          {previewSnapshotUrl && (
+            <div className="mb-6 rounded-xl border border-brand-500/10 overflow-hidden">
+              <img
+                src={previewSnapshotUrl}
+                alt={`${featureLabel} preview`}
+                className="w-full h-auto block"
+                loading="lazy"
+              />
+            </div>
           )}
 
           <div className="flex flex-col sm:flex-row gap-2">

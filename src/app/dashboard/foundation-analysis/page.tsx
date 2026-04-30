@@ -139,6 +139,7 @@ export default function FoundationAnalysisPage() {
         "Extract the hook structures behind your wins, repeatable",
         "Saves a Creator Profile that Captions, Viral Ideas, and Bio Optimizer read on every generation",
       ]}
+      previewSnapshotUrl="/foundation-analysis-preview.png"
     >
       <div className="space-y-6">
         <div>
