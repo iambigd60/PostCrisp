@@ -60,7 +60,6 @@ export default function CompetitorAnalysisPage() {
       const data = await apiFetch<Result>("/api/competitor-analysis", {
         method: "POST",
         body: JSON.stringify({ competitor, platform, yourNiche, focusAreas }),
-        timeout: 60000,
       });
       setResult(data);
     } catch (err) {

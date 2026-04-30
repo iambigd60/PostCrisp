@@ -82,7 +82,7 @@ export default function BestTimesPage() {
         region: selectedRegionLabel,
         niche: selectedNicheLabel,
       });
-      const result = await apiFetch<BestTimesData>(`/api/best-times?${params.toString()}`, { timeout: 45000 });
+      const result = await apiFetch<BestTimesData>(`/api/best-times?${params.toString()}`);
       setData(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load data");

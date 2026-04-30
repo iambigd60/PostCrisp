@@ -61,7 +61,6 @@ export default function BrandPitchPage() {
           brandName, brandIndustry, yourNiche, audience, followerCount,
           engagementRate, proposalType, uniqueValue, budgetExpectation,
         }),
-        timeout: 60000,
       });
       setResult(data);
       addToast("Pitch generated!", "success");

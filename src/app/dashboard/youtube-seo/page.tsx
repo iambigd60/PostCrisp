@@ -36,7 +36,6 @@ export default function YouTubeSEOPage() {
       const data = await apiFetch<Result>("/api/youtube-seo", {
         method: "POST",
         body: JSON.stringify({ topic, keywords, category, competitorUrl }),
-        timeout: 60000,
       });
       setResult(data);
     } catch (err) {

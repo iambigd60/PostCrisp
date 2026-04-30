@@ -188,7 +188,6 @@ export default function ViralIdeasPage() {
       const data = await apiFetch<{ ideas: ViralIdea[] }>('/api/viral-ideas', {
         method: 'POST',
         body: JSON.stringify({ niche, platforms, formats, trendSource, audience, count }),
-        timeout: 60000,
       })
       setIdeas(data.ideas)
       addToast(`${data.ideas.length} ideas generated!`, 'success')

@@ -35,7 +35,6 @@ export default function SoundsPage() {
       const data = await apiFetch<{ trending: Sound[]; rising: Sound[]; niche: Sound[] }>("/api/sounds", {
         method: "POST",
         body: JSON.stringify({ niche }),
-        timeout: 90000,
       });
       setTrending(data.trending ?? []);
       setRising(data.rising ?? []);

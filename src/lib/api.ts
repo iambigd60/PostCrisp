@@ -10,14 +10,14 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiFetch<T>(url: string, options: FetchOptions = {}): Promise<T> {
-  // Default 120s — matches Vercel function maxDuration ceiling on AI routes.
-  // Set to ensure the client gives the server its full processing budget
-  // before declaring 'Request timed out'. AI calls on Opus regularly hit
-  // 30-60s with variance up to 90s during Anthropic load spikes; SDK has
-  // its own 110s timeout per request + 3 retries on transient 5xx/429.
-  // Pages with quick endpoints (settings save, admin lookups) can override
-  // to a shorter timeout if they want fail-fast UX.
-  const { timeout = 120000, ...fetchOptions } = options;
+  // Default 125s — sits 5s above the server `maxDuration = 120` ceiling on
+  // AI routes so the client always lets a real 504 surface instead of racing
+  // the server with its own AbortError (which masks the real failure mode
+  // and produces false 'timed out' errors when the server was about to
+  // return successfully). Anthropic SDK has its own 110s per-request timeout
+  // + 3 retries on transient 5xx/429. Pages with quick endpoints (settings
+  // save, admin lookups) can override to a shorter timeout for fail-fast UX.
+  const { timeout = 125000, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);

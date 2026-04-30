@@ -43,7 +43,6 @@ export default function BlogToSocialPage() {
       const data = await apiFetch<{ posts: Post[] }>("/api/blog-to-social", {
         method: "POST",
         body: JSON.stringify({ blog, count, targetPlatforms, focus }),
-        timeout: 90000,
       });
       setPosts(data.posts);
     } catch (err) {

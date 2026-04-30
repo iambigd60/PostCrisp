@@ -37,7 +37,6 @@ export default function TrendsPage() {
       const data = await apiFetch<{ trending: Trend[]; rising: Trend[]; niche: Trend[] }>("/api/trend-radar", {
         method: "POST",
         body: JSON.stringify({ niche, platforms: selectedPlatforms }),
-        timeout: 90000,
       });
       setTrending(data.trending ?? []);
       setRising(data.rising ?? []);

@@ -57,7 +57,6 @@ export default function ScriptsPage() {
       const data = await apiFetch<Script>("/api/script", {
         method: "POST",
         body: JSON.stringify({ topic, platform, length, tone, audience, keyPoints }),
-        timeout: 60000,
       });
       setScript(data);
     } catch (err) {

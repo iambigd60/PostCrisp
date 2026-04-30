@@ -122,7 +122,6 @@ export default function CTAOptimizerPage() {
           audience: audience.trim() || undefined,
           linkUrl: linkUrl.trim() || undefined,
         }),
-        timeout: 90000,
       })
       setResult(res)
       addToast('CTA options generated', 'success')

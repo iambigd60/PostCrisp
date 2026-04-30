@@ -44,7 +44,6 @@ export default function RepurposePage() {
       const data = await apiFetch<{ items: Item[] }>("/api/repurpose", {
         method: "POST",
         body: JSON.stringify({ source, sourceType, targetPlatforms, toneAdjustment }),
-        timeout: 90000,
       });
       setItems(data.items);
       setActiveTab(0);

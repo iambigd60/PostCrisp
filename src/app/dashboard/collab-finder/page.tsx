@@ -43,7 +43,6 @@ export default function CollabFinderPage() {
       const data = await apiFetch<Result>("/api/collab-finder", {
         method: "POST",
         body: JSON.stringify({ niche, followerRange, platforms: selectedPlatforms, collabType, lookingFor }),
-        timeout: 60000,
       });
       setResult(data);
     } catch (err) {

@@ -167,7 +167,6 @@ export function ChannelAnalysisStep({ channels, ctx, setCtx, onNext, onSkip }: S
           analyzeHandle: selected.handle,
           tutorialMode: true,
         }),
-        timeout: 90000,
       })
       setResult(res)
       setCtx({
@@ -430,7 +429,6 @@ export function CaptionsStep({ ctx, setCtx, onNext, onSkip }: StepProps) {
           count: 3,
           tutorialMode: true,
         }),
-        timeout: 60000,
       })
       setCaptions(res.captions ?? [])
       setSavedIdx(null)
@@ -571,9 +569,7 @@ export function HashtagsStep({ ctx, onNext, onSkip }: StepProps) {
         mix: '0.5',
         tutorial: '1',
       })
-      const res = await apiFetch<HashtagsResult>(`/api/hashtags?${params.toString()}`, {
-        timeout: 60000,
-      })
+      const res = await apiFetch<HashtagsResult>(`/api/hashtags?${params.toString()}`)
       setTags(res.hashtags ?? [])
     } catch (err) {
       addToast(err instanceof ApiError ? err.message : 'Generation failed', 'error')
@@ -733,7 +729,6 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
           count: 5,
           tutorialMode: true,
         }),
-        timeout: 90000,
       })
       setIdeas(res.ideas ?? [])
     } catch (err) {

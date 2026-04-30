@@ -148,7 +148,6 @@ export default function ThumbnailAnalyzerPage() {
           topic: topic.trim() || undefined,
           audience: audience.trim() || undefined,
         }),
-        timeout: 120000,
       })
       setResult(res)
       addToast('Thumbnail analyzed', 'success')

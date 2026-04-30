@@ -48,7 +48,6 @@ export default function PlatformTipsPage() {
       const data = await apiFetch<{ tips: Tip[] }>("/api/platform-tips", {
         method: "POST",
         body: JSON.stringify({ platform, niche: useNiche ? niche : null }),
-        timeout: 60000,
       });
       setTips(data.tips);
     } catch (err) {

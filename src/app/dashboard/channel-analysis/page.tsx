@@ -57,10 +57,6 @@ export default function ChannelAnalysisPage() {
           contentFocus: contentFocus.join(", "),
           currentChallenges, analyzeHandle,
         }),
-        // 120s — matches the route's maxDuration. Refine pass for Elite tier
-        // can take up to ~50s; this gives us comfortable headroom over that
-        // plus Anthropic Opus latency variance.
-        timeout: 120000,
       });
       setResult(data);
     } catch (err) {

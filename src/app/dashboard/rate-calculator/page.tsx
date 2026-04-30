@@ -69,7 +69,6 @@ export default function RateCalculatorPage() {
           platform, followerCount, engagementRate, contentType,
           niche: selectedNicheLabel, usageRights, deliverables,
         }),
-        timeout: 60000,
       });
       setResult(data);
     } catch (err) {

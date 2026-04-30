@@ -135,11 +135,7 @@ export default function VoiceTrainerPage() {
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
-      // Voice analysis routinely takes 30–60s — Claude reads every sample and
-      // extracts 11 trait dimensions. The default 15s apiFetch timeout aborts
-      // the client well before the server finishes, surfacing a misleading
-      // "Analysis failed" toast even though the save often eventually lands.
-      await apiFetch("/api/voice-profile/analyze", { method: "POST", timeout: 120000 });
+      await apiFetch("/api/voice-profile/analyze", { method: "POST" });
       addToast("Voice profile analyzed", "success");
       await load();
     } catch (err) {
