@@ -245,7 +245,7 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.
 CREATE TABLE IF NOT EXISTS public.feature_access (
   feature    TEXT PRIMARY KEY,
-  min_tier   TEXT NOT NULL CHECK (min_tier IN ('starter', 'creator', 'team', 'elite')),
+  min_tier   TEXT NOT NULL CHECK (min_tier IN ('starter', 'creator', 'elite')),
   enabled    BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
@@ -511,3 +511,13 @@ CREATE OR REPLACE TRIGGER creator_profiles_updated_at
   BEFORE UPDATE ON public.creator_profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
+
+-- Drop Team tier from feature_access.min_tier CHECK to mirror profiles.subscription_tier.
+-- Pre-flight: any in-flight 'team' row gets remapped to 'creator' (matching the runtime
+-- defensive fallback in tierFromDbValue) before the CHECK rejects it.
+UPDATE public.feature_access SET min_tier = 'creator' WHERE min_tier = 'team';
+ALTER TABLE public.feature_access
+  DROP CONSTRAINT IF EXISTS feature_access_min_tier_check;
+ALTER TABLE public.feature_access
+  ADD  CONSTRAINT feature_access_min_tier_check
+  CHECK (min_tier IN ('starter', 'creator', 'elite'));
