@@ -5,6 +5,16 @@
 
 ---
 
+## ✅ Foundation Analysis (Elite-only) + Team tier drop shipped 2026-04-30 (session 16)
+
+23 commits on the `foundation-analysis` branch. New Elite-only feature that produces an evidence-grounded audit AND saves a structured Creator Profile (`creator_profiles` table, RLS-protected) that downstream tools read on every generation. Phase 2 wired in the same session: Captions / Viral Ideas / Bio Optimizer prompts now inject a "Creator Context" block via `loadCreatorContext` when a profile exists. Settings → Profile section lets users view, edit, and toggle injection.
+
+Tier ladder simplified to **Starter / Creator / Elite** (Team dropped — zero subscribers; defensive `case 'team' → 'creator'` kept in `tierFromDbValue` for legacy in-flight rows).
+
+Spec + plan: `docs/superpowers/specs/2026-04-30-foundation-analysis-design.md`, `docs/superpowers/plans/2026-04-30-foundation-analysis.md`. See PICKUP.md for the full session 16 writeup including the 6 plan gaps caught by code review.
+
+---
+
 ## ✅ Phase 0 hardening sprint shipped 2026-04-25 (session 12)
 
 Closed all P0 items from the security review + Claude/ChatGPT codebase assessments. Production now has:
