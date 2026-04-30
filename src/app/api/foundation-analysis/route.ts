@@ -84,12 +84,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
-  if (!parsed?.overallAssessment || !Array.isArray(parsed.strengths) || !parsed.creatorProfile) {
-    console.error('Foundation analysis — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+  // Tight shape validation — protects the contract downstream tools (Captions,
+  // Viral Ideas, Bio Optimizer in Phase 2) rely on. Half-formed profile rows
+  // poison the table even when individual fields look reasonable in isolation.
+  const cp = parsed?.creatorProfile
+  if (
+    !parsed?.overallAssessment ||
+    !Array.isArray(parsed.strengths) ||
+    !cp ||
+    !Array.isArray(cp.contentPillars) ||
+    !cp.voiceSignature ||
+    !Array.isArray(cp.voiceSignature.adjectives) ||
+    !cp.audiencePersona?.description ||
+    !cp.growthStage ||
+    !cp.monetizationPosition?.stage ||
+    !Array.isArray(cp.formatStrengths) ||
+    !Array.isArray(cp.differentiators) ||
+    !Array.isArray(cp.topBlockers)
+  ) {
+    console.error('Foundation analysis — unexpected shape:', { keys: Object.keys(parsed ?? {}), profileKeys: Object.keys(cp ?? {}), preview: text.slice(0, 300) })
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }
 
-  // Persist generation row + Creator Profile (best-effort)
+  // Persist generation row + credit debit (best-effort).
   let analysisId: string | null = null
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
@@ -103,9 +120,15 @@ export async function POST(request: Request) {
     }).select('id').single()
     analysisId = inserted?.id ?? null
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'foundation-analysis')
+  } catch (error) {
+    console.error('[foundation-analysis] generation persist failed (non-fatal):', error)
+  }
 
-    // Save the structured Creator Profile so downstream tools can read it
-    const cp = parsed.creatorProfile
+  // Creator Profile upsert is the integration contract — log under its own tag
+  // so a failure here is greppable separately from generation/credit failures.
+  // A failed generations insert above must NOT skip this; the profile is the
+  // entire reason this feature exists.
+  try {
     await upsertCreatorProfile(auth.supabase, auth.userId, {
       content_pillars: cp.contentPillars,
       voice_signature: cp.voiceSignature,
@@ -117,7 +140,7 @@ export async function POST(request: Request) {
       top_blockers: cp.topBlockers,
     }, analysisId)
   } catch (error) {
-    console.error('Foundation analysis — persistence failed (non-fatal):', error)
+    console.error('[foundation-analysis] creator profile upsert failed (non-fatal):', error)
   }
 
   return NextResponse.json({ ...parsed, analysis_id: analysisId })
