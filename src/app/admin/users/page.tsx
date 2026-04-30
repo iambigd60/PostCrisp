@@ -31,7 +31,6 @@ interface ListResponse {
 const tierBadge: Record<string, string> = {
   starter: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",
   creator: "bg-brand-500/15 text-brand-300 border-brand-500/20",
-  team:    "bg-sky-500/15 text-sky-300 border-sky-500/20",
   elite:   "bg-amber-500/15 text-amber-300 border-amber-500/20",
 };
 
@@ -110,7 +109,6 @@ export default function UsersListPage() {
             <option value="all">All tiers</option>
             <option value="free">Starter</option>
             <option value="creator">Creator</option>
-            <option value="team">Team</option>
             <option value="elite">Elite</option>
           </select>
           <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">

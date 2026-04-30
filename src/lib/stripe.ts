@@ -16,8 +16,6 @@ export function getStripe(): Stripe {
 export const PRICES = {
   creator_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID!,
   creator_yearly:  process.env.STRIPE_PRO_YEARLY_PRICE_ID  || process.env.STRIPE_CREATOR_YEARLY_PRICE_ID!,
-  team_monthly:    process.env.STRIPE_TEAM_MONTHLY_PRICE_ID!,
-  team_yearly:     process.env.STRIPE_TEAM_YEARLY_PRICE_ID!,
   elite_monthly:   process.env.STRIPE_ELITE_MONTHLY_PRICE_ID!,
   elite_yearly:    process.env.STRIPE_ELITE_YEARLY_PRICE_ID!,
 } as const
@@ -49,22 +47,6 @@ export const PLANS = {
       'Premium AI on monetization features (brand pitch, rate calc, competitor analysis)',
       'Unlimited saved library',
       'Priority support',
-    ],
-    missing: ['Premium AI across all features', 'Team seats'],
-  },
-  team: {
-    name: 'Team',
-    tagline: 'For small teams and agencies',
-    monthlyPrice: 49,
-    yearlyPrice: 490,
-    dailyLimit: Infinity,
-    seats: 5,
-    engine: 'PostCrisp Engine Pro',
-    features: [
-      'Everything in Creator',
-      'Up to 5 team seats',
-      'Shared content library',
-      'Team-level admin controls',
     ],
     missing: ['Premium AI across all features'],
   },

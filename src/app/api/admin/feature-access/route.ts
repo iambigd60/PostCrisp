@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { ALL_TASKS, type CrispTask, type Tier } from '@/lib/crisp-engine'
 import { DEFAULT_MIN_TIER, invalidateAccessCache } from '@/lib/feature-access'
 
-const VALID_TIERS: Tier[] = ['starter', 'creator', 'team', 'elite']
+const VALID_TIERS: Tier[] = ['starter', 'creator', 'elite']
 
 interface AccessRow {
   feature: string

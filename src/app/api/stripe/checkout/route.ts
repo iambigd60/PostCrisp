@@ -8,7 +8,6 @@ import { createClient } from '@/utils/supabase/server'
 // semantic { tier, cycle } pair; we resolve the actual Stripe price here.
 const TIER_PRICE_MAP: Record<string, Record<string, string | undefined>> = {
   creator: { monthly: PRICES.creator_monthly, yearly: PRICES.creator_yearly },
-  team:    { monthly: PRICES.team_monthly,    yearly: PRICES.team_yearly    },
   elite:   { monthly: PRICES.elite_monthly,   yearly: PRICES.elite_yearly   },
 }
 
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
   const { tier, cycle } = body as { tier?: string; cycle?: string }
 
-  if (tier !== 'creator' && tier !== 'team' && tier !== 'elite') {
+  if (tier !== 'creator' && tier !== 'elite') {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
   }
   if (cycle !== 'monthly' && cycle !== 'yearly') {

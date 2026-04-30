@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
 import { tierFromDbValue, TIER_LABELS, type Tier } from '@/lib/crisp-engine-config'
 
-const VALID_TIERS = new Set(['free', 'creator', 'team', 'elite'])
+const VALID_TIERS = new Set(['free', 'creator', 'elite'])
 const VALID_ROLES = new Set(['user', 'admin'])
 
 function getAdminClient() {

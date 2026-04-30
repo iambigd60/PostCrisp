@@ -340,16 +340,6 @@ export default function HomePage() {
               cta="Start free, upgrade in-app"
               ctaHref="/signup"
             />
-            {/* Team */}
-            <PricingCard
-              name="Team"
-              tagline="For small teams / agencies"
-              price={PLANS.team.monthlyPrice}
-              highlight={false}
-              features={PLANS.team.features}
-              cta="Start free, upgrade in-app"
-              ctaHref="/signup"
-            />
             {/* Elite */}
             <PricingCard
               name="Elite"
