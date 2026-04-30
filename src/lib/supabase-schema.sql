@@ -482,3 +482,32 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
   ADD  CONSTRAINT profiles_subscription_tier_check
   CHECK (subscription_tier IN ('free', 'creator', 'elite'));
+
+-- creator_profiles RLS — matches the pattern used by every other user-scoped table.
+-- Without this, client-side reads (Task 10 dashboard CTA, Task 11 Settings) silently
+-- return zero rows because Supabase requires explicit policies on RLS-enabled rows.
+ALTER TABLE public.creator_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users read own creator profile"
+  ON public.creator_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own creator profile"
+  ON public.creator_profiles FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own creator profile"
+  ON public.creator_profiles FOR UPDATE
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own creator profile"
+  ON public.creator_profiles FOR DELETE
+  USING (auth.uid() = user_id);
+CREATE POLICY "Admins read all creator profiles"
+  ON public.creator_profiles FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- Mirror the updated_at trigger pattern used on profiles, channels, voice_profiles
+-- so the upsert path doesn't have to manually set updated_at and the index
+-- on (updated_at DESC) is actually meaningful.
+CREATE OR REPLACE TRIGGER creator_profiles_updated_at
+  BEFORE UPDATE ON public.creator_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();

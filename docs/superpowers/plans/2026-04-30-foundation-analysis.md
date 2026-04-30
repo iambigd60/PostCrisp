@@ -122,10 +122,42 @@ ALTER TABLE public.profiles
   CHECK (subscription_tier IN ('free', 'creator', 'elite'));
 ```
 
+- [ ] **Step 3.5: Add RLS policies and updated_at trigger for `creator_profiles`** (added 2026-04-30 from code review)
+
+Append to the end of `src/lib/supabase-schema.sql` (after the Step 3 ALTER constraint pair):
+
+```sql
+-- creator_profiles RLS — matches the pattern used by every other user-scoped table.
+ALTER TABLE public.creator_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users read own creator profile"
+  ON public.creator_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own creator profile"
+  ON public.creator_profiles FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own creator profile"
+  ON public.creator_profiles FOR UPDATE
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own creator profile"
+  ON public.creator_profiles FOR DELETE
+  USING (auth.uid() = user_id);
+CREATE POLICY "Admins read all creator profiles"
+  ON public.creator_profiles FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+CREATE OR REPLACE TRIGGER creator_profiles_updated_at
+  BEFORE UPDATE ON public.creator_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+```
+
+Without RLS, dashboard CTA (Task 10) and Settings (Task 11) reads silently return zero rows. Without the trigger, the `updated_at_idx` index is meaningless and `updated_at` only ever equals `created_at`.
+
 - [ ] **Step 4: Apply the schema in Supabase**
 
 Run the entire `src/lib/supabase-schema.sql` in the Supabase SQL editor. Confirm:
-- `\d creator_profiles` shows the new table
+- `\d creator_profiles` shows the new table with RLS enabled
 - `\d profiles` shows the new columns and updated CHECK
 
 - [ ] **Step 5: Commit**
