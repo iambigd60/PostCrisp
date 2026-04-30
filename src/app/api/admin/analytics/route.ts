@@ -13,7 +13,6 @@ import {
 const TIER_MRR: Record<Tier, number> = {
   starter: 0,
   creator: 19,
-  team:    49,
   elite:   79,
 }
 
@@ -80,7 +79,7 @@ export async function GET() {
 
   // ─── User-level aggregates ──────────────────────────────────────────
   const totalUsers = profiles.length
-  const tierCounts: Record<Tier, number> = { starter: 0, creator: 0, team: 0, elite: 0 }
+  const tierCounts: Record<Tier, number> = { starter: 0, creator: 0, elite: 0 }
   let newSignups30d = 0
   let paidUsers = 0
   let mrrEstimate = 0

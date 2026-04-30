@@ -13,32 +13,24 @@ import type { ProviderId } from './providers/types'
 
 // ─── Subscription tiers ─────────────────────────────────────────────────────
 // DB values in profiles.subscription_tier map to these engine tiers.
-// 'team' runs the same AI quality as 'creator' — Team tier adds seats, not better AI.
 
-export type Tier = 'starter' | 'creator' | 'team' | 'elite'
+export type Tier = 'starter' | 'creator' | 'elite'
 
-// Tiers that have their own engine configuration. Team tier is deliberately
-// NOT configurable — it mirrors Creator's AI quality (Team value is seats).
+// Tiers that have their own engine configuration. Mirrors Tier exactly now
+// that Team is gone, but kept as a separate alias for call-site clarity.
 export type ConfigurableTier = 'starter' | 'creator' | 'elite'
 export const CONFIGURABLE_TIERS: ConfigurableTier[] = ['starter', 'creator', 'elite']
 
 export const TIER_LABELS: Record<Tier, string> = {
   starter: 'Starter',
   creator: 'Creator',
-  team:    'Team',
   elite:   'Elite',
-}
-
-// Resolve Team tier to its effective config tier (Creator).
-export function effectiveTier(tier: Tier): ConfigurableTier {
-  return tier === 'team' ? 'creator' : tier
 }
 
 // Pretty-label for the engine badge shown to users on generation results
 export const TIER_BADGE_LABEL: Record<Tier, string> = {
   starter: 'PostCrisp Engine',
   creator: 'PostCrisp Engine Pro',
-  team:    'PostCrisp Engine Pro',
   elite:   'PostCrisp Engine Elite',
 }
 
@@ -50,7 +42,6 @@ export function tierFromDbValue(dbValue: string | null | undefined): Tier {
     case 'starter':  return 'starter'
     case 'pro':      return 'creator'  // legacy — pre-rename
     case 'creator':  return 'creator'
-    case 'team':     return 'team'
     case 'business': return 'elite'    // legacy — pre-rename
     case 'elite':    return 'elite'
     default:         return 'starter'
@@ -224,7 +215,6 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
 export const TIER_ALLOWANCE: Record<Tier, { credits: number; cycle: 'daily' | 'monthly' }> = {
   starter: { credits: 10,   cycle: 'daily' },
   creator: { credits: 500,  cycle: 'monthly' },
-  team:    { credits: 500,  cycle: 'monthly' }, // individual until team pooling ships
   elite:   { credits: 2000, cycle: 'monthly' },
 }
 

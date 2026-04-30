@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
-import { effectiveTier, DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
+import { DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
 import { systemPromptFor } from '@/lib/system-prompts'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -79,8 +79,7 @@ export async function POST(request: Request) {
   // We don't go through crispGenerate here because the helper doesn't yet
   // accept image content blocks. Calling Anthropic SDK directly with the
   // same provider/model resolution we'd otherwise use.
-  const cfgTier = effectiveTier(auth.tier)
-  const profile = TASK_TIER_PROFILE['thumbnail-analyzer'][cfgTier]
+  const profile = TASK_TIER_PROFILE['thumbnail-analyzer'][auth.tier]
   const { provider, model } = DEFAULT_PROFILE_CONFIG[profile]
 
   if (provider !== 'anthropic') {

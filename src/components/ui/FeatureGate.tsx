@@ -9,7 +9,6 @@ import { DEFAULT_MIN_TIER } from '@/lib/feature-access-config'
 const TIER_RANK: Record<Tier, number> = {
   starter: 0,
   creator: 1,
-  team:    1,
   elite:   2,
 }
 
