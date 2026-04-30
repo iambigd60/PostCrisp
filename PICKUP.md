@@ -1,10 +1,65 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-28 (session 14c — brand refresh, single-use invite codes, Phase 1 refine, mobile audit, MFA Tier 1)
-**Build status:** ✅ Live on Vercel — `9e75280` in production
+**Last updated:** 2026-04-29 (session 15 — root-caused "Request Timed Out", synced client timeouts, shipped rocket loader)
+**Build status:** ✅ Live on Vercel — `9e75280` in production (this session's commits not yet pushed at time of writing)
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Pre-launch status:** 🟡 1 item blocking — **Stripe production verification (up to 2 days)**
+
+---
+
+## Session 15 shipped — "Request Timed Out" root cause + rocket loader
+
+3 commits. Started from a tester complaint and ended with a brand-grade waiting experience for the longest AI calls.
+
+### 🔍 Root cause of "Request Timed Out" — stale client timeout overrides
+
+Tester reported intermittent "Request Timed Out" errors on long generations. Vercel logs showed channel-analysis succeeding at 70.3s on the server (pass1 48.6s + pass2 21.7s), well under the 120s `maxDuration`. So the server wasn't timing out — but the user saw the error anyway.
+
+The bug: commit `419a1fe` raised the global `apiFetch` default 60s → 120s, but **18 separate AI feature pages + tutorial steps were passing their own explicit `timeout: 45000` / `timeout: 60000` / `timeout: 90000` overrides**, silently shadowing the new default. Stale values from when defaults were 15s, then 60s. The pages never benefited from the bump.
+
+Tutorial channel-analysis at 90s was the worst case — 70s of AI work + 5–15s pre/post + Vercel cold start could push end-to-end past 90s on a slow run, firing the client AbortController while the server was finishing post-AI persistence.
+
+### ✅ Fix 1 — sync all client AI-call timeouts to 125s default (commit `61d3ac2`)
+
+- Removed all 22 explicit `timeout:` overrides on AI feature pages + tutorial steps. Pages now track the global default forever; no more drift.
+- Bumped `apiFetch` default 120s → 125s. The 5s buffer above server `maxDuration = 120s` means when the server actually does hit its ceiling, the client stays alive long enough to receive a structured 504 instead of racing to AbortError (which masks the failure mode and looks indistinguishable from a network timeout).
+
+19 files changed: `src/lib/api.ts`, `src/components/onboarding/TutorialSteps.tsx`, 17 dashboard pages.
+
+**Lesson saved as memory** (`feedback_apifetch_timeout_drift.md`): when changing a global default in shared client config, sweep for explicit per-call overrides and reconcile. Prefer dropping overrides entirely on calls that should track the default.
+
+### 🚀 Fix 2 — rocket loader on 7 heavy AI pages (commit `ad289af`)
+
+User asked for "an animation that runs while people are waiting that looks like a rocket… 'Please Stand By, Creating Your Social Media Journey'". Reframed copy to **"STAND BY / Charting your trajectory…"** — same naval/aviation feel as the brand palette (Gunmetal + Electric Blue), tighter words.
+
+Architecture: added `variant?: "default" | "rocket"` prop to existing `GenerationLoader` so heavy pages opt in with a single prop and the 11 fast pages (hashtags, captions, polls, etc.) keep the existing 3-dot loader unchanged.
+
+Visual stack:
+- 5-star twinkling background
+- Inline-SVG rocket: Electric Blue ellipse body, Hangar White window, Gunmetal fins, orange→yellow flickering flame, 3 staggered fading exhaust puffs
+- Gentle bob (rocket-bob keyframe), flame-flicker, puff-rise, twinkle — all CSS keyframes, no Lottie, no new deps
+- "STAND BY" headline (tracking-widest) + "Charting your trajectory…" subline + existing rotating per-feature `messages` prop + existing shimmer bar
+- Honors `prefers-reduced-motion: reduce` — motion stops, copy + static rocket remain visible
+
+7 pages opted in: channel-analysis, viral-ideas, brand-pitch, blog-to-social, repurpose, trends, sounds.
+
+**Originally specced 9 pages** — `thumbnail-analyzer` (custom 5-stage progress card) and `voice` (in-button spinner) don't use `GenerationLoader`, deferred for separate post-launch refactor.
+
+Spec + plan: `docs/superpowers/specs/2026-04-29-rocket-loader-design.md`, `docs/superpowers/plans/2026-04-29-rocket-loader.md`.
+
+### 🐛 Followup fix — register rocket animations in tailwind.config.ts (this commit)
+
+After the rocket commit shipped, manual smoke showed the rocket rendering but **not animating** — static SVG. Diagnosis: defining `.animate-rocket-bob { animation: ... }` directly in `globals.css` lost the specificity battle with Tailwind's `@layer utilities` block emitted from `@tailwind utilities;`. The canonical pattern in this codebase (see `pulse-dot`, `fade-in-up`) is to register animations in `tailwind.config.ts` `theme.extend.animation` so Tailwind emits them in its own utility layer with the right priority.
+
+Moved the 4 animation utility names into `tailwind.config.ts`. Kept the `@keyframes` blocks in `globals.css` (matching the existing pattern). Removed the manual `.animate-*` rules from `globals.css`. Kept the `@media (prefers-reduced-motion: reduce)` block.
+
+**Lesson:** custom `.animate-*` rules in `globals.css` can be shadowed by Tailwind's emitted utility layer. Always register animation utilities in `tailwind.config.ts`.
+
+### 📝 Process notes
+
+- Followed superpowers skills end-to-end: brainstorming (with spec) → writing-plans → executing-plans → manual smoke → save. Worked well; spec deviation (9 → 7 pages) caught at execution time when those two pages turned out not to use `GenerationLoader`.
+- Two-commit split with manual hunk staging: temporarily reverted `variant="rocket"` in 7 mixed files, committed timeout fix alone, re-applied variants, committed rocket loader. Cleaner history than one combined commit.
 
 ---
 
