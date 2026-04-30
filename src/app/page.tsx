@@ -105,11 +105,11 @@ const FAQ = [
   },
   {
     q: "What are credits and how do they work?",
-    a: "Each generation costs 1–5 credits depending on the feature. Captions and hashtags cost 1 credit; scripts and viral ideas cost 3; premium features like Brand Pitch and Competitor Analysis cost 5. Your allowance refreshes daily (Starter) or monthly (Creator / Team / Elite). You can also buy top-up credit packs that never expire.",
+    a: "Each generation costs 1–5 credits depending on the feature. Captions and hashtags cost 1 credit; scripts and viral ideas cost 3; premium features like Brand Pitch and Competitor Analysis cost 5. Your allowance refreshes daily (Starter) or monthly (Creator / Elite). You can also buy top-up credit packs that never expire.",
   },
   {
-    q: "What's the difference between Creator, Team, and Elite?",
-    a: "Creator ($19/mo) gives you 500 credits/month with PostCrisp Engine Pro quality AI. Team ($49/mo) is Creator with 5 seats for agencies. Elite ($79/mo) uses PostCrisp Engine Elite — our highest-tier AI — across every feature, plus 2,000 credits/month. Try Creator first; upgrade to Elite when you feel a quality ceiling.",
+    q: "What's the difference between Creator and Elite?",
+    a: "Creator ($19/mo) gives you 500 credits/month with PostCrisp Engine Pro quality AI. Elite ($79/mo) uses PostCrisp Engine Elite — our highest-tier AI — across every feature, plus 2,000 credits/month and Foundation Analysis: a reusable Creator Profile that powers every other tool with your voice, pillars, and audience. Try Creator first; upgrade to Elite when you feel a quality ceiling or want the foundation profile.",
   },
   {
     q: "Can I cancel anytime?",
@@ -317,8 +317,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 4-tier cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* 3-tier cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {/* Starter */}
             <PricingCard
               name="Starter"
