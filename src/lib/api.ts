@@ -10,7 +10,13 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiFetch<T>(url: string, options: FetchOptions = {}): Promise<T> {
-  const { timeout = 15000, ...fetchOptions } = options;
+  // Default 60s — covers most AI tool calls (Opus on ~2000-token output ~25-30s,
+  // with variance up to ~50s during Anthropic load spikes). Pages with deeper
+  // tasks (channel-analysis with refine) explicitly bump to 120s. Pages with
+  // quick endpoints (settings save, admin lookups) can pass shorter timeouts
+  // explicitly if they want fail-fast UX, but the default needs to accommodate
+  // the slowest realistic AI call so users don't see false 'timed out' errors.
+  const { timeout = 60000, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
