@@ -417,10 +417,11 @@ body {
   50%      { opacity: 0.9; }
 }
 
-.animate-rocket-bob    { animation: rocket-bob   1.4s ease-in-out infinite; }
-.animate-flame-flicker { animation: flame-flicker 0.4s ease-in-out infinite; transform-origin: top center; }
-.animate-puff-rise     { animation: puff-rise   1.5s ease-out     infinite; }
-.animate-twinkle       { animation: twinkle     2.0s ease-in-out  infinite; }
+/* Animation utilities are registered in tailwind.config.ts (theme.extend.animation)
+   so Tailwind emits them in the utilities layer with the correct specificity.
+   Keyframes stay here. The transform-origin for flame-flicker is set inline in
+   the JSX (in user-space SVG units) since Tailwind animation utilities don't
+   carry transform-origin. */
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rocket-bob,
