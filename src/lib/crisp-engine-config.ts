@@ -42,6 +42,7 @@ export function tierFromDbValue(dbValue: string | null | undefined): Tier {
     case 'starter':  return 'starter'
     case 'pro':      return 'creator'  // legacy — pre-rename
     case 'creator':  return 'creator'
+    case 'team':     return 'creator'  // dropped tier — defensive fallback for any in-flight rows
     case 'business': return 'elite'    // legacy — pre-rename
     case 'elite':    return 'elite'
     default:         return 'starter'
