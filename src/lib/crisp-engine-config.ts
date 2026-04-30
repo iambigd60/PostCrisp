@@ -77,6 +77,7 @@ export type CrispTask =
   | 'media-kit-bio'
   // Self-analysis
   | 'channel-analysis'
+  | 'foundation-analysis'   // NEW — Elite-only foundational audit + saved profile
   // Vision (multimodal)
   | 'thumbnail-analyzer'
   // Conversion / call-to-action
@@ -135,6 +136,7 @@ export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, Power
   // Channel analysis — users benefit most from premium quality here since
   // it's a strategic self-assessment. Premium even at Creator tier.
   'channel-analysis':     { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  'foundation-analysis':  { starter: 'PREMIUM', creator: 'PREMIUM', elite: 'PREMIUM' },
   // Thumbnail analyzer — Claude vision required regardless of tier (OpenAI
   // path also supports vision but we anchor on Anthropic for image quality).
   // STANDARD = Sonnet for everyone; Elite gets Opus for nuanced critique.
@@ -167,6 +169,7 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'competitor-analysis': 'Competitor Analysis',
   'media-kit-bio':       'Media Kit Bio Optimizer',
   'channel-analysis':    'Channel Analysis',
+  'foundation-analysis': 'Foundation Analysis',
   'thumbnail-analyzer':  'Thumbnail Analyzer',
   'cta-optimizer':       'CTA Optimizer',
 }
@@ -209,6 +212,7 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
   'competitor-analysis':  5,
   'media-kit-bio':        5,
   'channel-analysis':     5,
+  'foundation-analysis':  8,
 }
 
 // Monthly (or daily for Starter) credit allowance per tier.

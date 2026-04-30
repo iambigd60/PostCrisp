@@ -145,6 +145,15 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
     href: '/dashboard/channel-analysis',
   },
   {
+    key: 'foundation_analysis',
+    category: 'optimize',
+    icon: '🧬',
+    label: 'Foundation Analysis',
+    tagline: 'Evidence-grounded audit + reusable Creator Profile.',
+    bestFor: 'The strategic foundation every other tool reads from.',
+    href: '/dashboard/foundation-analysis',
+  },
+  {
     key: 'thumbnail_analyzer',
     category: 'optimize',
     icon: '🖼️',
