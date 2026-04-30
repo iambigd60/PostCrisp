@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role                       TEXT NOT NULL DEFAULT 'user'
                                CHECK (role IN ('user', 'admin')),
   subscription_tier          TEXT NOT NULL DEFAULT 'free'
-                               CHECK (subscription_tier IN ('free', 'creator', 'team', 'elite')),
+                               CHECK (subscription_tier IN ('free', 'creator', 'elite')),
   stripe_customer_id         TEXT UNIQUE,
   stripe_subscription_id     TEXT UNIQUE,
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -448,3 +448,37 @@ CREATE OR REPLACE TRIGGER profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
+
+-- creator_profiles — single row per user; upserted by Foundation Analysis runs.
+-- Read by downstream tools (Captions, Viral Ideas, Bio Optimizer in Phase 2)
+-- as a "Creator Context" prompt block.
+CREATE TABLE IF NOT EXISTS public.creator_profiles (
+  user_id               UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  content_pillars       JSONB NOT NULL,                    -- string[]
+  voice_signature       JSONB NOT NULL,                    -- { adjectives: string[], examplePhrasing: string }
+  audience_persona      JSONB NOT NULL,                    -- { description: string, sophistication: 'beginner'|'intermediate'|'advanced' }
+  growth_stage          TEXT NOT NULL CHECK (growth_stage IN ('pre-traction', 'early-traction', 'scaling', 'established')),
+  monetization_position JSONB NOT NULL,                    -- { stage: string, primaryStreams: string[] }
+  format_strengths      JSONB NOT NULL,                    -- string[]
+  differentiators       JSONB NOT NULL,                    -- string[]
+  top_blockers          JSONB NOT NULL,                    -- string[]
+  source_analysis_id    UUID REFERENCES public.generations(id) ON DELETE SET NULL,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS creator_profiles_updated_at_idx ON public.creator_profiles(updated_at DESC);
+
+-- Foundation Analysis integration on profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS use_foundation_in_generations BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS foundation_cta_dismissed_at TIMESTAMPTZ;
+
+-- Drop Team tier from subscription_tier CHECK (no Team subscribers exist).
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_subscription_tier_check;
+ALTER TABLE public.profiles
+  ADD  CONSTRAINT profiles_subscription_tier_check
+  CHECK (subscription_tier IN ('free', 'creator', 'elite'));
