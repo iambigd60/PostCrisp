@@ -10,13 +10,14 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiFetch<T>(url: string, options: FetchOptions = {}): Promise<T> {
-  // Default 60s — covers most AI tool calls (Opus on ~2000-token output ~25-30s,
-  // with variance up to ~50s during Anthropic load spikes). Pages with deeper
-  // tasks (channel-analysis with refine) explicitly bump to 120s. Pages with
-  // quick endpoints (settings save, admin lookups) can pass shorter timeouts
-  // explicitly if they want fail-fast UX, but the default needs to accommodate
-  // the slowest realistic AI call so users don't see false 'timed out' errors.
-  const { timeout = 60000, ...fetchOptions } = options;
+  // Default 120s — matches Vercel function maxDuration ceiling on AI routes.
+  // Set to ensure the client gives the server its full processing budget
+  // before declaring 'Request timed out'. AI calls on Opus regularly hit
+  // 30-60s with variance up to 90s during Anthropic load spikes; SDK has
+  // its own 110s timeout per request + 3 retries on transient 5xx/429.
+  // Pages with quick endpoints (settings save, admin lookups) can override
+  // to a shorter timeout if they want fail-fast UX.
+  const { timeout = 120000, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -52,7 +53,7 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
     if (error instanceof ApiError) throw error;
 
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ApiError(408, "Request timed out. Please try again.");
+      throw new ApiError(408, "This took longer than expected — your inputs are saved, just hit Retry.");
     }
 
     if (!navigator.onLine) {

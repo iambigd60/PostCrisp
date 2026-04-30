@@ -6,6 +6,11 @@ import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 const platformLimits: Record<string, string> = {
   instagram: 'optimal 125-150 chars, max 2,200',
   tiktok:    'optimal 80-100 chars, max 4,000',

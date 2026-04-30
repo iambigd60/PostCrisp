@@ -5,6 +5,11 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 // Split N hashtags across 3 categories based on mix (0=popular-heavy, 1=niche-heavy)
 function splitCounts(total: number, mix: number): { high: number; medium: number; low: number } {
   // At mix=0:   60/30/10

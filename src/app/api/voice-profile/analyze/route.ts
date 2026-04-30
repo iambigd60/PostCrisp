@@ -7,6 +7,11 @@ import {
 } from '@/lib/voice-profile'
 import { tierFromDbValue } from '@/lib/crisp-engine-config'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 export const dynamic = 'force-dynamic'
 
 // POST — run trait extraction on the user's current samples. Saves traits

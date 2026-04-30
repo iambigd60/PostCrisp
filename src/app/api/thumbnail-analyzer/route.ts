@@ -6,6 +6,11 @@ import { consumeCredits } from '@/lib/credits'
 import { effectiveTier, DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
 import { systemPromptFor } from '@/lib/system-prompts'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 export interface ThumbnailAnalysisResult {
   clickPrediction: { score: number; reasoning: string }
   visualHierarchy: string

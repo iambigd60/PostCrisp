@@ -6,6 +6,11 @@ import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 export interface ViralIdea {
   title: string
   whyViral: string

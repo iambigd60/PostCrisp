@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { importFromUrl } from '@/lib/voice-url-importer'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 export const dynamic = 'force-dynamic'
 
 // POST — given a URL (currently YouTube only), fetch the content and return

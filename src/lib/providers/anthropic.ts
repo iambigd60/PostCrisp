@@ -3,7 +3,19 @@ import type { AIProvider, GenerateArgs, GenerateResult } from './types'
 
 let _client: Anthropic | undefined
 function getClient(): Anthropic {
-  if (!_client) _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+  if (!_client) _client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    // Bound the per-request wait so a hung Anthropic call can't burn our
+    // entire Vercel maxDuration budget. 110s leaves ~10s headroom for
+    // response parsing + DB persistence under our 120s function timeout.
+    timeout: 110_000,
+    // SDK retries on 408 / 409 / 429 / 5xx — covers transient Anthropic
+    // capacity blips that would otherwise surface as 'Request timed out'
+    // for testers. Default is 2; 3 absorbs a slightly heavier blip
+    // without exceeding our wall budget (each retry is fast — same call,
+    // not slow latency variance).
+    maxRetries: 3,
+  })
   return _client
 }
 

@@ -4,6 +4,11 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 
+// Vercel function timeout. Default 60s on Pro plan; AI calls (especially
+// Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
+// gives headroom while bounding the worst case.
+export const maxDuration = 120
+
 const contentTypeLabels: Record<string, string> = {
   post:     'standard feed posts',
   reel:     'short-form vertical video (Reels / Shorts / TikTok)',

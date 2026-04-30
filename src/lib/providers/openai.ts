@@ -3,7 +3,15 @@ import type { AIProvider, GenerateArgs, GenerateResult } from './types'
 
 let _client: OpenAI | undefined
 function getClient(): OpenAI {
-  if (!_client) _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' })
+  if (!_client) _client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || '',
+    // Bound the per-request wait so a hung OpenAI call doesn't burn our
+    // Vercel maxDuration budget. 110s leaves ~10s headroom under 120s.
+    timeout: 110_000,
+    // Default maxRetries is 2 (5xx / 429). Bump to 3 to absorb slightly
+    // heavier transient blips before surfacing failure to the user.
+    maxRetries: 3,
+  })
   return _client
 }
 
