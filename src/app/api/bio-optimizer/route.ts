@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
+import { loadCreatorContext } from '@/lib/creator-context-block'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -43,7 +44,14 @@ export async function POST(request: Request) {
   const charLimit = PLATFORM_BIO_LIMITS[platform] ?? 150
   const communicateList = Array.isArray(communicate) && communicate.length > 0 ? communicate.join(', ') : 'what you do and who you help'
 
-  const prompt = `You are a bio-writing specialist who knows each platform's conventions.
+  const creatorContext = await loadCreatorContext(auth.supabase, auth.userId, [
+    'monetization_position',
+    'differentiators',
+    'audience_persona',
+    'growth_stage',
+  ])
+
+  const promptBody = `You are a bio-writing specialist who knows each platform's conventions.
 
 Generate 5 bio options for ${platform} (limit: ${charLimit} characters).
 
@@ -80,6 +88,8 @@ Rules:
 - Keywords are for discoverability on ${platform}
 - Use line breaks (\\n) where natural for that platform — IG allows them, Twitter/X doesn't
 - Don't just say "creator" or "social media expert" — be specific to the niche`
+
+  const prompt = [creatorContext, promptBody].filter(Boolean).join('\n\n')
 
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)

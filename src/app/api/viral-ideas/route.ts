@@ -5,6 +5,7 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
+import { loadCreatorContext } from '@/lib/creator-context-block'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -118,7 +119,13 @@ export async function POST(request: Request) {
 
   const safeCount = Math.min(Math.max(Number(count) || 10, 5), 15)
 
-  const prompt = `You are a viral content strategist with deep knowledge of social media algorithms.
+  const creatorContext = await loadCreatorContext(auth.supabase, auth.userId, [
+    'content_pillars',
+    'audience_persona',
+    'format_strengths',
+  ])
+
+  const promptBody = `You are a viral content strategist with deep knowledge of social media algorithms.
 
 Generate ${safeCount} specific, actionable viral content ideas for a creator in the "${niche}" niche.
 
@@ -153,6 +160,8 @@ Rules:
 - Vary difficulty and format across ideas
 - Each idea must have exactly 5 outline points and 5-8 hashtags
 - Keep whyViral under 200 characters, hook under 120 characters to stay within response limits`
+
+  const prompt = [creatorContext, promptBody].filter(Boolean).join('\n\n')
 
   // Budget ~500 output tokens per idea. Cap at Opus's practical limit.
   const maxTokens = Math.min(8000, 800 + safeCount * 520)
