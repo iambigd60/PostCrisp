@@ -1,4 +1,5 @@
-import type { CreatorProfile } from './creator-profile'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { getCreatorProfile, type CreatorProfile } from './creator-profile'
 
 export type ProfileField =
   | 'content_pillars'
@@ -50,4 +51,27 @@ export function formatCreatorContextBlock(
     ``,
     `Use this context to ground your output in the user's voice and audience. Do not generic-ify.`,
   ].join('\n')
+}
+
+/**
+ * One-call helper for downstream tools (Captions, Viral Ideas, Bio Optimizer in
+ * Phase 2). Reads the user's `use_foundation_in_generations` toggle, fetches the
+ * Creator Profile if enabled, and formats the prompt block. Returns null when
+ * the toggle is off, no profile exists, or any step fails — callers can splice
+ * with `[ctx, body].filter(Boolean).join('\n\n')` and not crash.
+ */
+export async function loadCreatorContext(
+  supabase: SupabaseClient,
+  userId: string,
+  fields: ProfileField[],
+): Promise<string | null> {
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('use_foundation_in_generations')
+    .eq('id', userId)
+    .maybeSingle()
+  const useFoundation = profileRow?.use_foundation_in_generations !== false
+  if (!useFoundation) return null
+  const profile = await getCreatorProfile(supabase, userId)
+  return formatCreatorContextBlock(profile, fields)
 }
