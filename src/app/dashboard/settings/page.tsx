@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { apiFetch, ApiError } from '@/lib/api'
@@ -9,6 +10,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { PLATFORMS, TONES } from '@/lib/constants'
 import { ChannelsSection } from '@/components/ChannelsSection'
+import type { CreatorProfile } from '@/lib/creator-profile'
 
 interface Profile {
   id: string
@@ -86,6 +88,23 @@ export default function SettingsPage() {
   })
   const [savingChannels, setSavingChannels] = useState(false)
 
+  // Foundation Profile
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null)
+  const [useFoundationInGenerations, setUseFoundationInGenerations] = useState(true)
+  const [togglingFoundation, setTogglingFoundation] = useState(false)
+  const [showFoundationEdit, setShowFoundationEdit] = useState(false)
+  const [savingFoundation, setSavingFoundation] = useState(false)
+  // Edit-modal field state — flat fields as comma-separated text, nested as JSON
+  const [editPillars, setEditPillars] = useState('')
+  const [editFormatStrengths, setEditFormatStrengths] = useState('')
+  const [editDifferentiators, setEditDifferentiators] = useState('')
+  const [editBlockers, setEditBlockers] = useState('')
+  const [editGrowthStage, setEditGrowthStage] = useState<CreatorProfile['growth_stage']>('pre-traction')
+  const [editVoiceJson, setEditVoiceJson] = useState('')
+  const [editAudienceJson, setEditAudienceJson] = useState('')
+  const [editMonetizationJson, setEditMonetizationJson] = useState('')
+  const [editJsonError, setEditJsonError] = useState<string | null>(null)
+
   // Delete account modal
   const [showDelete, setShowDelete] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -104,7 +123,7 @@ export default function SettingsPage() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('id, email, full_name, subscription_tier, preferences')
+        .select('id, email, full_name, subscription_tier, preferences, use_foundation_in_generations')
         .eq('id', user.id)
         .single()
 
@@ -128,7 +147,18 @@ export default function SettingsPage() {
           linkedin:  savedChannels.linkedin  ?? '',
           website:   savedChannels.website   ?? '',
         })
+        const useFoundation = (data as { use_foundation_in_generations?: boolean | null }).use_foundation_in_generations
+        setUseFoundationInGenerations(useFoundation ?? true)
       }
+
+      // Foundation Profile (creator_profiles is per-user; may not exist yet)
+      const { data: cp } = await supabase
+        .from('creator_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (cp) setCreatorProfile(cp as CreatorProfile)
+
       setLoading(false)
     })
   }, [])
@@ -182,6 +212,84 @@ export default function SettingsPage() {
       addToast(err instanceof ApiError ? err.message : 'Failed to save channels', 'error')
     } finally {
       setSavingChannels(false)
+    }
+  }
+
+  const handleToggleFoundation = async (next: boolean) => {
+    const previous = useFoundationInGenerations
+    setUseFoundationInGenerations(next) // optimistic
+    setTogglingFoundation(true)
+    try {
+      await apiFetch('/api/user/creator-profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ useFoundationInGenerations: next }),
+        timeout: 15000,
+      })
+      addToast(next ? 'Foundation profile enabled' : 'Foundation profile disabled', 'success')
+    } catch (err) {
+      setUseFoundationInGenerations(previous) // rollback
+      addToast(err instanceof ApiError ? err.message : 'Failed to update setting', 'error')
+    } finally {
+      setTogglingFoundation(false)
+    }
+  }
+
+  const openFoundationEdit = () => {
+    if (!creatorProfile) return
+    setEditPillars(creatorProfile.content_pillars.join(', '))
+    setEditFormatStrengths(creatorProfile.format_strengths.join(', '))
+    setEditDifferentiators(creatorProfile.differentiators.join(', '))
+    setEditBlockers(creatorProfile.top_blockers.join(', '))
+    setEditGrowthStage(creatorProfile.growth_stage)
+    setEditVoiceJson(JSON.stringify(creatorProfile.voice_signature, null, 2))
+    setEditAudienceJson(JSON.stringify(creatorProfile.audience_persona, null, 2))
+    setEditMonetizationJson(JSON.stringify(creatorProfile.monetization_position, null, 2))
+    setEditJsonError(null)
+    setShowFoundationEdit(true)
+  }
+
+  const handleSaveFoundation = async () => {
+    if (!creatorProfile) return
+    // Parse nested JSON fields
+    let voice_signature: CreatorProfile['voice_signature']
+    let audience_persona: CreatorProfile['audience_persona']
+    let monetization_position: CreatorProfile['monetization_position']
+    try {
+      voice_signature = JSON.parse(editVoiceJson)
+      audience_persona = JSON.parse(editAudienceJson)
+      monetization_position = JSON.parse(editMonetizationJson)
+    } catch (err) {
+      setEditJsonError(err instanceof Error ? err.message : 'Invalid JSON')
+      return
+    }
+    setEditJsonError(null)
+
+    const splitCsv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
+    const profilePatch = {
+      content_pillars: splitCsv(editPillars),
+      format_strengths: splitCsv(editFormatStrengths),
+      differentiators: splitCsv(editDifferentiators),
+      top_blockers: splitCsv(editBlockers),
+      growth_stage: editGrowthStage,
+      voice_signature,
+      audience_persona,
+      monetization_position,
+    }
+
+    setSavingFoundation(true)
+    try {
+      await apiFetch('/api/user/creator-profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ profilePatch }),
+        timeout: 15000,
+      })
+      setCreatorProfile({ ...creatorProfile, ...profilePatch, updated_at: new Date().toISOString() })
+      addToast('Foundation profile saved', 'success')
+      setShowFoundationEdit(false)
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : 'Failed to save profile', 'error')
+    } finally {
+      setSavingFoundation(false)
     }
   }
 
@@ -293,6 +401,115 @@ export default function SettingsPage() {
         <Button onClick={handleSaveProfile} loading={savingProfile} disabled={!fullName.trim()}>
           Save Changes
         </Button>
+      </SectionCard>
+
+      {/* Foundation Profile */}
+      <SectionCard
+        title="Foundation Profile"
+        description="Your Foundation Analysis distilled — used to personalize generations across PostCrisp."
+      >
+        <Toggle
+          checked={useFoundationInGenerations && !!creatorProfile}
+          onChange={handleToggleFoundation}
+          label="Use my Foundation Analysis profile in generations"
+        />
+        {togglingFoundation && (
+          <p className="text-xs text-zinc-500">Saving…</p>
+        )}
+
+        {!creatorProfile ? (
+          <div className="text-sm text-zinc-400">
+            You haven&apos;t run Foundation Analysis yet.
+            {' '}
+            <Link href="/dashboard/foundation-analysis" className="text-brand-300 hover:text-brand-200">
+              Run now →
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Content pillars</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.content_pillars.length > 0 ? creatorProfile.content_pillars.join(', ') : '—'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Voice</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.voice_signature.adjectives.length > 0
+                    ? creatorProfile.voice_signature.adjectives.join(', ')
+                    : '—'}
+                </p>
+                {creatorProfile.voice_signature.examplePhrasing && (
+                  <p className="text-sm text-zinc-400 italic mt-1">
+                    “{creatorProfile.voice_signature.examplePhrasing}”
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Audience</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.audience_persona.description || '—'}
+                  {' '}
+                  <span className="text-zinc-500">
+                    (sophistication: {creatorProfile.audience_persona.sophistication})
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Growth stage</p>
+                <p className="text-sm text-zinc-200">{creatorProfile.growth_stage}</p>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Monetization</p>
+                <p className="text-sm text-zinc-200">{creatorProfile.monetization_position.stage || '—'}</p>
+                {creatorProfile.monetization_position.primaryStreams.length > 0 && (
+                  <p className="text-sm text-zinc-400 mt-1">
+                    {creatorProfile.monetization_position.primaryStreams.join(', ')}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Format strengths</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.format_strengths.length > 0 ? creatorProfile.format_strengths.join(', ') : '—'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Differentiators</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.differentiators.length > 0 ? creatorProfile.differentiators.join(' · ') : '—'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Top blockers</p>
+                <p className="text-sm text-zinc-200">
+                  {creatorProfile.top_blockers.length > 0 ? creatorProfile.top_blockers.join(' · ') : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={openFoundationEdit}>
+                Edit Profile
+              </Button>
+              <Link
+                href="/dashboard/foundation-analysis"
+                className="text-sm text-brand-300 hover:text-brand-200 self-center"
+              >
+                Re-run analysis →
+              </Link>
+            </div>
+          </>
+        )}
       </SectionCard>
 
       {/* Channels */}
@@ -427,6 +644,115 @@ export default function SettingsPage() {
           </Button>
         </div>
       </SectionCard>
+
+      {/* Foundation Profile edit modal */}
+      <Modal
+        isOpen={showFoundationEdit}
+        onClose={() => setShowFoundationEdit(false)}
+        title="Edit Foundation Profile"
+      >
+        <p className="text-xs text-zinc-500 mb-4">
+          Comma-separated lists for the simple fields. The three nested fields accept JSON — fix any parse errors before saving.
+        </p>
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          <div>
+            <label className={labelCls}>Content pillars (comma-separated)</label>
+            <input
+              type="text"
+              value={editPillars}
+              onChange={(e) => setEditPillars(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Format strengths (comma-separated)</label>
+            <input
+              type="text"
+              value={editFormatStrengths}
+              onChange={(e) => setEditFormatStrengths(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Differentiators (comma-separated)</label>
+            <input
+              type="text"
+              value={editDifferentiators}
+              onChange={(e) => setEditDifferentiators(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Top blockers (comma-separated)</label>
+            <input
+              type="text"
+              value={editBlockers}
+              onChange={(e) => setEditBlockers(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Growth stage</label>
+            <select
+              value={editGrowthStage}
+              onChange={(e) => setEditGrowthStage(e.target.value as CreatorProfile['growth_stage'])}
+              className={inputCls}
+            >
+              <option value="pre-traction">pre-traction</option>
+              <option value="early-traction">early-traction</option>
+              <option value="scaling">scaling</option>
+              <option value="established">established</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Voice signature (JSON)</label>
+            <textarea
+              value={editVoiceJson}
+              onChange={(e) => setEditVoiceJson(e.target.value)}
+              rows={5}
+              className={`${inputCls} font-mono text-xs`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Audience persona (JSON)</label>
+            <textarea
+              value={editAudienceJson}
+              onChange={(e) => setEditAudienceJson(e.target.value)}
+              rows={5}
+              className={`${inputCls} font-mono text-xs`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Monetization position (JSON)</label>
+            <textarea
+              value={editMonetizationJson}
+              onChange={(e) => setEditMonetizationJson(e.target.value)}
+              rows={5}
+              className={`${inputCls} font-mono text-xs`}
+            />
+          </div>
+
+          {editJsonError && (
+            <p className="text-xs text-red-400">JSON parse error: {editJsonError}</p>
+          )}
+        </div>
+
+        <div className="flex gap-3 justify-end mt-5">
+          <Button variant="ghost" onClick={() => setShowFoundationEdit(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveFoundation} loading={savingFoundation}>
+            Save Profile
+          </Button>
+        </div>
+      </Modal>
 
       {/* Delete confirmation modal */}
       <Modal isOpen={showDelete} onClose={() => { setShowDelete(false); setDeleteConfirm('') }} title="Delete Account">
