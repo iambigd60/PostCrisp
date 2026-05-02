@@ -13,6 +13,7 @@ export interface FakeSupabaseTables {
   profiles: Map<string, Record<string, unknown>>
   credit_transactions: Record<string, unknown>[]
   generations: Record<string, unknown>[]
+  creator_profiles: Map<string, Record<string, unknown>>
 }
 
 export interface FakeRpcResults {
@@ -32,6 +33,9 @@ export function createFakeSupabase(opts: {
     let selectCols: string | null = null
     let isInsert = false
     let insertPayload: Record<string, unknown> | Record<string, unknown>[] | null = null
+    let isUpsert = false
+    let upsertPayload: Record<string, unknown> | Record<string, unknown>[] | null = null
+    let upsertOnConflict: string | null = null
 
     const matches = (row: Record<string, unknown>) =>
       filters.every((f) => row[f.col] === f.val)
@@ -54,9 +58,23 @@ export function createFakeSupabase(opts: {
         insertPayload = payload
         return builder
       },
+      upsert(
+        payload: Record<string, unknown> | Record<string, unknown>[],
+        opts?: { onConflict?: string },
+      ) {
+        isUpsert = true
+        upsertPayload = payload
+        upsertOnConflict = opts?.onConflict ?? null
+        return builder
+      },
       maybeSingle() {
         if (table === 'profiles') {
           const rows = Array.from(tables.profiles.values())
+          const found = rows.find(matches)
+          return Promise.resolve({ data: found ?? null, error: null })
+        }
+        if (table === 'creator_profiles') {
+          const rows = Array.from(tables.creator_profiles.values())
           const found = rows.find(matches)
           return Promise.resolve({ data: found ?? null, error: null })
         }
@@ -69,12 +87,25 @@ export function createFakeSupabase(opts: {
         })
       },
       // Terminal: when caller awaits the chain (no .single/.maybeSingle).
-      // This handles update().eq() and insert() patterns.
+      // This handles update().eq(), insert(), and upsert() patterns.
       then(resolve: (v: { error: null | { message: string } }) => unknown) {
         if (isInsert && insertPayload) {
           const rows = Array.isArray(insertPayload) ? insertPayload : [insertPayload]
           if (table === 'credit_transactions') tables.credit_transactions.push(...rows)
           if (table === 'generations') tables.generations.push(...rows)
+          return resolve({ error: null })
+        }
+        if (isUpsert && upsertPayload) {
+          const rows = Array.isArray(upsertPayload) ? upsertPayload : [upsertPayload]
+          if (table === 'creator_profiles') {
+            // Default conflict key is 'user_id' for creator_profiles.
+            const key = upsertOnConflict ?? 'user_id'
+            for (const row of rows) {
+              const id = row[key] as string
+              const existing = tables.creator_profiles.get(id) ?? {}
+              tables.creator_profiles.set(id, { ...existing, ...row })
+            }
+          }
           return resolve({ error: null })
         }
         if (updatePayload && table === 'profiles') {

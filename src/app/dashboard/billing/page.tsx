@@ -7,20 +7,19 @@ import { PLANS, PRICES } from '@/lib/stripe'
 import { useToast } from '@/components/ui/Toast'
 import { TIER_LABELS, CREDIT_PACKS, type Tier, type CreditPack } from '@/lib/crisp-engine-config'
 
-type PaidTier = 'creator' | 'team' | 'elite'
+type PaidTier = 'creator' | 'elite'
 
-const FEATURES_COMPARE: { label: string; starter: boolean | string; creator: boolean | string; team: boolean | string; elite: boolean | string }[] = [
-  { label: 'AI generations / day',         starter: '10',           creator: 'Unlimited',    team: 'Unlimited',      elite: 'Unlimited' },
-  { label: 'PostCrisp Engine tier',            starter: 'Starter',      creator: 'Pro',          team: 'Pro',            elite: 'Elite' },
-  { label: 'Caption generator',            starter: true,           creator: true,           team: true,             elite: true },
-  { label: 'Hashtag finder',               starter: true,           creator: true,           team: true,             elite: true },
-  { label: 'Best posting times',           starter: true,           creator: true,           team: true,             elite: true },
-  { label: 'Viral ideas generator',        starter: true,           creator: true,           team: true,             elite: true },
-  { label: 'Premium AI on monetization',   starter: false,          creator: true,           team: true,             elite: true },
-  { label: 'Premium AI on all features',   starter: false,          creator: false,          team: false,            elite: true },
-  { label: 'Saved content library',        starter: '25 items',     creator: 'Unlimited',    team: 'Unlimited',      elite: 'Unlimited' },
-  { label: 'Team seats',                   starter: '1',            creator: '1',            team: 'Up to 5',        elite: '1' },
-  { label: 'Priority support',             starter: false,          creator: true,           team: true,             elite: 'Concierge' },
+const FEATURES_COMPARE: { label: string; starter: boolean | string; creator: boolean | string; elite: boolean | string }[] = [
+  { label: 'AI generations / day',         starter: '10',           creator: 'Unlimited',    elite: 'Unlimited' },
+  { label: 'PostCrisp Engine tier',            starter: 'Starter',      creator: 'Pro',          elite: 'Elite' },
+  { label: 'Caption generator',            starter: true,           creator: true,           elite: true },
+  { label: 'Hashtag finder',               starter: true,           creator: true,           elite: true },
+  { label: 'Best posting times',           starter: true,           creator: true,           elite: true },
+  { label: 'Viral ideas generator',        starter: true,           creator: true,           elite: true },
+  { label: 'Premium AI on monetization',   starter: false,          creator: true,           elite: true },
+  { label: 'Premium AI on all features',   starter: false,          creator: false,          elite: true },
+  { label: 'Saved content library',        starter: '25 items',     creator: 'Unlimited',    elite: 'Unlimited' },
+  { label: 'Priority support',             starter: false,          creator: true,           elite: 'Concierge' },
 ]
 
 function Check({ ok }: { ok: boolean | string }) {
@@ -33,7 +32,6 @@ function Check({ ok }: { ok: boolean | string }) {
 const tierTheme: Record<Tier, { ring: string; glow: string; accent: string; icon: string }> = {
   starter: { ring: 'border-brand-500/10', glow: '', accent: 'text-zinc-300', icon: '🆓' },
   creator: { ring: 'border-brand-500/40', glow: 'shadow-glow', accent: 'text-brand-300', icon: '⚡' },
-  team:    { ring: 'border-sky-500/40',   glow: '',            accent: 'text-sky-300',   icon: '👥' },
   elite:   { ring: 'border-amber-500/40', glow: 'shadow-glow', accent: 'text-amber-300', icon: '👑' },
 }
 
@@ -78,7 +76,6 @@ export default function BillingPage() {
   // to which Stripe price ID.
   const isConfigured = (target: PaidTier): boolean => {
     if (target === 'creator') return !!(billing === 'monthly' ? PRICES.creator_monthly : PRICES.creator_yearly)
-    if (target === 'team')    return !!(billing === 'monthly' ? PRICES.team_monthly    : PRICES.team_yearly)
     if (target === 'elite')   return !!(billing === 'monthly' ? PRICES.elite_monthly   : PRICES.elite_yearly)
     return false
   }
@@ -132,7 +129,6 @@ export default function BillingPage() {
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br ${
             tier === 'starter' ? 'from-zinc-700 to-zinc-800' :
             tier === 'creator' ? 'from-brand-500 to-brand-700' :
-            tier === 'team'    ? 'from-sky-500 to-sky-700' :
                                  'from-amber-500 to-amber-700'
           } ${theme.glow}`}>
             {theme.icon}
@@ -178,8 +174,8 @@ export default function BillingPage() {
             </span>
           </div>
 
-          {/* Pricing cards — 4 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Pricing cards — 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Starter */}
             <PricingCard
               planKey="starter"
@@ -200,16 +196,6 @@ export default function BillingPage() {
               working={working === 'creator'}
             />
 
-            {/* Team */}
-            <PricingCard
-              planKey="team"
-              billing={billing}
-              isCurrent={tier === 'team'}
-              cta={tier === 'team' ? 'Current plan' : 'Upgrade to Team'}
-              onClick={tier === 'team' ? undefined : () => handleUpgrade('team')}
-              working={working === 'team'}
-            />
-
             {/* Elite */}
             <PricingCard
               planKey="elite"
@@ -224,22 +210,20 @@ export default function BillingPage() {
 
           {/* Feature comparison */}
           <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden overflow-x-auto">
-            <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-zinc-500 uppercase tracking-wider px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary min-w-[720px]">
+            <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] text-xs font-semibold text-zinc-500 uppercase tracking-wider px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary min-w-[600px]">
               <span>Feature</span>
               <span className="text-center">Starter</span>
               <span className="text-center text-brand-400">Creator</span>
-              <span className="text-center text-sky-400">Team</span>
               <span className="text-center text-amber-400">Elite</span>
             </div>
             {FEATURES_COMPARE.map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center px-5 py-3 text-sm min-w-[720px] ${i % 2 === 0 ? '' : 'bg-surface-tertiary/30'}`}
+                className={`grid grid-cols-[1.6fr_1fr_1fr_1fr] items-center px-5 py-3 text-sm min-w-[600px] ${i % 2 === 0 ? '' : 'bg-surface-tertiary/30'}`}
               >
                 <span className="text-zinc-400">{row.label}</span>
                 <span className="text-center"><Check ok={row.starter} /></span>
                 <span className="text-center"><Check ok={row.creator} /></span>
-                <span className="text-center"><Check ok={row.team} /></span>
                 <span className="text-center"><Check ok={row.elite} /></span>
               </div>
             ))}

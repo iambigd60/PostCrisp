@@ -43,7 +43,6 @@ export function EngineBadge({ className = '' }: { className?: string }) {
   const themed =
     tier === 'elite'   ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' :
     tier === 'creator' ? 'bg-brand-500/10 border-brand-500/25 text-brand-300' :
-    tier === 'team'    ? 'bg-brand-500/10 border-brand-500/25 text-brand-300' :
                           'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
 
   return (

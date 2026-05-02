@@ -40,7 +40,7 @@ Required (server, set in Vercel + `.env.local`):
 | `OPENAI_API_KEY` | PostCrisp Engine — OpenAI provider |
 | `STRIPE_SECRET_KEY` | Stripe billing (test/prod modes via key prefix) |
 | `STRIPE_WEBHOOK_SECRET` | Verifies inbound Stripe events |
-| `STRIPE_CREATOR_MONTHLY_PRICE_ID` | + `_YEARLY_`, `STRIPE_TEAM_*`, `STRIPE_ELITE_*` per tier/cycle |
+| `STRIPE_CREATOR_MONTHLY_PRICE_ID` | + `_YEARLY_`, `STRIPE_ELITE_*` per tier/cycle |
 | `RESEND_API_KEY` | Transactional email (auth, feedback notifications) |
 
 Required (observability + rate limiting, both server + client):

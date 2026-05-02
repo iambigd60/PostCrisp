@@ -25,7 +25,7 @@ export function useSubscription() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  const upgrade = async (target: 'creator' | 'team' | 'elite', cycle: 'monthly' | 'yearly') => {
+  const upgrade = async (target: 'creator' | 'elite', cycle: 'monthly' | 'yearly') => {
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -50,7 +50,6 @@ export function useSubscription() {
     loading,
     isPaid,
     isCreator: tier === 'creator',
-    isTeam: tier === 'team',
     isElite: tier === 'elite',
     // Back-compat alias — some components still check `isPro`. "Pro" now means "any paid tier."
     isPro: isPaid,

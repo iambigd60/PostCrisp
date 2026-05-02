@@ -40,7 +40,6 @@ interface UserDetail {
 const tierBadge: Record<string, string> = {
   starter: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",
   creator: "bg-brand-500/15 text-brand-300 border-brand-500/20",
-  team:    "bg-sky-500/15 text-sky-300 border-sky-500/20",
   elite:   "bg-amber-500/15 text-amber-300 border-amber-500/20",
 };
 
@@ -258,7 +257,6 @@ export default function UserDetailPage() {
             <select value={newTier} onChange={(e) => setNewTier(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40">
               <option value="free">Starter</option>
               <option value="creator">Creator</option>
-              <option value="team">Team</option>
               <option value="elite">Elite</option>
             </select>
           </div>

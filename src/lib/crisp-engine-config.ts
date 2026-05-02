@@ -13,32 +13,24 @@ import type { ProviderId } from './providers/types'
 
 // ─── Subscription tiers ─────────────────────────────────────────────────────
 // DB values in profiles.subscription_tier map to these engine tiers.
-// 'team' runs the same AI quality as 'creator' — Team tier adds seats, not better AI.
 
-export type Tier = 'starter' | 'creator' | 'team' | 'elite'
+export type Tier = 'starter' | 'creator' | 'elite'
 
-// Tiers that have their own engine configuration. Team tier is deliberately
-// NOT configurable — it mirrors Creator's AI quality (Team value is seats).
+// Tiers that have their own engine configuration. Mirrors Tier exactly now
+// that Team is gone, but kept as a separate alias for call-site clarity.
 export type ConfigurableTier = 'starter' | 'creator' | 'elite'
 export const CONFIGURABLE_TIERS: ConfigurableTier[] = ['starter', 'creator', 'elite']
 
 export const TIER_LABELS: Record<Tier, string> = {
   starter: 'Starter',
   creator: 'Creator',
-  team:    'Team',
   elite:   'Elite',
-}
-
-// Resolve Team tier to its effective config tier (Creator).
-export function effectiveTier(tier: Tier): ConfigurableTier {
-  return tier === 'team' ? 'creator' : tier
 }
 
 // Pretty-label for the engine badge shown to users on generation results
 export const TIER_BADGE_LABEL: Record<Tier, string> = {
   starter: 'PostCrisp Engine',
   creator: 'PostCrisp Engine Pro',
-  team:    'PostCrisp Engine Pro',
   elite:   'PostCrisp Engine Elite',
 }
 
@@ -50,7 +42,7 @@ export function tierFromDbValue(dbValue: string | null | undefined): Tier {
     case 'starter':  return 'starter'
     case 'pro':      return 'creator'  // legacy — pre-rename
     case 'creator':  return 'creator'
-    case 'team':     return 'team'
+    case 'team':     return 'creator'  // dropped tier — defensive fallback for any in-flight rows
     case 'business': return 'elite'    // legacy — pre-rename
     case 'elite':    return 'elite'
     default:         return 'starter'
@@ -85,6 +77,7 @@ export type CrispTask =
   | 'media-kit-bio'
   // Self-analysis
   | 'channel-analysis'
+  | 'foundation-analysis'   // NEW — Elite-only foundational audit + saved profile
   // Vision (multimodal)
   | 'thumbnail-analyzer'
   // Conversion / call-to-action
@@ -143,6 +136,7 @@ export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, Power
   // Channel analysis — users benefit most from premium quality here since
   // it's a strategic self-assessment. Premium even at Creator tier.
   'channel-analysis':     { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
+  'foundation-analysis':  { starter: 'PREMIUM', creator: 'PREMIUM', elite: 'PREMIUM' },
   // Thumbnail analyzer — Claude vision required regardless of tier (OpenAI
   // path also supports vision but we anchor on Anthropic for image quality).
   // STANDARD = Sonnet for everyone; Elite gets Opus for nuanced critique.
@@ -175,6 +169,7 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'competitor-analysis': 'Competitor Analysis',
   'media-kit-bio':       'Media Kit Bio Optimizer',
   'channel-analysis':    'Channel Analysis',
+  'foundation-analysis': 'Foundation Analysis',
   'thumbnail-analyzer':  'Thumbnail Analyzer',
   'cta-optimizer':       'CTA Optimizer',
 }
@@ -217,6 +212,7 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
   'competitor-analysis':  5,
   'media-kit-bio':        5,
   'channel-analysis':     5,
+  'foundation-analysis':  8,
 }
 
 // Monthly (or daily for Starter) credit allowance per tier.
@@ -224,7 +220,6 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
 export const TIER_ALLOWANCE: Record<Tier, { credits: number; cycle: 'daily' | 'monthly' }> = {
   starter: { credits: 10,   cycle: 'daily' },
   creator: { credits: 500,  cycle: 'monthly' },
-  team:    { credits: 500,  cycle: 'monthly' }, // individual until team pooling ships
   elite:   { credits: 2000, cycle: 'monthly' },
 }
 

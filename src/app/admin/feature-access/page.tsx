@@ -13,12 +13,11 @@ interface AccessItem {
   override: { feature: string; min_tier: Tier; enabled: boolean; updated_at: string } | null;
 }
 
-const TIER_OPTIONS: Tier[] = ["starter", "creator", "team", "elite"];
+const TIER_OPTIONS: Tier[] = ["starter", "creator", "elite"];
 
 const tierBadge: Record<Tier, string> = {
   starter: "bg-zinc-500/15 text-zinc-300 border-zinc-500/20",
   creator: "bg-brand-500/15 text-brand-300 border-brand-500/20",
-  team:    "bg-sky-500/15 text-sky-300 border-sky-500/20",
   elite:   "bg-amber-500/15 text-amber-300 border-amber-500/20",
 };
 

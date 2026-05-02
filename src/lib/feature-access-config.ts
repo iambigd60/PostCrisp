@@ -38,6 +38,8 @@ export const DEFAULT_MIN_TIER: Record<CrispTask, Tier> = {
   'media-kit-bio':       'creator',
   // Self-analysis — Creator+
   'channel-analysis':    'creator',
+  // Foundation Analysis — Elite-only by default
+  'foundation-analysis': 'elite',
   // Vision — all tiers (acquisition feature). Heavier credit cost (4)
   // already reflects the multimodal compute; tier gate not needed.
   'thumbnail-analyzer':  'starter',

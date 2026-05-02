@@ -43,6 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/signup?from=demo&tool=bio-optimizer",      label: "Bio Optimizer",      icon: "🧬" },
       { href: "/signup?from=demo&tool=platform-tips",      label: "Platform Tips",      icon: "💡" },
       { href: "/signup?from=demo&tool=channel-analysis",   label: "Channel Analysis",   icon: "🪞" },
+      { href: "/signup?from=demo&tool=foundation-analysis",label: "Foundation Analysis",icon: "🏛️" },
       { href: "/signup?from=demo&tool=thumbnail-analyzer", label: "Thumbnail Analyzer", icon: "🖼️" },
       { href: "/signup?from=demo&tool=cta-optimizer",      label: "CTA Optimizer",      icon: "🎯" },
     ],

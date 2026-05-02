@@ -59,7 +59,6 @@ const FEATURE_LABEL: Record<string, { icon: string; label: string }> = {
 const tierColor: Record<Tier, string> = {
   starter: "text-zinc-400",
   creator: "text-brand-300",
-  team:    "text-sky-300",
   elite:   "text-amber-300",
 };
 

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role                       TEXT NOT NULL DEFAULT 'user'
                                CHECK (role IN ('user', 'admin')),
   subscription_tier          TEXT NOT NULL DEFAULT 'free'
-                               CHECK (subscription_tier IN ('free', 'creator', 'team', 'elite')),
+                               CHECK (subscription_tier IN ('free', 'creator', 'elite')),
   stripe_customer_id         TEXT UNIQUE,
   stripe_subscription_id     TEXT UNIQUE,
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -42,10 +42,12 @@ CREATE INDEX IF NOT EXISTS credit_transactions_user_id_idx ON public.credit_tran
 
 ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own credit transactions" ON public.credit_transactions;
 CREATE POLICY "Users read own credit transactions"
   ON public.credit_transactions FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins read all credit transactions" ON public.credit_transactions;
 CREATE POLICY "Admins read all credit transactions"
   ON public.credit_transactions FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -71,6 +73,7 @@ CREATE INDEX IF NOT EXISTS admin_actions_actor_idx
 
 ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins read admin_actions" ON public.admin_actions;
 CREATE POLICY "Admins read admin_actions"
   ON public.admin_actions FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -87,6 +90,7 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
 
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins read platform_settings" ON public.platform_settings;
 CREATE POLICY "Admins read platform_settings"
   ON public.platform_settings FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -115,6 +119,7 @@ CREATE INDEX IF NOT EXISTS invite_codes_created_at_idx ON public.invite_codes (c
 
 ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins read invite_codes" ON public.invite_codes;
 CREATE POLICY "Admins read invite_codes"
   ON public.invite_codes FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -140,18 +145,22 @@ CREATE INDEX IF NOT EXISTS channels_user_id_idx ON public.channels (user_id, sor
 
 ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own channels" ON public.channels;
 CREATE POLICY "Users read own channels"
   ON public.channels FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users insert own channels" ON public.channels;
 CREATE POLICY "Users insert own channels"
   ON public.channels FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users update own channels" ON public.channels;
 CREATE POLICY "Users update own channels"
   ON public.channels FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users delete own channels" ON public.channels;
 CREATE POLICY "Users delete own channels"
   ON public.channels FOR DELETE
   USING (auth.uid() = user_id);
@@ -190,11 +199,13 @@ CREATE INDEX IF NOT EXISTS feedback_user_id_idx ON public.feedback (user_id, cre
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
 -- Users can insert their own feedback
+DROP POLICY IF EXISTS "Users insert own feedback" ON public.feedback;
 CREATE POLICY "Users insert own feedback"
   ON public.feedback FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Users can read their own feedback (so the app can confirm submission)
+DROP POLICY IF EXISTS "Users read own feedback" ON public.feedback;
 CREATE POLICY "Users read own feedback"
   ON public.feedback FOR SELECT
   USING (auth.uid() = user_id);
@@ -219,18 +230,22 @@ CREATE TABLE IF NOT EXISTS public.voice_profiles (
 
 ALTER TABLE public.voice_profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own voice profile" ON public.voice_profiles;
 CREATE POLICY "Users read own voice profile"
   ON public.voice_profiles FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users insert own voice profile" ON public.voice_profiles;
 CREATE POLICY "Users insert own voice profile"
   ON public.voice_profiles FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users update own voice profile" ON public.voice_profiles;
 CREATE POLICY "Users update own voice profile"
   ON public.voice_profiles FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users delete own voice profile" ON public.voice_profiles;
 CREATE POLICY "Users delete own voice profile"
   ON public.voice_profiles FOR DELETE
   USING (auth.uid() = user_id);
@@ -245,7 +260,7 @@ CREATE OR REPLACE TRIGGER voice_profiles_updated_at
 -- `src/lib/feature-access.ts`. Engine falls back to code defaults if missing.
 CREATE TABLE IF NOT EXISTS public.feature_access (
   feature    TEXT PRIMARY KEY,
-  min_tier   TEXT NOT NULL CHECK (min_tier IN ('starter', 'creator', 'team', 'elite')),
+  min_tier   TEXT NOT NULL CHECK (min_tier IN ('starter', 'creator', 'elite')),
   enabled    BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
@@ -253,10 +268,12 @@ CREATE TABLE IF NOT EXISTS public.feature_access (
 
 ALTER TABLE public.feature_access ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins read feature_access" ON public.feature_access;
 CREATE POLICY "Admins read feature_access"
   ON public.feature_access FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
 
+DROP POLICY IF EXISTS "Admins write feature_access" ON public.feature_access;
 CREATE POLICY "Admins write feature_access"
   ON public.feature_access FOR ALL
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -277,10 +294,12 @@ CREATE TABLE IF NOT EXISTS public.ai_config_overrides (
 ALTER TABLE public.ai_config_overrides ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can read or write config overrides
+DROP POLICY IF EXISTS "Admins read ai_config_overrides" ON public.ai_config_overrides;
 CREATE POLICY "Admins read ai_config_overrides"
   ON public.ai_config_overrides FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
 
+DROP POLICY IF EXISTS "Admins write ai_config_overrides" ON public.ai_config_overrides;
 CREATE POLICY "Admins write ai_config_overrides"
   ON public.ai_config_overrides FOR ALL
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
@@ -339,15 +358,18 @@ ALTER TABLE public.saved_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usage_stats  ENABLE ROW LEVEL SECURITY;
 
 -- profiles policies
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- generations policies
+DROP POLICY IF EXISTS "Users can view own generations" ON public.generations;
 CREATE POLICY "Users can view own generations"
   ON public.generations FOR SELECT
   USING (auth.uid() = user_id);
@@ -359,48 +381,59 @@ CREATE POLICY "Users can view own generations"
 -- INSERT/UPDATE/DELETE on other users' generations through this path;
 -- the detail page also hides Save and Delete buttons when the viewer is
 -- not the row's owner.
+DROP POLICY IF EXISTS "Admins can view all generations" ON public.generations;
 CREATE POLICY "Admins can view all generations"
   ON public.generations FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
 
+DROP POLICY IF EXISTS "Users can insert own generations" ON public.generations;
 CREATE POLICY "Users can insert own generations"
   ON public.generations FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own generations" ON public.generations;
 CREATE POLICY "Users can update own generations"
   ON public.generations FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own generations" ON public.generations;
 CREATE POLICY "Users can delete own generations"
   ON public.generations FOR DELETE
   USING (auth.uid() = user_id);
 
 -- saved_content policies
+DROP POLICY IF EXISTS "Users can view own saved content" ON public.saved_content;
 CREATE POLICY "Users can view own saved content"
   ON public.saved_content FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own saved content" ON public.saved_content;
 CREATE POLICY "Users can insert own saved content"
   ON public.saved_content FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own saved content" ON public.saved_content;
 CREATE POLICY "Users can update own saved content"
   ON public.saved_content FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own saved content" ON public.saved_content;
 CREATE POLICY "Users can delete own saved content"
   ON public.saved_content FOR DELETE
   USING (auth.uid() = user_id);
 
 -- usage_stats policies
+DROP POLICY IF EXISTS "Users can view own usage stats" ON public.usage_stats;
 CREATE POLICY "Users can view own usage stats"
   ON public.usage_stats FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own usage stats" ON public.usage_stats;
 CREATE POLICY "Users can insert own usage stats"
   ON public.usage_stats FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own usage stats" ON public.usage_stats;
 CREATE POLICY "Users can update own usage stats"
   ON public.usage_stats FOR UPDATE
   USING (auth.uid() = user_id);
@@ -448,3 +481,81 @@ CREATE OR REPLACE TRIGGER profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
+
+-- creator_profiles — single row per user; upserted by Foundation Analysis runs.
+-- Read by downstream tools (Captions, Viral Ideas, Bio Optimizer in Phase 2)
+-- as a "Creator Context" prompt block.
+CREATE TABLE IF NOT EXISTS public.creator_profiles (
+  user_id               UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  content_pillars       JSONB NOT NULL,                    -- string[]
+  voice_signature       JSONB NOT NULL,                    -- { adjectives: string[], examplePhrasing: string }
+  audience_persona      JSONB NOT NULL,                    -- { description: string, sophistication: 'beginner'|'intermediate'|'advanced' }
+  growth_stage          TEXT NOT NULL CHECK (growth_stage IN ('pre-traction', 'early-traction', 'scaling', 'established')),
+  monetization_position JSONB NOT NULL,                    -- { stage: string, primaryStreams: string[] }
+  format_strengths      JSONB NOT NULL,                    -- string[]
+  differentiators       JSONB NOT NULL,                    -- string[]
+  top_blockers          JSONB NOT NULL,                    -- string[]
+  source_analysis_id    UUID REFERENCES public.generations(id) ON DELETE SET NULL,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS creator_profiles_updated_at_idx ON public.creator_profiles(updated_at DESC);
+
+-- Foundation Analysis integration on profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS use_foundation_in_generations BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS foundation_cta_dismissed_at TIMESTAMPTZ;
+
+-- Drop Team tier from subscription_tier CHECK (no Team subscribers exist).
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_subscription_tier_check;
+ALTER TABLE public.profiles
+  ADD  CONSTRAINT profiles_subscription_tier_check
+  CHECK (subscription_tier IN ('free', 'creator', 'elite'));
+
+-- creator_profiles RLS — matches the pattern used by every other user-scoped table.
+-- Without this, client-side reads (Task 10 dashboard CTA, Task 11 Settings) silently
+-- return zero rows because Supabase requires explicit policies on RLS-enabled rows.
+ALTER TABLE public.creator_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users read own creator profile" ON public.creator_profiles;
+CREATE POLICY "Users read own creator profile"
+  ON public.creator_profiles FOR SELECT
+  USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users insert own creator profile" ON public.creator_profiles;
+CREATE POLICY "Users insert own creator profile"
+  ON public.creator_profiles FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users update own creator profile" ON public.creator_profiles;
+CREATE POLICY "Users update own creator profile"
+  ON public.creator_profiles FOR UPDATE
+  USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users delete own creator profile" ON public.creator_profiles;
+CREATE POLICY "Users delete own creator profile"
+  ON public.creator_profiles FOR DELETE
+  USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admins read all creator profiles" ON public.creator_profiles;
+CREATE POLICY "Admins read all creator profiles"
+  ON public.creator_profiles FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- Mirror the updated_at trigger pattern used on profiles, channels, voice_profiles
+-- so the upsert path doesn't have to manually set updated_at and the index
+-- on (updated_at DESC) is actually meaningful.
+CREATE OR REPLACE TRIGGER creator_profiles_updated_at
+  BEFORE UPDATE ON public.creator_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- Drop Team tier from feature_access.min_tier CHECK to mirror profiles.subscription_tier.
+-- Pre-flight: any in-flight 'team' row gets remapped to 'creator' (matching the runtime
+-- defensive fallback in tierFromDbValue) before the CHECK rejects it.
+UPDATE public.feature_access SET min_tier = 'creator' WHERE min_tier = 'team';
+ALTER TABLE public.feature_access
+  DROP CONSTRAINT IF EXISTS feature_access_min_tier_check;
+ALTER TABLE public.feature_access
+  ADD  CONSTRAINT feature_access_min_tier_check
+  CHECK (min_tier IN ('starter', 'creator', 'elite'));

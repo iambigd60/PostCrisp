@@ -1,30 +1,37 @@
-# Alpha Tester Agreement — PostCrisp / Crusher Brands, LLC
+# Beta Tester Agreement — PostCrisp / Crusher Brands, LLC
 
 > **⚠️ Not legal advice.** This template was drafted for informal pre-launch
-> alpha testing among friends and early supporters. Run it past an attorney
+> beta testing among friends and early supporters. Run it past an attorney
 > before using it with anyone you don't personally know, before scaling past
 > ~10 testers, or before you have paying customers. Keep it simple until it
 > can't be simple anymore.
+
+> **Note (2026-05-01):** The operational source of truth is the in-app
+> acceptance gate at `/accept-terms`, backed by `src/lib/alpha-agreement.ts`
+> and the server endpoint `POST /api/user/alpha-acceptance`. New testers
+> sign there; this markdown template is kept as a historical reference for
+> the email-NDA flow and as the canonical legal text.
 
 ---
 
 ## How to use this
 
-1. **Before sharing the invite code** to a new alpha tester, send them a
+1. **Before sharing the invite code** to a new beta tester, send them a
    copy of the agreement below (email attachment, DocuSign, HelloSign —
    any of these work).
 2. **Capture their consent** — either a countersigned PDF or an email
-   reply that says `I agree to the Alpha Tester Agreement — [Full Name]`.
+   reply that says `I agree to the Beta Tester Agreement — [Full Name]`.
    Email replies count as electronic signatures under the US E-SIGN Act.
 3. **Save the acceptance** — keep the email thread / signed PDF in a
-   dedicated folder (e.g. `/alpha-ndas/` on your drive). Never rely on
+   dedicated folder (e.g. `/beta-ndas/` on your drive). Never rely on
    memory for who agreed to what.
 4. **Then and only then** send them:
-   - Production URL: `https://postcrisp.vercel.app` (or the custom domain)
-   - Invite code (current code lives at `/admin/access-control`)
+   - Production URL: `https://postcrisp.com`
+   - Single-use invite code from `/admin/invite-codes`
    - Instructions to use the in-app 💬 Feedback button
 5. **After they sign up**, bump their tier in `/admin/users/[their-id]`
-   to Creator or Elite so they can try every feature.
+   to Creator or Elite so they can try every feature, and grant credits
+   at `/admin/credit-adjustments` if needed.
 
 ---
 
@@ -40,7 +47,7 @@
 ## Template
 
 ```
-ALPHA TESTER AGREEMENT
+BETA TESTER AGREEMENT
 
 This Agreement is made between Crusher Brands, LLC ("Company")
 and [TESTER NAME] ("Tester"), effective [EFFECTIVE DATE].
@@ -49,7 +56,7 @@ and [TESTER NAME] ("Tester"), effective [EFFECTIVE DATE].
 1. THE PRODUCT
 
 Tester is receiving early access to PostCrisp, an AI content platform
-still in pre-release alpha ("the Product"). The Product, including
+still in pre-release beta ("the Product"). The Product, including
 all features, UI/UX designs, business logic, pricing strategies,
 roadmap, bugs, technical implementation, and internal communications
 related to it ("Confidential Information"), is confidential property
@@ -101,20 +108,20 @@ rights in it to Company.
 
 The Product is provided "as is" and "as available." Company makes no
 guarantees about stability, data retention, feature availability, or
-continued access during the alpha period.
+continued access during the beta period.
 
 
 6. NO EMPLOYMENT / EQUITY / COMPENSATION
 
 This Agreement does not create any employment, partnership, agency,
 or equity relationship between Tester and Company. Tester is a
-volunteer alpha tester and will not receive monetary compensation
+volunteer beta tester and will not receive monetary compensation
 for participation.
 
 
 7. TERM AND TERMINATION
 
-Either party may end Tester's alpha access at any time, for any
+Either party may end Tester's beta access at any time, for any
 reason, with or without notice. Confidentiality obligations under
 Section 2 survive any termination of this Agreement per the term
 specified in Section 2(e).
@@ -136,7 +143,7 @@ understandings.
 
 
 By signing below, Tester acknowledges having read, understood, and
-agreed to all terms of this Alpha Tester Agreement.
+agreed to all terms of this Beta Tester Agreement.
 
 
 _____________________________________     ______________
@@ -153,24 +160,24 @@ Crusher Brands, LLC
 ## Suggested accompanying email
 
 ```
-Subject: PostCrisp alpha — want in?
+Subject: PostCrisp beta — want in?
 
 Hey [NAME],
 
 I've been building that AI content platform I mentioned —
-PostCrisp. It's live in invite-only alpha and I'd love for you
+PostCrisp. It's live in invite-only beta and I'd love for you
 to kick the tires, specifically because [reason they're a great fit].
 
-Quick thing first: attaching a simple one-page alpha tester
+Quick thing first: attaching a simple one-page beta tester
 agreement. Standard NDA stuff — just says you'll keep features
-private while we're still in alpha and won't use my ideas to
+private while we're still in beta and won't use my ideas to
 start a competing product. Not expecting that from you at all,
 it's just what I do for every tester now. Reply with "I agree to
-the Alpha Tester Agreement — [Your Full Name]" and we're good.
+the Beta Tester Agreement — [Your Full Name]" and we're good.
 
 Once you're signed in:
-- Invite code: [CURRENT INVITE CODE]
-- URL: https://postcrisp.vercel.app
+- Invite code: [SINGLE-USE INVITE CODE]
+- URL: https://postcrisp.com
 - I'll bump your account to Creator tier so you can try every feature
 - Use the 💬 Feedback button on any page — bugs, ideas, confusion,
   all of it helps
@@ -187,8 +194,8 @@ play and I'll jump on a call to hear what you think.
 
 When this template stops being enough:
 
-- [ ] Consult an attorney when onboarding > 10 testers or when opening to public alpha
-- [ ] Separate **Terms of Service** (for all users) from **Alpha NDA** (for testers specifically)
-- [ ] Move acceptance into the product (onboarding checkbox + acceptance timestamp in DB)
+- [ ] Consult an attorney when onboarding > 10 testers or when opening to public beta
+- [ ] Separate **Terms of Service** (for all users) from **Beta NDA** (for testers specifically)
+- [x] Move acceptance into the product (onboarding checkbox + acceptance timestamp in DB) — shipped session 11; gated server-side at `requireAlphaAcceptance()`
 - [ ] Add a **Privacy Policy** before any paid users — required by Stripe, Apple, Google, most EU law
 - [ ] Register Crusher Brands, LLC's DBA as PostCrisp if you haven't already

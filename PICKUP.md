@@ -1,10 +1,143 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-29 (session 15 — root-caused "Request Timed Out", synced client timeouts, shipped rocket loader)
-**Build status:** ✅ Live on Vercel — `9e75280` in production (this session's commits not yet pushed at time of writing)
+**Last updated:** 2026-05-01 (session 17 — beta launch readiness brainstorm IN PROGRESS + NDA bumped to v1.1)
+**Build status:** ✅ `foundation-analysis` branch (24 commits ahead of main; NDA bump uncommitted at save time, see below)
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Pre-launch status:** 🟡 1 item blocking — **Stripe production verification (up to 2 days)**
+**Pre-launch status (beta = invite-only, no Stripe):** 🟢 No hard blockers; punchlist drafted, awaiting user approval
+
+---
+
+## 🟡 Session 17 — IN PROGRESS — Beta launch readiness brainstorm + NDA → beta v1.1
+
+> **Resume word:** **"Engage"**. When user opens next session with that word, jump here.
+
+### Decisions locked
+
+- **Beta = "expanded invite-only"** (option A). Same access-control gate, bigger invite-code batch, no Stripe, no public marketing surface.
+- **Tester provisioning** is manual: user adjusts `subscription_tier` per tester at `/admin/users/[id]` and grants credits at `/admin/credit-adjustments`.
+- **NDA bumped 1.0 → 1.1**, alpha → beta language across `src/lib/alpha-agreement.ts` + `src/app/accept-terms/page.tsx` + `docs/alpha-tester-agreement.md`. Internal symbol names (`ALPHA_AGREEMENT_*`, `alpha_nda` JSONB key, `/api/user/alpha-acceptance` route, `requireAlphaAcceptance()`) intentionally NOT renamed — implementation detail, no user-visible benefit. Existing alpha testers will be re-prompted to accept v1.1 on next dashboard hit (intended consequence; v1.0 record preserved in audit). Captain admin bypasses.
+
+### Punchlist drafted (sectioned, not yet user-approved)
+
+1. **Pre-flight code gates** — merge `foundation-analysis` → `main`; capture `public/foundation-analysis-preview.png` (1600×900) so paywall card doesn't render broken; confirm `STRIPE_ELITE_*` env vars exist in Vercel so `/dashboard/billing` doesn't 500; smoke-test merged main end-to-end on a real Elite account
+2. **Tester provisioning** — generate invite codes at `/admin/invite-codes` (wave size + 25% buffer); manual tier-up + credit grants per tester (suggest 100 credits ≈ $2-5/tester)
+3. **Cost & abuse defense** ⚠️ — Anthropic monthly spending cap at $50-100 (defense in depth even with rate limiter); same for OpenAI if FAST tier uses it; spot-check Upstash dashboard for pre-launch anomalies
+4. **Tester feedback loop** ⚠️ — confirm `/api/feedback` notifications surface to user's inbox; one-page "what we want feedback on" doc/page; reply-able beta@ alias since `noreply@postcrisp.com` is sender-only. (FeedbackButton wired in `dashboard/layout.tsx:28` — confirmed.)
+5. **Real-environment regression checks** ⚠️ — cold-account walkthrough from a fresh email/incognito (logo refresh + FA CTA + 3-tier pricing all shipped post-last-cold-walk); email deliverability spot-check to gmail + outlook; OG card preview for `postcrisp.com`; mobile sanity check for FA + rocket loader
+6. **Saturday-AM monitoring + rollback** — Sentry filter pinned, Anthropic Usage refreshed every couple hours, Stripe webhook delivery dashboard (should stay quiet), Vercel rollback path known (Promote previous deployment — reverts FA + Team-drop together)
+7. **Post-update NDA smoke-test** ⚠️ NEW from NDA bump — sign in as Rodney/non-admin, hit dashboard, confirm redirect to `/accept-terms` → page shows "Beta Tester Agreement" / v1.1 / "Effective 2026-05-01" / new section text → accept → return to dashboard works
+
+### Honest pushback flagged (per `feedback_honest_pushback`)
+
+- **Paywall preview screenshot** is most likely "oh no" — visible on dashboard CTA card to every Starter tester within seconds of signup
+- **Foundation Analysis + Voice Trainer** haven't been exercised together by a real user. Combined prompt-length might not have been smoke-tested; worth single-tester run with both filled in
+- **Soft cutover (B) ≠ delay** — recommended over hard cutover (A): fix gates Fri night → merge → 2-3 canary testers Sat AM → watch Sentry + Anthropic spend through Sat afternoon → blast remaining invites Sun morning if green. Same total work, much better blast-radius control.
+
+### Success criteria for the wave (proposed)
+
+- ≥80% of invited testers complete signup
+- ≥50% finish 5-step tutorial
+- Sentry issue rate stays within ~2× baseline
+- Zero invite-code race-condition incidents
+- ≥2 testers run Foundation Analysis end-to-end and the saved Creator Profile influences a downstream caption run
+- Anthropic spend stays under $20 for the wave
+
+### Brainstorming task list (superpowers:brainstorming, mid-flight)
+
+- ✅ #1 Explore project context
+- ✅ #2 Ask clarifying questions about beta scope
+- 🔄 #3 Propose 2-3 launch readiness approaches (presented A/B/C, recommended B)
+- ⏳ #4 Present launch readiness design / punchlist (presented above; awaiting user approval)
+- ⏳ #5 Write design doc to `docs/superpowers/specs/2026-05-01-beta-launch-readiness-design.md`
+- ⏳ #6 Spec self-review
+- ⏳ #7 User reviews written spec
+- ⏳ #8 Invoke writing-plans skill (terminal state)
+
+### When user says "Engage" — next concrete steps
+
+1. Open this section + read `src/lib/alpha-agreement.ts` (current state v1.1) and confirm the NDA bump commit landed
+2. Re-summarize the punchlist briefly (sections 1-7 above)
+3. Ask the three open questions:
+   - Anything to add/remove on the punchlist before it becomes the spec doc?
+   - Soft cutover (B) Saturday-canary → Sunday-full, or hard cutover (A) all-at-once?
+   - Approval to write the spec doc + invoke writing-plans?
+4. On approval, write spec → self-review → request user review → invoke writing-plans
+
+### Files touched this session
+
+- `src/lib/alpha-agreement.ts` — version + effective-date + title + 4 section text changes
+- `src/app/accept-terms/page.tsx` — 3 hardcoded strings; checkbox label refactored to read `{ALPHA_AGREEMENT_TITLE}`
+- `docs/alpha-tester-agreement.md` — full rewrite for beta language; added in-app-gate-is-source-of-truth note; ticked off the "move acceptance into product" historical checkbox
+- `PICKUP.md` — this section (in-progress tracker)
+
+Typecheck clean (`npx tsc --noEmit`). Tests not re-run (NDA constants aren't covered by Vitest fixtures).
+
+---
+
+## Session 16 shipped — Foundation Analysis (Elite-only) + Team tier dropped
+
+**23 commits on the `foundation-analysis` branch.** Designed via `superpowers:brainstorming` → `writing-plans` → executed via `subagent-driven-development` with full implementer + spec-reviewer + code-quality-reviewer loops on the heavy tasks. SQL applied successfully and end-to-end smoke test passed.
+
+### 🧬 Foundation Analysis — new Elite-only feature
+
+A deep, evidence-grounded creator audit that **also saves a structured Creator Profile** that downstream tools (Captions, Viral Ideas, Bio Optimizer in Phase 2) read on every generation. The strategic frame: *Foundation Analysis is the foundation every other tool reads from.*
+
+**What it does differently from Channel Analysis (which stays untouched at 5 credits, Creator+):**
+- 11 declared input fields grouped into 4 sections (channel / strategy / reality / evidence)
+- **Evidence layer** — 3 user-pasted sample posts (caption + metric + theory). The AI evaluates real content, not just inferred patterns.
+- Structured **Creator Profile** output written to a new `creator_profiles` table on every run
+- 8 credits per run; PREMIUM AI tier across all subscription tiers (gated to Elite by `DEFAULT_MIN_TIER`)
+- Refine pass enabled for Elite (Opus + gpt-4o-mini critic)
+
+**Phase 2 wired in same session:** Captions / Viral Ideas / Bio Optimizer prompts now inject a "Creator Context" block (formatted by `formatCreatorContextBlock` from `@/lib/creator-context-block`) when the user has a saved profile. Settings → Profile section lets users view/edit the saved profile and toggle injection off.
+
+### 🪦 Team tier dropped (zero subscribers, clean removal)
+
+Tier ladder is now **Starter / Creator / Elite** (3 tiers). Sweep across ~15 files: types, billing, Stripe, admin UI, landing page, README, ROADMAP. Two SQL CHECK constraints tightened (`profiles.subscription_tier` and `feature_access.min_tier`). Defensive `case 'team': return 'creator'` fallback kept in `tierFromDbValue` for any in-flight legacy rows.
+
+### 🔧 Plan-gap fixes (caught by code review during execution)
+
+The subagent-driven flow's two-stage review pipeline caught **6 plan gaps**, all patched inline before next task:
+1. `creator_profiles` table missing RLS policies (would have silently broken client-side reads in Settings + dashboard CTA)
+2. Missing `updated_at` trigger on `creator_profiles` (made the index meaningless)
+3. `tierFromDbValue` had no defensive fallback for legacy `'team'` rows after Team type union narrowing
+4. `feature_access.min_tier` SQL CHECK still permitted `'team'` (Task 1 was scoped to `subscription_tier` only)
+5. SaaS pricing convention violated on Elite features array (Foundation Analysis was placed before "Everything in Creator")
+6. `/api/foundation-analysis` route had profile upsert nested inside the same try/catch as the generations insert — a generations failure would have silently skipped the profile write (the entire reason this feature exists). Split into isolated try/catches with their own log tags.
+
+Plus a 7th: `CREATE POLICY` statements throughout the schema file weren't idempotent. Hit it on schema re-run; patched all 38 policies via `scripts/make-policies-idempotent.mjs` to add `DROP POLICY IF EXISTS` guards. File is now fully re-runnable.
+
+### 📁 Key files touched
+
+- DB: `src/lib/supabase-schema.sql` (creator_profiles table + RLS + trigger + 2 CHECK updates + idempotency patch)
+- Engine config: `src/lib/crisp-engine-config.ts` (registered foundation-analysis task; dropped Team)
+- Helpers: `src/lib/creator-profile.ts` (CRUD), `src/lib/creator-context-block.ts` (formatter + `loadCreatorContext` one-call helper)
+- API: `src/app/api/foundation-analysis/route.ts` + `prompt.ts` (TDD-tested prompt builder, 6 tests)
+- API: `src/app/api/user/dismiss-foundation-cta/route.ts` + `creator-profile/route.ts` (PATCH for edits + toggle)
+- UI: `src/app/dashboard/foundation-analysis/page.tsx` (447 lines, form + result + paywall)
+- UI: `src/app/dashboard/page.tsx` (Elite onboarding CTA), `src/app/dashboard/settings/page.tsx` (Profile section)
+- UI: `src/components/ui/FeatureGate.tsx` (added `previewSnapshotUrl?` prop)
+- 3 downstream injections: `src/app/api/generate/route.ts`, `viral-ideas/route.ts`, `bio-optimizer/route.ts`
+- Marketing: `src/app/page.tsx` (3-tier pricing grid + FAQ rewrite), `src/lib/stripe.ts` (PLANS dropped Team), `README.md`, `ROADMAP.md`
+- Spec + plan: `docs/superpowers/specs/2026-04-30-foundation-analysis-design.md`, `docs/superpowers/plans/2026-04-30-foundation-analysis.md`
+
+### 🧪 Test counts
+
+41/41 tests pass across 7 vitest files. New suites: `creator-profile.test.ts` (3 tests), `creator-context-block.test.ts` (4 tests), `foundation-analysis/__tests__/prompt.test.ts` (6 tests). Plus `fake-supabase.ts` extended with `creator_profiles` Map + `.upsert()` support; existing fixtures in `credits.test.ts` and `tutorial-bypass.test.ts` updated for the new field.
+
+### 📋 Manual follow-ups still pending
+
+1. **Capture the paywall preview screenshot** — `/dashboard/foundation-analysis` Elite result page → 1600×900 → `public/foundation-analysis-preview.png`. Paywall renders a broken image without it.
+2. **Confirm `STRIPE_ELITE_*` price IDs** are set in Vercel env vars (Team prices are gone from `lib/stripe.ts`).
+3. **Merge `foundation-analysis` → `main`** when ready to deploy.
+4. **Optional cleanup in 2 weeks:** remove the defensive `case 'team': return 'creator'` line in `tierFromDbValue` once you've confirmed zero `'team'` rows exist anywhere in production. (Scheduled via background agent.)
+
+### 🛠 Process notes (worth re-reading)
+
+- **Subagent-driven development paid back hard on this session.** Two-stage review (spec compliance → code quality) caught 6 plan gaps that would otherwise have shipped as silent bugs (RLS, trigger, profile upsert isolation, SaaS bullet ordering). The cost was ~3-5 agent dispatches per task; the value was the bugs that never made it to prod.
+- **Pragmatic abbreviation:** for trivial mechanical tasks (adding 5 lines to a config, applying a verbatim plan code block) I skipped formal review and trusted typecheck + tests + self-review. Reserved full review for the high-risk surfaces (DB schema, API route, UI page).
+- **Plan deviated mid-flight twice** — first I drafted an "addon table" architecture, then user reframed to a separate feature, then user proposed renaming the tier itself. Pushed back on the tier rename (Foundation as a top-tier name has industry semantic risk — usually means entry-level), kept the feature name, dropped Team. Brainstorming was the right place to surface those forks.
 
 ---
 

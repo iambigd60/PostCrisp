@@ -18,7 +18,6 @@ import {
   type ConfigurableTier,
   DEFAULT_PROFILE_CONFIG,
   TASK_TIER_PROFILE,
-  effectiveTier,
 } from './crisp-engine-config'
 
 // Re-export client-safe pieces so existing imports from crisp-engine still work
@@ -30,7 +29,6 @@ export {
   TASK_TIER_PROFILE,
   TIER_LABELS,
   TIER_BADGE_LABEL,
-  effectiveTier,
   tierFromDbValue,
 } from './crisp-engine-config'
 export type {
@@ -161,7 +159,7 @@ export async function resolveTaskConfig(
   task: CrispTask,
   tier: Tier
 ): Promise<{ config: ProfileConfig; effective: ConfigurableTier }> {
-  const effective = effectiveTier(tier)
+  const effective: ConfigurableTier = tier
 
   // 1. DB override takes top priority, scoped to this specific (task, tier)
   const overrides = await loadOverrides()

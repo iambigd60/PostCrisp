@@ -5,6 +5,7 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
+import { loadCreatorContext } from '@/lib/creator-context-block'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -71,6 +72,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please fill in all fields: topic, platform, and tone.' }, { status: 400 })
   }
 
+  const creatorContext = await loadCreatorContext(auth.supabase, auth.userId, [
+    'voice_signature',
+    'audience_persona',
+    'content_pillars',
+  ])
+
   const safeCount = Math.max(1, Math.min(10, count))
   const avoidList = Array.isArray(avoid) && avoid.length > 0
     ? `\n\nIMPORTANT: Do NOT repeat or paraphrase any of these existing captions — the user already has them:\n${avoid.map((c, i) => `${i + 1}. ${c.slice(0, 200)}`).join('\n')}\nGenerate completely different angles and approaches.`
@@ -78,7 +85,7 @@ export async function POST(request: Request) {
 
   const audienceLine = audience ? `Target audience: ${audience}\n` : ''
 
-  const prompt = `You are an expert social media content creator. Generate ${safeCount} distinct caption ${safeCount === 1 ? 'variation' : 'variations'} for a ${platform} ${contentType} about "${topic}".
+  const promptBody = `You are an expert social media content creator. Generate ${safeCount} distinct caption ${safeCount === 1 ? 'variation' : 'variations'} for a ${platform} ${contentType} about "${topic}".
 
 Tone: ${tone}
 ${audienceLine}Content type guidance: ${contentTypeGuidance[contentType] || contentTypeGuidance.post}
@@ -93,6 +100,8 @@ Requirements:
 
 Return ONLY valid JSON with this structure — no markdown:
 {"captions": [${Array.from({ length: safeCount }, (_, i) => `"caption ${i + 1}"`).join(', ')}]}`
+
+  const prompt = [creatorContext, promptBody].filter(Boolean).join('\n\n')
 
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)

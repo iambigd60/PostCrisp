@@ -256,6 +256,14 @@ Structure: overallAssessment (2-3 sentences — what stage is this channel at, w
 
 Every recommendation must reference the specific platform's 2026 dynamics AND the user's specific niche. Never generic "post consistently" / "engage with your audience" advice — be specific about what/when/how.`,
 
+  // Foundation Analysis — Elite-only deep audit + reusable Creator Profile.
+  // Stub: the full task-specific prompt is built per-request in
+  // src/app/api/foundation-analysis/prompt.ts (added in Task 7) and the route
+  // bypasses TASK_ROLES by passing the assembled prompt directly. This empty
+  // string is here only to satisfy the `Record<CrispTask, string>` exhaustiveness
+  // check; it is never read at runtime.
+  'foundation-analysis': '',
+
   'cta-optimizer':
     `## YOUR TASK: CALL-TO-ACTION OPTIMIZATION
 

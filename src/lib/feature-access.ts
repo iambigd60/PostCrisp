@@ -19,7 +19,6 @@ export { DEFAULT_MIN_TIER }
 const TIER_RANK: Record<Tier, number> = {
   starter: 0,
   creator: 1,
-  team:    1, // Team is rank-equivalent to Creator for access purposes
   elite:   2,
 }
 

@@ -101,7 +101,7 @@ function AcceptTermsPageInner() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">{ALPHA_AGREEMENT_TITLE}</h1>
             <p className="text-sm text-zinc-500">
-              PostCrisp is in pre-release alpha. Before you get access, please read and accept this
+              PostCrisp is in pre-release beta. Before you get access, please read and accept this
               agreement. It keeps what we&apos;re building private while we ship.
             </p>
             <div className="text-2xs text-zinc-600">
@@ -113,7 +113,7 @@ function AcceptTermsPageInner() {
           <div className="rounded-xl border border-brand-500/20 bg-surface-secondary max-h-[450px] overflow-y-auto p-5 sm:p-6 space-y-5">
             <p className="text-sm text-zinc-400 leading-relaxed">
               This Agreement is made between <strong className="text-zinc-200">Crusher Brands, LLC</strong> (&ldquo;Company&rdquo;)
-              and you, the alpha tester. It is effective on the date you sign below.
+              and you, the beta tester. It is effective on the date you sign below.
             </p>
             {ALPHA_AGREEMENT_SECTIONS.map((section) => (
               <section key={section.heading} className="space-y-2">
@@ -160,7 +160,7 @@ function AcceptTermsPageInner() {
                 className="mt-0.5 w-5 h-5 rounded border-brand-500/30 bg-surface-primary text-brand-500 accent-brand-500 focus:ring-brand-500 focus:ring-offset-0 cursor-pointer"
               />
               <span className="text-sm text-zinc-200 leading-relaxed select-none group-hover:text-zinc-100 transition-colors">
-                I have read and agree to the Alpha Tester Agreement above. I understand PostCrisp is a pre-release
+                I have read and agree to the {ALPHA_AGREEMENT_TITLE} above. I understand PostCrisp is a pre-release
                 product of <strong>Crusher Brands, LLC</strong> and I&apos;ll keep its features, bugs, and roadmap
                 confidential per the terms above.
               </span>

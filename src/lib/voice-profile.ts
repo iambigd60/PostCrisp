@@ -105,7 +105,7 @@ Rules:
 
 export async function analyzeVoiceProfile(
   samples: VoiceSample[],
-  tier: 'starter' | 'creator' | 'team' | 'elite'
+  tier: 'starter' | 'creator' | 'elite'
 ): Promise<VoiceTraits> {
   if (samples.length < MIN_SAMPLES_FOR_ANALYSIS) {
     throw new Error(

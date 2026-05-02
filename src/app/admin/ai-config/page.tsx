@@ -230,7 +230,7 @@ export default function AIConfigPage() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">AI Engine Config</h1>
         <p className="text-zinc-500 mt-1">
-          Route each feature × tier to a provider + model. Team tier uses the same AI as Creator.
+          Route each feature × tier to a provider + model.
         </p>
       </div>
 
@@ -241,8 +241,7 @@ export default function AIConfigPage() {
           Amber tint = admin override in effect. Check rows + tiers to bulk-apply.
         </p>
         <p>
-          <strong>Team tier</strong> isn&apos;t shown as a column because it runs the same AI as Creator.
-          <strong> Changes take effect within 60 seconds</strong> (engine override cache).
+          <strong>Changes take effect within 60 seconds</strong> (engine override cache).
         </p>
       </div>
 

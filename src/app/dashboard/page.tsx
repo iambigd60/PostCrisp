@@ -19,6 +19,7 @@ interface Profile {
   daily_generations_reset_at: string
   credits_balance: number
   credits_reset_at: string
+  foundation_cta_dismissed_at?: string | null
   preferences?: {
     getting_started_dismissed?: boolean
     onboarded_at?: string | null
@@ -57,6 +58,9 @@ interface DashboardStats {
   // Brand Readiness Score — deterministic 0-100 scored across 5 dimensions
   // from the same inputs already loaded above. No additional fetches.
   brs: BrsResult
+  // Foundation Analysis CTA — shown only to Elite users who haven't yet run
+  // Foundation Analysis (no creator_profiles row) and haven't dismissed.
+  showFoundationCta: boolean
 }
 
 const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
@@ -467,9 +471,9 @@ export default function DashboardPage() {
 
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-        const [profileRes, generationsRes, savedRes, recentRes, channelsRes, weekGensRes, featuresRes, voiceRes] = await Promise.all([
+        const [profileRes, generationsRes, savedRes, recentRes, channelsRes, weekGensRes, featuresRes, voiceRes, creatorProfileRes] = await Promise.all([
           supabase.from('profiles')
-            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at, preferences')
+            .select('full_name, subscription_tier, daily_generations_used, daily_generations_reset_at, credits_balance, credits_reset_at, preferences, foundation_cta_dismissed_at')
             .eq('id', user.id)
             .maybeSingle(),
           supabase.from('generations')
@@ -502,6 +506,12 @@ export default function DashboardPage() {
           // samples count drives Brand Readiness Score.
           supabase.from('voice_profiles')
             .select('traits, samples')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          // Foundation Analysis existence check — drives the Elite onboarding
+          // CTA. We only need to know whether the row exists, not its contents.
+          supabase.from('creator_profiles')
+            .select('user_id')
             .eq('user_id', user.id)
             .maybeSingle(),
         ])
@@ -573,6 +583,13 @@ export default function DashboardPage() {
           weekGenerations: (weekGensRes.data ?? []).length,
         })
 
+        // Foundation CTA visibility — Elite users only, who haven't yet run
+        // Foundation Analysis (no creator_profiles row) and haven't dismissed.
+        const showFoundationCta =
+          profileRes.data?.subscription_tier === 'elite' &&
+          !creatorProfileRes.data &&
+          !profileRes.data?.foundation_cta_dismissed_at
+
         setStats({
           profile: profileRes.data ? { ...profileRes.data, daily_generations_used: dailyUsed } : null,
           totalGenerations,
@@ -588,6 +605,7 @@ export default function DashboardPage() {
           nextToolsDismissed: Boolean(prefs?.next_tools_dismissed),
           showNextTools,
           brs,
+          showFoundationCta: Boolean(showFoundationCta),
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
@@ -630,6 +648,30 @@ export default function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {/* Foundation Analysis CTA — Elite-only, one-time nudge. Sits near the
+          top so it's the first onboarding card a fresh Elite user sees. */}
+      {stats?.showFoundationCta && (
+        <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-amber-500/0 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="text-3xl">🧬</div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-zinc-100">Set up your Foundation Analysis</h3>
+            <p className="text-sm text-zinc-400 mt-0.5">Captions, Viral Ideas, and Bio Optimizer get noticeably sharper once you&apos;ve filled this in.</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/dashboard/foundation-analysis" className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400">Run now →</Link>
+            <button
+              onClick={async () => {
+                await fetch('/api/user/dismiss-foundation-cta', { method: 'POST' })
+                window.location.reload()
+              }}
+              className="px-3 py-2 rounded-lg bg-zinc-700/50 text-zinc-300 text-sm hover:bg-zinc-700"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Channels row — moved to the top so the user immediately sees what
           they have. Only renders when channels exist; new users land on
