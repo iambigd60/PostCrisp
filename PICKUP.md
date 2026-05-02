@@ -1,77 +1,113 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-05-01 (session 17 — beta launch readiness brainstorm IN PROGRESS + NDA bumped to v1.1)
-**Build status:** ✅ `foundation-analysis` branch (24 commits ahead of main; NDA bump uncommitted at save time, see below)
+**Last updated:** 2026-05-01 evening (session 17 — pre-flight punchlist done, merged to `main`, weekend wave pending)
+**Build status:** ✅ `main` at `df47019` — `foundation-analysis` merged. Vercel deploy `dpl_AT7y2BAPtqX7voFTRrjLjDMqjFys` live at https://postcrisp.com.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Pre-launch status (beta = invite-only, no Stripe):** 🟢 No hard blockers; punchlist drafted, awaiting user approval
+**Launch status:** 🟡 Pre-flight 12/16 done; canary + wave-blast scheduled Sat-Sun 2026-05-02/03
 
 ---
 
-## 🟡 Session 17 — IN PROGRESS — Beta launch readiness brainstorm + NDA → beta v1.1
+## 🟡 Session 17 — IN PROGRESS — Beta Wave 1 (Sat canary → Sun wave-blast)
 
-> **Resume word:** **"Engage"**. When user opens next session with that word, jump here.
+> **Resume word:** **"Engage"**. The next step is calendar-dependent — see "When user says Engage" below. Saturday morning, jump to **`LAUNCH_NOTES.md`** and run the Saturday-AM checklist.
 
-### Decisions locked
+### What shipped to production today (2026-05-01)
 
-- **Beta = "expanded invite-only"** (option A). Same access-control gate, bigger invite-code batch, no Stripe, no public marketing surface.
-- **Tester provisioning** is manual: user adjusts `subscription_tier` per tester at `/admin/users/[id]` and grants credits at `/admin/credit-adjustments`.
-- **NDA bumped 1.0 → 1.1**, alpha → beta language across `src/lib/alpha-agreement.ts` + `src/app/accept-terms/page.tsx` + `docs/alpha-tester-agreement.md`. Internal symbol names (`ALPHA_AGREEMENT_*`, `alpha_nda` JSONB key, `/api/user/alpha-acceptance` route, `requireAlphaAcceptance()`) intentionally NOT renamed — implementation detail, no user-visible benefit. Existing alpha testers will be re-prompted to accept v1.1 on next dashboard hit (intended consequence; v1.0 record preserved in audit). Captain admin bypasses.
+Branch `foundation-analysis` (30 commits ahead of `main` at merge time) merged to `main` as **`df47019`**; auto-deployed to Vercel as `dpl_AT7y2BAPtqX7voFTRrjLjDMqjFys`. Brings:
 
-### Punchlist drafted (sectioned, not yet user-approved)
+- Foundation Analysis (Elite-only) with saved Creator Profile + downstream injection into Captions / Viral Ideas / Bio Optimizer
+- Team tier dropped (3-tier ladder: Starter / Creator / Elite)
+- NDA bumped 1.0 → 1.1 (alpha → beta language)
+- Foundation Analysis added to dashboard + demo sidebars (Optimize group, icon 🏛️) — commit `ce6ec39`
+- Beta tester feedback focus doc (`docs/beta-tester-feedback-focus.md`) — commit `67a7247`
+- Beta launch readiness spec + plan (`docs/superpowers/specs|plans/2026-05-01-*`) — commit `3ffa80a`
+- `previewSnapshotUrl` prop temporarily removed from `src/app/dashboard/foundation-analysis/page.tsx` (commit `f44f5e8`) — paywall renders cleanly without broken image. Re-add when screenshot is captured.
 
-1. **Pre-flight code gates** — merge `foundation-analysis` → `main`; capture `public/foundation-analysis-preview.png` (1600×900) so paywall card doesn't render broken; confirm `STRIPE_ELITE_*` env vars exist in Vercel so `/dashboard/billing` doesn't 500; smoke-test merged main end-to-end on a real Elite account
-2. **Tester provisioning** — generate invite codes at `/admin/invite-codes` (wave size + 25% buffer); manual tier-up + credit grants per tester (suggest 100 credits ≈ $2-5/tester)
-3. **Cost & abuse defense** ⚠️ — Anthropic monthly spending cap at $50-100 (defense in depth even with rate limiter); same for OpenAI if FAST tier uses it; spot-check Upstash dashboard for pre-launch anomalies
-4. **Tester feedback loop** ⚠️ — confirm `/api/feedback` notifications surface to user's inbox; one-page "what we want feedback on" doc/page; reply-able beta@ alias since `noreply@postcrisp.com` is sender-only. (FeedbackButton wired in `dashboard/layout.tsx:28` — confirmed.)
-5. **Real-environment regression checks** ⚠️ — cold-account walkthrough from a fresh email/incognito (logo refresh + FA CTA + 3-tier pricing all shipped post-last-cold-walk); email deliverability spot-check to gmail + outlook; OG card preview for `postcrisp.com`; mobile sanity check for FA + rocket loader
-6. **Saturday-AM monitoring + rollback** — Sentry filter pinned, Anthropic Usage refreshed every couple hours, Stripe webhook delivery dashboard (should stay quiet), Vercel rollback path known (Promote previous deployment — reverts FA + Team-drop together)
-7. **Post-update NDA smoke-test** ⚠️ NEW from NDA bump — sign in as Rodney/non-admin, hit dashboard, confirm redirect to `/accept-terms` → page shows "Beta Tester Agreement" / v1.1 / "Effective 2026-05-01" / new section text → accept → return to dashboard works
+### Pre-flight punchlist — what's done
 
-### Honest pushback flagged (per `feedback_honest_pushback`)
+| # | Task | Status |
+|---|------|--------|
+| 1 | Apply DB schema to prod Supabase | ✅ User confirmed success |
+| 2 | Capture FA paywall preview screenshot | ⚠️ Deferred — `previewSnapshotUrl` prop removed in `f44f5e8` so paywall doesn't render broken. Re-capture + re-add prop in follow-up |
+| 3 | Verify Vercel production env vars | ✅ |
+| 4 | Set spending caps + Upstash check | ✅ |
+| 5 | beta@ alias + FeedbackButton verify | ✅ |
+| 6 | Write `docs/beta-tester-feedback-focus.md` | ✅ Shipped (one-pager for invite emails) |
+| 7 | Merge `foundation-analysis` → `main` | ✅ `df47019` |
+| 8 | NDA v1.1 acceptance flow smoke-test | ✅ |
+| 9 | Cold-account end-to-end walkthrough | ✅ |
+| 10 | FA + Voice Trainer combined check | ✅ |
+| 11 | OG card + email + mobile sanity | ✅ Findings: `theme-color` still purple (`#8b5cf6`), no `og:image` set. Both deferred to post-launch unless reprioritized — see follow-ups |
+| 12 | Open monitoring + backout criteria | ✅ Doc shipped at `LAUNCH_NOTES.md` |
+| 16 | PICKUP.md template for post-launch fill-in | ✅ Shipped at `LAUNCH_NOTES_pickup_template.md` |
 
-- **Paywall preview screenshot** is most likely "oh no" — visible on dashboard CTA card to every Starter tester within seconds of signup
-- **Foundation Analysis + Voice Trainer** haven't been exercised together by a real user. Combined prompt-length might not have been smoke-tested; worth single-tester run with both filled in
-- **Soft cutover (B) ≠ delay** — recommended over hard cutover (A): fix gates Fri night → merge → 2-3 canary testers Sat AM → watch Sentry + Anthropic spend through Sat afternoon → blast remaining invites Sun morning if green. Same total work, much better blast-radius control.
+### Pre-flight punchlist — scheduled (future-dated weekend ops)
 
-### Success criteria for the wave (proposed)
+| # | Task | When |
+|---|------|------|
+| 13 | Canary tester provisioning + invites | **Sat 2026-05-02** — after recruitment video posts, user picks testers from response funnel |
+| 14 | Saturday afternoon go/no-go review | **Sat 2026-05-02 PM** — against canary feedback |
+| 15 | Sunday wave-blast or rollback | **Sun 2026-05-03 AM** |
+
+All three have detailed checklists pre-staged in `LAUNCH_NOTES.md`. They cannot be marked complete in the tracker until the work happens live.
+
+### Decisions locked (during brainstorming + execution)
+
+- **Beta = expanded invite-only.** Same access-control gate, larger invite-code batch, no Stripe, no public marketing surface
+- **Tester provisioning is manual.** Adjust `subscription_tier` per tester at `/admin/users/[id]`; grant credits at `/admin/credit-adjustments`
+- **NDA v1.1 is canonical.** Existing alpha testers re-prompted on next dashboard hit. Captain admin bypasses
+- **Recruitment via Saturday video.** User hand-picks testers from response funnel — no public signup form
+- **Soft cutover (B)** chosen over hard cutover (A): canary Sat → wave-blast Sun if green
+- **Tester-support chatbot deferred** — `beta@postcrisp.com` reply-able alias serves as support channel for this wave
+- **Out of scope for this wave:** Stripe activation, public marketing, auto-recruitment, in-app chatbot, internal `alpha_*` symbol renames
+
+### Honest pushback applied this session
+
+- **Chatbot deferred** — adding tester-support chatbot was scope expansion (2-5 day build right at launch). Rejected; `beta@` alias + FeedbackButton serves as support channel
+- **Hard cutover (A) rejected** in favor of soft cutover (B) — same total work, dramatically better blast-radius control
+- **Public auto-recruitment rejected** — user hand-picks testers from video response funnel
+- **Task 2 screenshot deferral** — instead of shipping a known broken image, the `previewSnapshotUrl` prop was removed (commit `f44f5e8`). Adding the FA sidebar link in `ce6ec39` had elevated the broken-image risk for Starter/Creator users who'd click the new menu item; removing the prop until screenshot lands keeps the paywall clean
+- **Tasks 13-15 left as pending in tracker.** They are inherently future-dated (weekend calendar work). Marking them complete from a Friday-evening session would falsify the operational state
+
+### Success criteria for the wave
 
 - ≥80% of invited testers complete signup
 - ≥50% finish 5-step tutorial
 - Sentry issue rate stays within ~2× baseline
 - Zero invite-code race-condition incidents
-- ≥2 testers run Foundation Analysis end-to-end and the saved Creator Profile influences a downstream caption run
+- ≥2 testers run Foundation Analysis end-to-end and the saved Creator Profile influences a downstream Captions / Viral Ideas / Bio Optimizer run
 - Anthropic spend stays under $20 for the wave
+- Zero NDA-acceptance-flow regressions reported by testers
 
-### Brainstorming task list (superpowers:brainstorming, mid-flight)
+### Operational artifacts (committed for cross-machine continuity — laptop ↔ Codespace)
 
-- ✅ #1 Explore project context
-- ✅ #2 Ask clarifying questions about beta scope
-- 🔄 #3 Propose 2-3 launch readiness approaches (presented A/B/C, recommended B)
-- ⏳ #4 Present launch readiness design / punchlist (presented above; awaiting user approval)
-- ⏳ #5 Write design doc to `docs/superpowers/specs/2026-05-01-beta-launch-readiness-design.md`
-- ⏳ #6 Spec self-review
-- ⏳ #7 User reviews written spec
-- ⏳ #8 Invoke writing-plans skill (terminal state)
+- **`LAUNCH_NOTES.md`** — backout criteria, monitoring URLs, per-tester provisioning checklist (with SQL verify queries), Saturday AM checklist, GO/NO-GO criteria, rollback procedure, decisions log table
+- **`LAUNCH_NOTES_pickup_template.md`** — Sunday-evening PICKUP fill-in template with placeholders for tester counts, success-criteria results, feedback themes, rollback events
+- **`docs/beta-tester-feedback-focus.md`** — one-pager attached to each invite email
 
-### When user says "Engage" — next concrete steps
+`LAUNCH_NOTES_*` files are operational scratch — committed for cross-machine continuity but expected to be deleted or rolled forward post-wave (Sunday evening, after content moves into PICKUP.md per Task 16).
 
-1. Open this section + read `src/lib/alpha-agreement.ts` (current state v1.1) and confirm the NDA bump commit landed
-2. Re-summarize the punchlist briefly (sections 1-7 above)
-3. Ask the three open questions:
-   - Anything to add/remove on the punchlist before it becomes the spec doc?
-   - Soft cutover (B) Saturday-canary → Sunday-full, or hard cutover (A) all-at-once?
-   - Approval to write the spec doc + invoke writing-plans?
-4. On approval, write spec → self-review → request user review → invoke writing-plans
+### When user says "Engage" — calendar-aware next steps
 
-### Files touched this session
+1. **If today is Saturday 2026-05-02 AM:** open `LAUNCH_NOTES.md`. Run the Saturday AM checklist (open monitoring tabs, note Sentry + Anthropic baselines in decisions log, generate 8 invite codes at `/admin/invite-codes`). Wait for video response funnel.
+2. **If today is Saturday 2026-05-02 mid-day:** as canary picks come in, follow the per-tester provisioning checklist in `LAUNCH_NOTES.md` (signup → tier-up → credits → personal invite email with `docs/beta-tester-feedback-focus.md`).
+3. **If today is Saturday 2026-05-02 PM:** review canary state against the GO/NO-GO criteria in `LAUNCH_NOTES.md`. Make the call. Document in the decisions log.
+4. **If today is Sunday 2026-05-03 AM:** execute Path A (wave-blast — invite remaining testers) or Path B (rollback — Vercel promote-previous + git revert + canary comms) per `LAUNCH_NOTES.md`. Continue monitoring.
+5. **If today is Sunday 2026-05-03 evening:** fill `LAUNCH_NOTES_pickup_template.md` placeholders, paste into this PICKUP.md (replacing this Session 17 IN PROGRESS section), commit + push. Delete `LAUNCH_NOTES*.md` operational scratch.
+6. **If something has gone wrong mid-wave:** consult the rollback procedure in `LAUNCH_NOTES.md`. Stabilize first, diagnose after.
 
-- `src/lib/alpha-agreement.ts` — version + effective-date + title + 4 section text changes
-- `src/app/accept-terms/page.tsx` — 3 hardcoded strings; checkbox label refactored to read `{ALPHA_AGREEMENT_TITLE}`
-- `docs/alpha-tester-agreement.md` — full rewrite for beta language; added in-app-gate-is-source-of-truth note; ticked off the "move acceptance into product" historical checkbox
-- `PICKUP.md` — this section (in-progress tracker)
+### Manual follow-ups still pending (tracked from this session)
 
-Typecheck clean (`npx tsc --noEmit`). Tests not re-run (NDA constants aren't covered by Vitest fixtures).
+1. **Capture FA paywall preview screenshot** — `public/foundation-analysis-preview.png` (1600×900) and re-add `previewSnapshotUrl` prop in `src/app/dashboard/foundation-analysis/page.tsx`. The prop was removed in `f44f5e8` to avoid shipping a broken image; restoring it lifts the upgrade signal for Starter / Creator users who land on the FA paywall page
+2. **Add `og:image` to `src/app/layout.tsx`** — production `<meta property="og:image">` is unset; social shares of `postcrisp.com` render text-only. 1200×630 image + 2 lines in `openGraph` config
+3. **Update `src/app/layout.tsx:35` `themeColor`** — currently `#8b5cf6` (purple, pre-brand-refresh). Change to Gunmetal `#0E1216` (matches page bg) per brand palette in `tailwind.config.ts:29`
+4. **Optional cleanup in 2 weeks:** remove the defensive `case 'team': return 'creator'` line in `tierFromDbValue` once zero `'team'` rows confirmed in production (already scheduled via background agent from session 16)
+
+### Pre-merge gates (verified before push)
+
+- Typecheck clean (`npx tsc --noEmit`)
+- 41/41 vitest tests pass across 7 test files (matches session 16 baseline)
 
 ---
 
