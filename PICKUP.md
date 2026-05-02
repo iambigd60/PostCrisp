@@ -1,10 +1,77 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-04-30 (session 16 — Foundation Analysis feature + Team tier dropped)
-**Build status:** ✅ `foundation-analysis` branch (23 commits ahead of main) ready to merge after smoke test
+**Last updated:** 2026-05-01 (session 17 — beta launch readiness brainstorm IN PROGRESS + NDA bumped to v1.1)
+**Build status:** ✅ `foundation-analysis` branch (24 commits ahead of main; NDA bump uncommitted at save time, see below)
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Pre-launch status:** 🟡 1 item blocking — **Stripe production verification (up to 2 days)**
+**Pre-launch status (beta = invite-only, no Stripe):** 🟢 No hard blockers; punchlist drafted, awaiting user approval
+
+---
+
+## 🟡 Session 17 — IN PROGRESS — Beta launch readiness brainstorm + NDA → beta v1.1
+
+> **Resume word:** **"Engage"**. When user opens next session with that word, jump here.
+
+### Decisions locked
+
+- **Beta = "expanded invite-only"** (option A). Same access-control gate, bigger invite-code batch, no Stripe, no public marketing surface.
+- **Tester provisioning** is manual: user adjusts `subscription_tier` per tester at `/admin/users/[id]` and grants credits at `/admin/credit-adjustments`.
+- **NDA bumped 1.0 → 1.1**, alpha → beta language across `src/lib/alpha-agreement.ts` + `src/app/accept-terms/page.tsx` + `docs/alpha-tester-agreement.md`. Internal symbol names (`ALPHA_AGREEMENT_*`, `alpha_nda` JSONB key, `/api/user/alpha-acceptance` route, `requireAlphaAcceptance()`) intentionally NOT renamed — implementation detail, no user-visible benefit. Existing alpha testers will be re-prompted to accept v1.1 on next dashboard hit (intended consequence; v1.0 record preserved in audit). Captain admin bypasses.
+
+### Punchlist drafted (sectioned, not yet user-approved)
+
+1. **Pre-flight code gates** — merge `foundation-analysis` → `main`; capture `public/foundation-analysis-preview.png` (1600×900) so paywall card doesn't render broken; confirm `STRIPE_ELITE_*` env vars exist in Vercel so `/dashboard/billing` doesn't 500; smoke-test merged main end-to-end on a real Elite account
+2. **Tester provisioning** — generate invite codes at `/admin/invite-codes` (wave size + 25% buffer); manual tier-up + credit grants per tester (suggest 100 credits ≈ $2-5/tester)
+3. **Cost & abuse defense** ⚠️ — Anthropic monthly spending cap at $50-100 (defense in depth even with rate limiter); same for OpenAI if FAST tier uses it; spot-check Upstash dashboard for pre-launch anomalies
+4. **Tester feedback loop** ⚠️ — confirm `/api/feedback` notifications surface to user's inbox; one-page "what we want feedback on" doc/page; reply-able beta@ alias since `noreply@postcrisp.com` is sender-only. (FeedbackButton wired in `dashboard/layout.tsx:28` — confirmed.)
+5. **Real-environment regression checks** ⚠️ — cold-account walkthrough from a fresh email/incognito (logo refresh + FA CTA + 3-tier pricing all shipped post-last-cold-walk); email deliverability spot-check to gmail + outlook; OG card preview for `postcrisp.com`; mobile sanity check for FA + rocket loader
+6. **Saturday-AM monitoring + rollback** — Sentry filter pinned, Anthropic Usage refreshed every couple hours, Stripe webhook delivery dashboard (should stay quiet), Vercel rollback path known (Promote previous deployment — reverts FA + Team-drop together)
+7. **Post-update NDA smoke-test** ⚠️ NEW from NDA bump — sign in as Rodney/non-admin, hit dashboard, confirm redirect to `/accept-terms` → page shows "Beta Tester Agreement" / v1.1 / "Effective 2026-05-01" / new section text → accept → return to dashboard works
+
+### Honest pushback flagged (per `feedback_honest_pushback`)
+
+- **Paywall preview screenshot** is most likely "oh no" — visible on dashboard CTA card to every Starter tester within seconds of signup
+- **Foundation Analysis + Voice Trainer** haven't been exercised together by a real user. Combined prompt-length might not have been smoke-tested; worth single-tester run with both filled in
+- **Soft cutover (B) ≠ delay** — recommended over hard cutover (A): fix gates Fri night → merge → 2-3 canary testers Sat AM → watch Sentry + Anthropic spend through Sat afternoon → blast remaining invites Sun morning if green. Same total work, much better blast-radius control.
+
+### Success criteria for the wave (proposed)
+
+- ≥80% of invited testers complete signup
+- ≥50% finish 5-step tutorial
+- Sentry issue rate stays within ~2× baseline
+- Zero invite-code race-condition incidents
+- ≥2 testers run Foundation Analysis end-to-end and the saved Creator Profile influences a downstream caption run
+- Anthropic spend stays under $20 for the wave
+
+### Brainstorming task list (superpowers:brainstorming, mid-flight)
+
+- ✅ #1 Explore project context
+- ✅ #2 Ask clarifying questions about beta scope
+- 🔄 #3 Propose 2-3 launch readiness approaches (presented A/B/C, recommended B)
+- ⏳ #4 Present launch readiness design / punchlist (presented above; awaiting user approval)
+- ⏳ #5 Write design doc to `docs/superpowers/specs/2026-05-01-beta-launch-readiness-design.md`
+- ⏳ #6 Spec self-review
+- ⏳ #7 User reviews written spec
+- ⏳ #8 Invoke writing-plans skill (terminal state)
+
+### When user says "Engage" — next concrete steps
+
+1. Open this section + read `src/lib/alpha-agreement.ts` (current state v1.1) and confirm the NDA bump commit landed
+2. Re-summarize the punchlist briefly (sections 1-7 above)
+3. Ask the three open questions:
+   - Anything to add/remove on the punchlist before it becomes the spec doc?
+   - Soft cutover (B) Saturday-canary → Sunday-full, or hard cutover (A) all-at-once?
+   - Approval to write the spec doc + invoke writing-plans?
+4. On approval, write spec → self-review → request user review → invoke writing-plans
+
+### Files touched this session
+
+- `src/lib/alpha-agreement.ts` — version + effective-date + title + 4 section text changes
+- `src/app/accept-terms/page.tsx` — 3 hardcoded strings; checkbox label refactored to read `{ALPHA_AGREEMENT_TITLE}`
+- `docs/alpha-tester-agreement.md` — full rewrite for beta language; added in-app-gate-is-source-of-truth note; ticked off the "move acceptance into product" historical checkbox
+- `PICKUP.md` — this section (in-progress tracker)
+
+Typecheck clean (`npx tsc --noEmit`). Tests not re-run (NDA constants aren't covered by Vitest fixtures).
 
 ---
 
