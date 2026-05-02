@@ -3,11 +3,11 @@
 // prompted to re-accept the new version. Old acceptances are preserved in
 // the audit log but no longer satisfy the gate.
 
-export const ALPHA_AGREEMENT_VERSION = '1.0'
+export const ALPHA_AGREEMENT_VERSION = '1.1'
 
-export const ALPHA_AGREEMENT_EFFECTIVE_DATE = '2026-04-22'
+export const ALPHA_AGREEMENT_EFFECTIVE_DATE = '2026-05-01'
 
-export const ALPHA_AGREEMENT_TITLE = 'Alpha Tester Agreement'
+export const ALPHA_AGREEMENT_TITLE = 'Beta Tester Agreement'
 
 // ─── Structured content ──────────────────────────────────────────────────
 // Rendered as numbered sections on the acceptance page. Keeping this in
@@ -25,7 +25,7 @@ export const ALPHA_AGREEMENT_SECTIONS: AgreementSection[] = [
   {
     heading: '1. The Product',
     paragraphs: [
-      'You are receiving early access to PostCrisp, an AI content platform still in pre-release alpha (the "Product"). The Product — including all features, UI/UX designs, business logic, pricing strategies, roadmap, bugs, technical implementation, and internal communications related to it ("Confidential Information") — is confidential property of Crusher Brands, LLC ("Company").',
+      'You are receiving early access to PostCrisp, an AI content platform still in pre-release beta (the "Product"). The Product — including all features, UI/UX designs, business logic, pricing strategies, roadmap, bugs, technical implementation, and internal communications related to it ("Confidential Information") — is confidential property of Crusher Brands, LLC ("Company").',
     ],
   },
   {
@@ -54,19 +54,19 @@ export const ALPHA_AGREEMENT_SECTIONS: AgreementSection[] = [
   {
     heading: '5. No Warranty',
     paragraphs: [
-      'The Product is provided "as is" and "as available." Company makes no guarantees about stability, data retention, feature availability, or continued access during the alpha period.',
+      'The Product is provided "as is" and "as available." Company makes no guarantees about stability, data retention, feature availability, or continued access during the beta period.',
     ],
   },
   {
     heading: '6. No Employment / Equity / Compensation',
     paragraphs: [
-      'This Agreement does not create any employment, partnership, agency, or equity relationship between you and Company. You are a volunteer alpha tester and will not receive monetary compensation for participation.',
+      'This Agreement does not create any employment, partnership, agency, or equity relationship between you and Company. You are a volunteer beta tester and will not receive monetary compensation for participation.',
     ],
   },
   {
     heading: '7. Term and Termination',
     paragraphs: [
-      'Either party may end your alpha access at any time, for any reason, with or without notice. Confidentiality obligations under Section 2 survive any termination of this Agreement per the term specified in Section 2 above.',
+      'Either party may end your beta access at any time, for any reason, with or without notice. Confidentiality obligations under Section 2 survive any termination of this Agreement per the term specified in Section 2 above.',
     ],
   },
   {
