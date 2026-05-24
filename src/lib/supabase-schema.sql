@@ -317,6 +317,27 @@ CREATE TABLE IF NOT EXISTS public.generations (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- generation_ai_calls — one row per provider/model call that powered a generation.
+-- This lets admin analytics attribute real cost by feature, tier, model, and
+-- request role (primary model call vs. internal critic/refine pass).
+CREATE TABLE IF NOT EXISTS public.generation_ai_calls (
+  id                          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  generation_id               UUID REFERENCES public.generations(id) ON DELETE CASCADE NOT NULL,
+  user_id                     UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  feature                     TEXT NOT NULL,
+  tier                        TEXT NOT NULL CHECK (tier IN ('starter', 'creator', 'elite')),
+  request_role                TEXT NOT NULL CHECK (request_role IN ('primary', 'critic', 'vision')),
+  provider                    TEXT NOT NULL,
+  model                       TEXT NOT NULL,
+  input_tokens                INTEGER NOT NULL DEFAULT 0,
+  output_tokens               INTEGER NOT NULL DEFAULT 0,
+  total_tokens                INTEGER NOT NULL DEFAULT 0,
+  cache_read_input_tokens     INTEGER NOT NULL DEFAULT 0,
+  cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+  estimated_cost_usd          NUMERIC(12, 8) NOT NULL DEFAULT 0,
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- saved_content
 CREATE TABLE IF NOT EXISTS public.saved_content (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -346,6 +367,12 @@ CREATE TABLE IF NOT EXISTS public.usage_stats (
 -- ============================================================
 CREATE INDEX IF NOT EXISTS generations_user_id_idx ON public.generations (user_id);
 CREATE INDEX IF NOT EXISTS generations_created_at_idx ON public.generations (created_at DESC);
+CREATE INDEX IF NOT EXISTS generation_ai_calls_generation_id_idx
+  ON public.generation_ai_calls (generation_id);
+CREATE INDEX IF NOT EXISTS generation_ai_calls_user_id_idx
+  ON public.generation_ai_calls (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS generation_ai_calls_feature_idx
+  ON public.generation_ai_calls (feature, created_at DESC);
 CREATE INDEX IF NOT EXISTS saved_content_user_id_idx ON public.saved_content (user_id);
 CREATE INDEX IF NOT EXISTS usage_stats_user_id_date_idx ON public.usage_stats (user_id, date);
 
@@ -354,6 +381,7 @@ CREATE INDEX IF NOT EXISTS usage_stats_user_id_date_idx ON public.usage_stats (u
 -- ============================================================
 ALTER TABLE public.profiles     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.generations  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.generation_ai_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saved_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usage_stats  ENABLE ROW LEVEL SECURITY;
 
@@ -390,6 +418,13 @@ DROP POLICY IF EXISTS "Users can insert own generations" ON public.generations;
 CREATE POLICY "Users can insert own generations"
   ON public.generations FOR INSERT
   WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins read all generation_ai_calls" ON public.generation_ai_calls;
+CREATE POLICY "Admins read all generation_ai_calls"
+  ON public.generation_ai_calls FOR SELECT
+  USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+-- No INSERT/UPDATE/DELETE policy — writes happen server-side through trusted route handlers.
 
 DROP POLICY IF EXISTS "Users can update own generations" ON public.generations;
 CREATE POLICY "Users can update own generations"

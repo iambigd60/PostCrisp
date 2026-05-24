@@ -22,6 +22,8 @@ export interface GenerateResult {
   text: string
   inputTokens: number
   outputTokens: number
+  cacheReadInputTokens?: number
+  cacheCreationInputTokens?: number
 }
 
 export interface AIProvider {

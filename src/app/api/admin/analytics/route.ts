@@ -61,7 +61,7 @@ export async function GET() {
       .select('id, subscription_tier, created_at'),
     auth.supabaseAdmin
       .from('generations')
-      .select('user_id, feature, tokens_used, created_at')
+      .select('id, user_id, feature, tokens_used, created_at')
       .gte('created_at', windowStart.toISOString()),
     auth.supabaseAdmin
       .from('credit_transactions')
@@ -76,6 +76,24 @@ export async function GET() {
   const profiles = profilesRes.data ?? []
   const gens = genRes.data ?? []
   const creditRows = creditConsumeRes.data ?? []
+
+  const { data: aiCallRows, error: aiCallError } = await auth.supabaseAdmin
+    .from('generation_ai_calls')
+    .select('generation_id, user_id, feature, total_tokens, estimated_cost_usd, created_at')
+    .gte('created_at', windowStart.toISOString())
+
+  const ledgerRows = aiCallError ? [] : (aiCallRows ?? [])
+  if (aiCallError) console.warn('[admin/analytics] generation_ai_calls unavailable, falling back to token estimates:', aiCallError.message)
+
+  const ledgerCostByGeneration = new Map<string, number>()
+  for (const row of ledgerRows) {
+    const generationId = row.generation_id as string | null
+    if (!generationId) continue
+    ledgerCostByGeneration.set(
+      generationId,
+      (ledgerCostByGeneration.get(generationId) ?? 0) + Number(row.estimated_cost_usd ?? 0),
+    )
+  }
 
   // ─── User-level aggregates ──────────────────────────────────────────
   const totalUsers = profiles.length
@@ -113,7 +131,7 @@ export async function GET() {
     const created = new Date(g.created_at)
     const tokens = g.tokens_used ?? 0
     const feat = g.feature ?? 'unknown'
-    const rowCost = estimateCostUSD(feat, tokens)
+    const rowCost = ledgerCostByGeneration.get(g.id) ?? estimateCostUSD(feat, tokens)
     totalTokens30d += tokens
     totalGenerations30d += 1
     totalEstCostUsd30d += rowCost

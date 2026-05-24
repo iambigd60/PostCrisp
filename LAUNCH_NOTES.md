@@ -6,6 +6,17 @@
 
 ---
 
+## 2026-05-24 launch-readiness update
+
+- Cost tracking is ready after deploy: `generation_ai_calls` records model, token, cache-token, role, tier, feature, and estimated USD cost for wired features.
+- Wired cost-ledger coverage: Foundation Analysis, Channel Analysis, Thumbnail Analyzer.
+- Foundation Analysis refine is disabled unless `ENABLE_FOUNDATION_REFINE=true`; leave it off for public testing until async/background processing is introduced.
+- Foundation Analysis evidence is now hybrid. Users can add top-post URLs, but every URL must match the selected platform or the analysis is blocked.
+- Saved social Channel URLs also enforce platform-domain matching.
+- Before public cost trials, confirm production Supabase has the latest `src/lib/supabase-schema.sql` and Vercel has `SUPABASE_SERVICE_ROLE_KEY`.
+
+---
+
 ## Monitoring tabs (open Saturday AM, refresh every 2-3 hours)
 
 | Service | URL | What to watch |

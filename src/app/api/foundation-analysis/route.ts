@@ -4,6 +4,8 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { upsertCreatorProfile } from '@/lib/creator-profile'
+import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
+import { isSocialPlatformUrl, looksLikeUrl, socialPlatformLabel, validateEvidencePostsForPlatform } from '@/lib/social-url'
 import { buildFoundationPrompt, type FoundationInput } from './prompt'
 
 export const maxDuration = 120
@@ -44,6 +46,12 @@ export async function POST(request: Request) {
   if (!body.targetAudience?.description?.trim()) errors.push('targetAudience.description is required')
   if (!body.growthGoal) errors.push('growthGoal is required')
   if (!body.samplePosts?.filter((p) => p.caption?.trim()).length) errors.push('at least 1 sample post with caption text is required')
+  if (body.platform && body.samplePosts) {
+    errors.push(...validateEvidencePostsForPlatform(body.platform, body.samplePosts))
+  }
+  if (body.platform && body.analyzeHandle && looksLikeUrl(body.analyzeHandle) && !isSocialPlatformUrl(body.platform, body.analyzeHandle)) {
+    errors.push(`Channel URL must be a ${socialPlatformLabel(body.platform)} link.`)
+  }
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
   }
@@ -53,11 +61,12 @@ export async function POST(request: Request) {
 
   const input = body as FoundationInput
   const prompt = buildFoundationPrompt(input)
-  const useRefine = auth.tier === 'elite'
+  const useRefine = auth.tier === 'elite' && process.env.ENABLE_FOUNDATION_REFINE === 'true'
 
   let text = ''
   let totalTokens = 0
   let refined = false
+  let aiCalls: AiCallLedgerEntry[] = []
   const tStart = Date.now()
   try {
     const result = await crispGenerate({
@@ -70,6 +79,7 @@ export async function POST(request: Request) {
     text = result.text
     totalTokens = result.totalTokens
     refined = result.refined
+    aiCalls = result.aiCalls
     console.log(`[foundation-analysis] crispGenerate done — tier=${auth.tier} refined=${refined} elapsedMs=${Date.now() - tStart} tokens=${totalTokens} model=${result.modelUsed}`)
   } catch (error) {
     console.error(`[foundation-analysis] model call failed after ${Date.now() - tStart}ms:`, error)
@@ -119,6 +129,13 @@ export async function POST(request: Request) {
       tokens_used: totalTokens,
     }).select('id').single()
     analysisId = inserted?.id ?? null
+    await recordGenerationAiCalls(auth.supabase, {
+      generationId: analysisId,
+      userId: auth.userId,
+      feature: 'foundation_analysis',
+      tier: auth.tier,
+      calls: aiCalls,
+    })
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'foundation-analysis')
   } catch (error) {
     console.error('[foundation-analysis] generation persist failed (non-fatal):', error)

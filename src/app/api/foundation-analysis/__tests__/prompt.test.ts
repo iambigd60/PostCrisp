@@ -14,7 +14,7 @@ const baseInput: FoundationInput = {
   currentChallenges: 'Reach stalled after 10K. Reels feel forced.',
   analyzeHandle: '@iambigd',
   samplePosts: [
-    { caption: 'Top 3 AI tools I run my business on (a thread)', metric: '48K saves, 220K reach', whyItWorked: "Curiosity hook + 'thread' format" },
+    { caption: 'Top 3 AI tools I run my business on (a thread)', metric: '48K saves, 220K reach', whyItWorked: "Curiosity hook + 'thread' format", sourceUrl: 'https://instagram.com/p/C123/' },
     { caption: 'How I went from idea to $10K MRR in 60 days', metric: '12K likes', whyItWorked: 'Specific outcome' },
     { caption: 'I was wrong about Notion. Here\'s what changed.', metric: '8K likes' },
   ],
@@ -40,6 +40,7 @@ describe('buildFoundationPrompt', () => {
   it('includes each provided sample post with its metric and theory', () => {
     const prompt = buildFoundationPrompt(baseInput)
     expect(prompt).toContain('Top 3 AI tools')
+    expect(prompt).toContain('https://instagram.com/p/C123/')
     expect(prompt).toContain('48K saves, 220K reach')
     expect(prompt).toContain("Curiosity hook + 'thread' format")
     expect(prompt).toContain('How I went from idea to $10K MRR')

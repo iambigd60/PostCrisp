@@ -5,6 +5,7 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
+import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
 // Vercel function timeout. Default is 10s (Hobby) / 60s (Pro). Channel
 // Analysis with refine on for Elite tier needs more headroom — pass 1
@@ -132,6 +133,7 @@ Rules:
   let text = ''
   let totalTokens = 0
   let refined = false
+  let aiCalls: AiCallLedgerEntry[] = []
   const tStart = Date.now()
   try {
     const result = await crispGenerate({
@@ -146,6 +148,7 @@ Rules:
     text = result.text
     totalTokens = result.totalTokens
     refined = result.refined
+    aiCalls = result.aiCalls
     console.log(`[channel-analysis] crispGenerate done — tier=${auth.tier} refined=${refined} elapsedMs=${Date.now() - tStart} tokens=${totalTokens} model=${result.modelUsed}`)
   } catch (error) {
     console.error(`[channel-analysis] model call failed after ${Date.now() - tStart}ms:`, error)
@@ -181,6 +184,13 @@ Rules:
       tokens_used: totalTokens,
     }).select('id').single()
     analysisId = inserted?.id ?? null
+    await recordGenerationAiCalls(auth.supabase, {
+      generationId: analysisId,
+      userId: auth.userId,
+      feature: 'channel_analysis',
+      tier: auth.tier,
+      calls: aiCalls,
+    })
     // bypass-credits flow already left auth.creditCost = 0 — calling consumeCredits
     // is a no-op there but kept for symmetry / non-tutorial path.
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'channel-analysis')

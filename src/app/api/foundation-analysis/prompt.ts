@@ -10,7 +10,7 @@ export interface FoundationInput {
   formatStrengths: string[]
   currentChallenges?: string
   analyzeHandle?: string
-  samplePosts: Array<{ caption: string; metric?: string; whyItWorked?: string }>
+  samplePosts: Array<{ caption: string; metric?: string; whyItWorked?: string; sourceUrl?: string }>
 }
 
 export function buildFoundationPrompt(input: FoundationInput): string {
@@ -20,8 +20,9 @@ export function buildFoundationPrompt(input: FoundationInput): string {
     .filter((p) => p.caption?.trim())
     .map((p, i) => {
       const metric = p.metric ? ` (Metric: ${p.metric})` : ''
+      const source = p.sourceUrl ? `\n  Source URL: ${p.sourceUrl}` : ''
       const theory = p.whyItWorked ? `\n  Creator's theory: ${p.whyItWorked}` : ''
-      return `Sample post #${i + 1}${metric}:\n  "${p.caption}"${theory}`
+      return `Sample post #${i + 1}${metric}:${source}\n  "${p.caption}"${theory}`
     })
     .join('\n\n')
 

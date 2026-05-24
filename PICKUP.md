@@ -1,10 +1,48 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-05-01 evening (session 17 — pre-flight punchlist done, merged to `main`, weekend wave pending)
-**Build status:** ✅ `main` at `df47019` — `foundation-analysis` merged. Vercel deploy `dpl_AT7y2BAPtqX7voFTRrjLjDMqjFys` live at https://postcrisp.com.
+**Last updated:** 2026-05-24 (session 18 — cost telemetry + hybrid Foundation Analysis evidence ready to deploy)
+**Build status:** ✅ Local `main` contains un-deployed cost ledger, Foundation Analysis timeout mitigation, and strict social URL validation. Commit/push pending at start of this note.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🟡 Pre-flight 12/16 done; canary + wave-blast scheduled Sat-Sun 2026-05-02/03
+**Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
+
+---
+
+## Session 18 shipped — Cost telemetry + Foundation Analysis evidence hardening
+
+### What changed
+
+- Added `generation_ai_calls` schema + service-role ledger writer for per-provider AI call cost attribution.
+- Wired ledger rows for Foundation Analysis, Channel Analysis, and Thumbnail Analyzer.
+- Added `estimateAiCallCostUsd` with OpenAI/Anthropic model pricing and Anthropic cache-token handling.
+- Updated admin analytics to use ledger costs when available.
+- Added `docs/credit-matrix.md` for balancing credit charges against real provider costs.
+- Disabled Foundation Analysis refine pass by default unless `ENABLE_FOUNDATION_REFINE=true`, reducing 504 risk.
+- Added shared social URL validation in `src/lib/social-url.ts`.
+- Foundation Analysis now accepts hybrid evidence: top-post URL + pasted caption/script + metric + creator theory.
+- Foundation Analysis blocks submission if an evidence URL or channel URL override does not match the selected platform. The API enforces the same rule.
+- Saved Channel URLs now enforce social-domain matching for known social platforms.
+
+### Deployment notes
+
+- Apply `src/lib/supabase-schema.sql` to the target Supabase project before relying on ledger analytics.
+- Ensure Vercel has `SUPABASE_SERVICE_ROLE_KEY`; ledger writes use service-role credentials server-side.
+- Local dev needs a real `.env.local`; only `.env.local.example` exists in this checkout.
+- To measure real cost, run:
+  ```sql
+  select generation_id, feature, request_role, provider, model, total_tokens, estimated_cost_usd, created_at
+  from public.generation_ai_calls
+  where feature = 'foundation_analysis'
+  order by created_at desc
+  limit 10;
+  ```
+
+### Verification
+
+- `npm test` passed: 10 files, 52 tests.
+- `npm run typecheck` passed.
+- `git diff --check` clean except CRLF warnings.
+- `npm run lint` still fails due existing workspace root/config issue: Next selects `C:\Projects\postcrisp` and loads that parent `.eslintrc.json`, which cannot resolve `next/core-web-vitals` for this app.
 
 ---
 

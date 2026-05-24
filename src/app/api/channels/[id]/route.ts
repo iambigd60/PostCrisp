@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { isValidPlatform } from '@/lib/channels'
+import { isKnownSocialPlatform, isSocialPlatformUrl, socialPlatformLabel } from '@/lib/social-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   if ('sort_order' in body && typeof body.sort_order === 'number') {
     updates.sort_order = body.sort_order
+  }
+
+  if (updates.url) {
+    let platform = typeof updates.platform === 'string' ? updates.platform : null
+    if (!platform) {
+      const { data: current } = await supabase
+        .from('channels')
+        .select('platform')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single()
+      platform = typeof current?.platform === 'string' ? current.platform : null
+    }
+    if (isKnownSocialPlatform(platform) && typeof updates.url === 'string' && !isSocialPlatformUrl(platform, updates.url)) {
+      return NextResponse.json({ error: `URL must match the selected ${socialPlatformLabel(platform)}.` }, { status: 400 })
+    }
   }
 
   if (Object.keys(updates).length === 0) {

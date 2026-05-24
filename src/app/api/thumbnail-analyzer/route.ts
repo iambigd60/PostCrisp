@@ -5,6 +5,8 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { consumeCredits } from '@/lib/credits'
 import { DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
 import { systemPromptFor } from '@/lib/system-prompts'
+import { estimateAiCallCostUsd } from '@/lib/ai-costs'
+import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -132,6 +134,7 @@ Rules:
   // base64 image, network hiccup, or 5xx from their API.
   let text = ''
   let totalTokens = 0
+  let aiCalls: AiCallLedgerEntry[] = []
   try {
     const response = await getAnthropic().messages.create({
       model,
@@ -158,6 +161,22 @@ Rules:
     text = response.content[0].type === 'text' ? response.content[0].text : ''
     const usage = response.usage as { input_tokens: number; output_tokens: number }
     totalTokens = usage.input_tokens + usage.output_tokens
+    aiCalls = [{
+      requestRole: 'vision',
+      provider,
+      model,
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      totalTokens,
+      cacheReadInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      estimatedCostUsd: estimateAiCallCostUsd({
+        provider,
+        model,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+      }),
+    }]
   } catch (error) {
     // Anthropic SDK errors carry .status / .message. Surface the status to
     // the client so the message can be specific (overload vs auth vs
@@ -196,7 +215,7 @@ Rules:
   // still gets the analysis. Audit row is the loss; logged for follow-up.
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-    await auth.supabase.from('generations').insert({
+    const { data: inserted } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'thumbnail_analyzer',
       platform,
@@ -205,6 +224,13 @@ Rules:
       input_data: { platform, topic: topic ?? null, audience: audience ?? null, mediaType },
       output_data: parsed,
       tokens_used: totalTokens,
+    }).select('id').single()
+    await recordGenerationAiCalls(auth.supabase, {
+      generationId: inserted?.id ?? null,
+      userId: auth.userId,
+      feature: 'thumbnail_analyzer',
+      tier: auth.tier,
+      calls: aiCalls,
     })
     await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'thumbnail-analyzer')
   } catch (error) {

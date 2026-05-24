@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { loadChannels, isValidPlatform } from '@/lib/channels'
+import { isKnownSocialPlatform, isSocialPlatformUrl, socialPlatformLabel } from '@/lib/social-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
   }
   if (url && url.length > MAX_URL_LEN) {
     return NextResponse.json({ error: `URL too long (max ${MAX_URL_LEN})` }, { status: 400 })
+  }
+  if (url && isKnownSocialPlatform(platform) && !isSocialPlatformUrl(platform, url)) {
+    return NextResponse.json({ error: `URL must be a ${socialPlatformLabel(platform)} link.` }, { status: 400 })
   }
 
   const existing = await loadChannels(supabase, user.id)

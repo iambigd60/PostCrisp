@@ -13,6 +13,7 @@ export interface FakeSupabaseTables {
   profiles: Map<string, Record<string, unknown>>
   credit_transactions: Record<string, unknown>[]
   generations: Record<string, unknown>[]
+  generation_ai_calls: Record<string, unknown>[]
   creator_profiles: Map<string, Record<string, unknown>>
 }
 
@@ -93,6 +94,7 @@ export function createFakeSupabase(opts: {
           const rows = Array.isArray(insertPayload) ? insertPayload : [insertPayload]
           if (table === 'credit_transactions') tables.credit_transactions.push(...rows)
           if (table === 'generations') tables.generations.push(...rows)
+          if (table === 'generation_ai_calls') tables.generation_ai_calls.push(...rows)
           return resolve({ error: null })
         }
         if (isUpsert && upsertPayload) {

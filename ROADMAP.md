@@ -5,6 +5,21 @@
 
 ---
 
+## ✅ Cost telemetry + hybrid Foundation Analysis evidence shipped 2026-05-24
+
+Public-launch monetization groundwork is now in place:
+
+- Added AI cost estimation and a `generation_ai_calls` ledger so Foundation Analysis, Channel Analysis, and Thumbnail Analyzer can attribute estimated provider cost by generation, model, role, tier, tokens, and feature.
+- Added admin analytics support that prefers ledger rows and falls back to the previous heuristic estimate for historical/unwired generations.
+- Added `docs/credit-matrix.md` with current credit charges, tier allowances, and cost-balancing notes.
+- Foundation Analysis refine pass is now opt-in via `ENABLE_FOUNDATION_REFINE=true` to reduce 504 timeout and cost risk before public launch.
+- Foundation Analysis evidence layer is now hybrid: users can add 1-3 top-post URLs plus pasted caption/script evidence. Evidence URLs and channel URL overrides must match the selected platform on both client and API.
+- Saved social Channel URLs now enforce platform-domain matching for Instagram, TikTok, YouTube, X/Twitter, Facebook, Threads, and LinkedIn. Newsletter/blog/other channels are not forced through social-domain rules.
+
+Verification before commit: `npm test` passed (52 tests), `npm run typecheck` passed, `git diff --check` clean except CRLF warnings. `npm run lint` remains blocked by the existing workspace-root ESLint config issue where Next selects `C:\Projects\postcrisp` instead of `PostCrisp`.
+
+---
+
 ## ✅ Foundation Analysis (Elite-only) + Team tier drop shipped 2026-04-30 (session 16)
 
 23 commits on the `foundation-analysis` branch. New Elite-only feature that produces an evidence-grounded audit AND saves a structured Creator Profile (`creator_profiles` table, RLS-protected) that downstream tools read on every generation. Phase 2 wired in the same session: Captions / Viral Ideas / Bio Optimizer prompts now inject a "Creator Context" block via `loadCreatorContext` when a profile exists. Settings → Profile section lets users view, edit, and toggle injection.

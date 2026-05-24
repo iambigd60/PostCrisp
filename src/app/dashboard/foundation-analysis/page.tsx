@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { PLATFORMS, NICHES } from "@/lib/constants";
+import { PLATFORMS, NICHES, type PlatformId } from "@/lib/constants";
+import { isSocialPlatformUrl, looksLikeUrl, socialPlatformLabel, validateEvidencePostsForPlatform } from "@/lib/social-url";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { EngineBadge } from "@/components/ui/EngineBadge";
@@ -13,7 +14,7 @@ type Sophistication = 'beginner' | 'intermediate' | 'advanced'
 type GrowthGoal = 'followers' | 'engagement' | 'monetization' | 'authority' | 'community'
 type MonetizationStage = 'none' | 'brand-deals' | 'digital-products' | 'services' | 'multi-stream'
 
-interface SamplePost { caption: string; metric: string; whyItWorked: string }
+interface SamplePost { sourceUrl: string; caption: string; metric: string; whyItWorked: string }
 
 interface Result {
   overallAssessment: string
@@ -69,11 +70,11 @@ const impactColor: Record<string, string> = {
   Low: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
 };
 
-function emptySample(): SamplePost { return { caption: '', metric: '', whyItWorked: '' } }
+function emptySample(): SamplePost { return { sourceUrl: '', caption: '', metric: '', whyItWorked: '' } }
 
 export default function FoundationAnalysisPage() {
   // Section 1
-  const [platform, setPlatform] = useState("instagram");
+  const [platform, setPlatform] = useState<PlatformId>("instagram");
   const [analyzeHandle, setAnalyzeHandle] = useState("");
   const [niche, setNiche] = useState("");
   const [useCustomNiche, setUseCustomNiche] = useState(false);
@@ -99,12 +100,16 @@ export default function FoundationAnalysisPage() {
   const setPillar = (i: number, v: string) => setPillars((prev) => { const next = [...prev] as [string, string, string]; next[i] = v; return next });
   const setSample = (i: number, patch: Partial<SamplePost>) => setSamples((prev) => { const next = [...prev] as [SamplePost, SamplePost, SamplePost]; next[i] = { ...next[i], ...patch }; return next });
   const toggleFormat = (f: string) => setFormatStrengths((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
+  const sampleUrlIsInvalid = (sample: SamplePost) => sample.sourceUrl.trim().length > 0 && !isSocialPlatformUrl(platform, sample.sourceUrl);
 
   const handleAnalyze = async () => {
     if (!niche.trim()) { addToast("Enter or select your niche", "warning"); return }
     if (!pillars.some((p) => p.trim())) { addToast("Enter at least one content pillar", "warning"); return }
     if (!audienceDesc.trim()) { addToast("Describe your target audience", "warning"); return }
     if (!samples.some((s) => s.caption.trim())) { addToast("Paste at least one of your best-performing posts", "warning"); return }
+    if (analyzeHandle.trim() && looksLikeUrl(analyzeHandle) && !isSocialPlatformUrl(platform, analyzeHandle)) { addToast(`Channel URL must be a ${socialPlatformLabel(platform)} link.`, "warning"); return }
+    const evidenceUrlErrors = validateEvidencePostsForPlatform(platform, samples)
+    if (evidenceUrlErrors.length > 0) { addToast(evidenceUrlErrors[0], "warning"); return }
 
     setLoading(true); setError(null); setResult(null);
     try {
@@ -283,13 +288,21 @@ export default function FoundationAnalysisPage() {
         <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
           <div>
             <h2 className="text-sm font-semibold text-zinc-100 mb-1">4. Evidence layer * <span className="text-zinc-600 font-normal">— your top 1–3 posts</span></h2>
-            <p className="text-xs text-zinc-500">Paste your highest-performing posts. We extract the hook patterns and format leans that already work for you.</p>
+            <p className="text-xs text-zinc-500">Add links to your highest-performing {socialPlatformLabel(platform)} posts, then paste the caption or script so the audit has reliable evidence.</p>
           </div>
 
           {samples.map((s, i) => (
             <div key={i} className="rounded-lg border border-brand-500/10 bg-surface-tertiary/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-brand-300">Post #{i + 1}{i === 0 ? ' (required)' : ' (optional)'}</span>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">{socialPlatformLabel(platform)} post URL <span className="text-zinc-600">(recommended)</span></label>
+                <input value={s.sourceUrl} onChange={(e) => setSample(i, { sourceUrl: e.target.value })} placeholder={`Paste a ${socialPlatformLabel(platform)} post link`}
+                  className={`w-full rounded-lg bg-surface-tertiary border text-zinc-200 placeholder:text-zinc-600 px-3 py-2.5 text-sm focus:outline-none ${sampleUrlIsInvalid(s) ? "border-red-500/60 focus:border-red-500/80" : "border-brand-500/10 focus:border-brand-500/40"}`} />
+                {sampleUrlIsInvalid(s) && (
+                  <p className="text-xs text-red-300 mt-1.5">This must be a {socialPlatformLabel(platform)} URL because {socialPlatformLabel(platform)} is selected above.</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">Caption / script</label>

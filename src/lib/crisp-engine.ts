@@ -10,6 +10,8 @@ import { createClient as createSupabaseServer } from '@/utils/supabase/server'
 import { getProvider, type ProviderId } from './providers'
 import { systemPromptFor } from './system-prompts'
 import { parseLooseJson } from './safe-json'
+import { estimateAiCallCostUsd } from './ai-costs'
+import type { AiCallLedgerEntry } from './ai-call-ledger'
 import {
   type CrispTask,
   type PowerProfile,
@@ -128,6 +130,7 @@ export interface CrispGenerateResult {
   tierUsed: ConfigurableTier
   /** True if the output went through a second critique + rewrite pass. */
   refined: boolean
+  aiCalls: AiCallLedgerEntry[]
 }
 
 const CRITIC_SYSTEM = `You are a strict expert critic and rewriter for a creator-tool platform.
@@ -154,6 +157,36 @@ Rewrite rules:
 - Tone stays the same as first pass
 
 Return ONLY the rewritten JSON. No prefix, no suffix.`
+
+function totalTokensFor(result: { inputTokens: number; outputTokens: number; cacheReadInputTokens?: number; cacheCreationInputTokens?: number }): number {
+  return result.inputTokens + result.outputTokens + (result.cacheReadInputTokens ?? 0) + (result.cacheCreationInputTokens ?? 0)
+}
+
+function ledgerEntry(
+  requestRole: AiCallLedgerEntry['requestRole'],
+  provider: ProviderId,
+  model: string,
+  result: { inputTokens: number; outputTokens: number; cacheReadInputTokens?: number; cacheCreationInputTokens?: number },
+): AiCallLedgerEntry {
+  return {
+    requestRole,
+    provider,
+    model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    totalTokens: totalTokensFor(result),
+    cacheReadInputTokens: result.cacheReadInputTokens ?? 0,
+    cacheCreationInputTokens: result.cacheCreationInputTokens ?? 0,
+    estimatedCostUsd: estimateAiCallCostUsd({
+      provider,
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      cacheReadInputTokens: result.cacheReadInputTokens ?? 0,
+      cacheCreationInputTokens: result.cacheCreationInputTokens ?? 0,
+    }),
+  }
+}
 
 export async function resolveTaskConfig(
   task: CrispTask,
@@ -197,14 +230,16 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   })
 
   if (!args.refine) {
-    console.log(`[crisp-engine] task=${args.task} done (no refine) — model=${config.model} tokens=${firstPass.inputTokens + firstPass.outputTokens} elapsedMs=${Date.now() - tStart}`)
+    const primaryCall = ledgerEntry('primary', config.provider, config.model, firstPass)
+    console.log(`[crisp-engine] task=${args.task} done (no refine) — model=${config.model} tokens=${primaryCall.totalTokens} elapsedMs=${Date.now() - tStart}`)
     return {
       ...firstPass,
-      totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+      totalTokens: primaryCall.totalTokens,
       providerUsed: config.provider,
       modelUsed: config.model,
       tierUsed: effective,
       refined: false,
+      aiCalls: [primaryCall],
     }
   }
 
@@ -222,7 +257,8 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
   // need the full first-pass budget, and the cap keeps total wall-clock
   // bounded even if pass 1 was generous.
   const tFirstDone = Date.now()
-  console.log(`[crisp-engine] task=${args.task} pass1 done — model=${config.model} tokens=${firstPass.inputTokens + firstPass.outputTokens} elapsedMs=${tFirstDone - tStart}`)
+  const primaryCall = ledgerEntry('primary', config.provider, config.model, firstPass)
+  console.log(`[crisp-engine] task=${args.task} pass1 done — model=${config.model} tokens=${primaryCall.totalTokens} elapsedMs=${tFirstDone - tStart}`)
 
   try {
     const criticConfig: ProfileConfig = { provider: 'openai', model: 'gpt-4o-mini' }
@@ -245,6 +281,7 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
     })
 
     console.log(`[crisp-engine] task=${args.task} pass2 done — critic=${criticConfig.model} tokens=${refinedPass.inputTokens + refinedPass.outputTokens} elapsedMs=${Date.now() - tFirstDone}`)
+    const criticCall = ledgerEntry('critic', criticConfig.provider, criticConfig.model, refinedPass)
 
     // Refine target tasks all return JSON. If the critic's rewrite isn't
     // loose-parseable, drop it and keep the first pass — better to ship
@@ -255,11 +292,12 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
       console.warn(`[crisp-engine] refine pass for task=${args.task} produced non-JSON output, falling back to first pass`)
       return {
         ...firstPass,
-        totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+        totalTokens: primaryCall.totalTokens + criticCall.totalTokens,
         providerUsed: config.provider,
         modelUsed: config.model,
         tierUsed: effective,
         refined: false,
+        aiCalls: [primaryCall, criticCall],
       }
     }
 
@@ -267,23 +305,25 @@ export async function crispGenerate(args: CrispGenerateArgs): Promise<CrispGener
       text: refinedPass.text,
       inputTokens: firstPass.inputTokens + refinedPass.inputTokens,
       outputTokens: firstPass.outputTokens + refinedPass.outputTokens,
-      totalTokens: firstPass.inputTokens + firstPass.outputTokens + refinedPass.inputTokens + refinedPass.outputTokens,
+      totalTokens: primaryCall.totalTokens + criticCall.totalTokens,
       // providerUsed/modelUsed reflect pass 1 (the user-tier model). The
       // critic (Sonnet) is an internal QA layer not exposed in analytics.
       providerUsed: config.provider,
       modelUsed: config.model,
       tierUsed: effective,
       refined: true,
+      aiCalls: [primaryCall, criticCall],
     }
   } catch (error) {
     console.warn(`[crisp-engine] refine pass for task=${args.task} threw, falling back to first pass:`, error)
     return {
       ...firstPass,
-      totalTokens: firstPass.inputTokens + firstPass.outputTokens,
+      totalTokens: primaryCall.totalTokens,
       providerUsed: config.provider,
       modelUsed: config.model,
       tierUsed: effective,
       refined: false,
+      aiCalls: [primaryCall],
     }
   }
 }

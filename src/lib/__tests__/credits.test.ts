@@ -12,6 +12,7 @@ function setupTables(initialBalance: number): FakeSupabaseTables {
     ]),
     credit_transactions: [],
     generations: [],
+    generation_ai_calls: [],
     creator_profiles: new Map(),
   }
 }

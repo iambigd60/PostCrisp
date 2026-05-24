@@ -7,6 +7,7 @@ function setupTables(preferences: Record<string, unknown>): FakeSupabaseTables {
     profiles: new Map([['user-1', { id: 'user-1', preferences }]]),
     credit_transactions: [],
     generations: [],
+    generation_ai_calls: [],
     creator_profiles: new Map(),
   }
 }

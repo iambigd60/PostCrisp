@@ -51,19 +51,12 @@ export const anthropicProvider: AIProvider = {
       cache_creation_input_tokens?: number
       cache_read_input_tokens?: number
     }
-    // input_tokens from Anthropic is already the "newly processed" count —
-    // cache_read_input_tokens is separate and bills ~90% cheaper. We expose
-    // the sum as our "input cost" for analytics, but the billable amount is
-    // already discounted by Anthropic server-side.
-    const inputTokens =
-      usage.input_tokens +
-      (usage.cache_creation_input_tokens ?? 0) +
-      (usage.cache_read_input_tokens ?? 0)
-
     return {
       text,
-      inputTokens,
+      inputTokens: usage.input_tokens,
       outputTokens: usage.output_tokens,
+      cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+      cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
     }
   },
 }
