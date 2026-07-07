@@ -1,21 +1,16 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-07-06 (session 20 — subscription-lifecycle design locked with Dennis; implementation pending his final sign-off)
-**Build status:** ✅ `main` has Task 1 merged (PR #2) + prod trigger installed. 🟡 Lifecycle follow-up lives on `fix/stripe-subscription-lifecycle` (spec + tracker docs only — no code yet).
+**Last updated:** 2026-07-07 (session 20 — subscription-lifecycle fixes implemented; PR #3 open, awaiting Dennis's merge)
+**Build status:** ✅ `main` has Task 1 merged (PR #2) + prod trigger installed. 🟢 Lifecycle follow-up implemented on `fix/stripe-subscription-lifecycle` — [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) open (86/86 tests, typecheck clean).
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
 
 ---
 
-## 🟡 Session 20 — IN PROGRESS — Billing-integrity follow-up: subscription-lifecycle fixes (design locked, code NOT started)
+## ✅ Session 20 — Billing-integrity follow-up: subscription-lifecycle fixes (implemented; PR #3 open)
 
-**Paused late 2026-07-06 — Dennis: "save everything, we resume tomorrow."**
-
-**Resume checklist (in order):**
-1. Read `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md` — all five decisions are recorded there (spec already reconciled against the merged PR #2 code).
-2. Get Dennis's final sign-off on the written design (he approved every individual decision but paused for sleep before the overall OK — no implementation until then).
-3. Then: implementation plan → code + tests on `fix/stripe-subscription-lifecycle` (based on main, includes PR #2) → extend `src/lib/__tests__/stripe-webhook.test.ts` (22 webhook tests today, 74 total) → `npm run typecheck && npm test` green → own PR.
+**Design approved by Dennis 2026-07-07 (paused overnight 07-06 after locking the individual decisions). Implemented same day via TDD — one red-green commit per change, plan at `docs/superpowers/plans/2026-07-07-stripe-subscription-lifecycle.md`. 86/86 tests green (34 webhook tests, 12 new), strict typecheck clean. Next action: Dennis merges [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) when CI is green (safe independently of the Task 2 checklist); Vercel auto-deploys.**
 
 **Decisions Dennis locked (2026-07-06 — resolving session 19's "Deferred product decisions" list):**
 1. `past_due` keeps the paid tier while Stripe retries; downgrade only on terminal statuses (`canceled`/`unpaid`/`incomplete_expired`/deletion).
@@ -723,14 +718,14 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | MFA on Tier 1 external accounts (Supabase/Vercel/GitHub/Stripe/Anthropic/Resend/Sentry) | ✅ Done 2026-04-28 (s14c) |
 | **Alpha deployment** | ✅ Live (https://postcrisp.com) |
 | Step 7 — Launch prep | 🟡 1 item blocking (Stripe verification, up to 2 days) |
-| **Billing-integrity sprint** (T1 ✅ merged PR #2 · T2 human verification ⏳ gates T3 · lifecycle fixes 🟡 design locked · T4 SQL hard-gated) | 🟡 In progress (s19–20, 2026-07-06) |
+| **Billing-integrity sprint** (T1 ✅ merged PR #2 · T2 human verification ⏳ gates T3 · lifecycle fixes ✅ PR #3 open · T4 SQL hard-gated) | 🟡 In progress (s19–20, 2026-07-07) |
 
 ---
 
 ## ⏭️ Next session — recommended order
 
-**Resume FIRST — session 20 continuation (billing-integrity sprint):**
-0. Subscription-lifecycle fixes: spec at `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md` → get Dennis's final design OK → implementation plan → code + tests on the main-based `fix/stripe-subscription-lifecycle` branch. In parallel, Dennis can run the Task 2 test-mode checklist (it gates Task 3, not this branch).
+**Do FIRST — billing-integrity sprint:**
+0. Dennis merges [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) (subscription-lifecycle fixes) when CI is green, and runs the Task 2 test-mode checklist from the session 19 block (it gates Task 3, not the PR).
 
 **Pre-public-launch (Step 7 remaining):**
 1. ~~Custom domain~~ ✅ Done s14b

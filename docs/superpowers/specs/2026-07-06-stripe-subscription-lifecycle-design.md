@@ -1,7 +1,7 @@
 # Stripe Subscription Lifecycle Integrity — Design
 
 **Date:** 2026-07-06
-**Status:** 🟡 Product decisions locked with Dennis; **final design sign-off pending** (session paused overnight — resume here)
+**Status:** ✅ Approved by Dennis 2026-07-07; implemented on `fix/stripe-subscription-lifecycle` — [PR #3](https://github.com/iambigd60/PostCrisp/pull/3)
 **Branch:** `fix/stripe-subscription-lifecycle`, based on `main` (Task 1 merged via [PR #2](https://github.com/iambigd60/PostCrisp/pull/2) on 2026-07-06 — the original prerequisite is satisfied).
 **Scope:** `src/lib/stripe-webhook.ts` + its Vitest suite (`src/lib/__tests__/stripe-webhook.test.ts`, `fake-supabase.ts`). No dependency changes. No new SQL.
 
