@@ -277,6 +277,46 @@ describe('handleStripeEvent — subscription tier resolution', () => {
   })
 })
 
+describe('handleStripeEvent — stale-subscription guard', () => {
+  it('ignores a subscription.updated event for a subscription that is not on file', async () => {
+    // Customer canceled sub_1 and re-subscribed as sub_2; a late event from
+    // the dead sub_1 must not touch the actively-paying profile.
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_2' })
+    const { deps } = createDeps(tables)
+
+    const result = await handleStripeEvent(
+      subscriptionUpdatedEvent({ status: 'canceled', metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({
+      subscription_tier: 'elite',
+      stripe_subscription_id: 'sub_2',
+    })
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores a subscription.deleted event for a subscription that is not on file', async () => {
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_2' })
+    const { deps } = createDeps(tables)
+    const event = {
+      id: 'evt_sub_deleted_stale_1',
+      type: 'customer.subscription.deleted',
+      data: { object: { id: 'sub_1', customer: 'cus_1' } },
+    } as unknown as Stripe.Event
+
+    const result = await handleStripeEvent(event, deps)
+
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({
+      subscription_tier: 'elite',
+      stripe_subscription_id: 'sub_2',
+    })
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('handleStripeEvent — idempotency', () => {
   it('processes a replayed credit-pack event only once', async () => {
     const tables = setupTables()

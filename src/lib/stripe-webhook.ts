@@ -265,19 +265,32 @@ export async function handleStripeEvent(
         // dashboard resend a duplicate no-op.
         const { data: profile, error: lookupError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, stripe_subscription_id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
         if (lookupError) throw lookupError
+        if (!profile) break
 
-        if (profile) {
-          // Idempotent write — throw on failure so Stripe retries (see above).
-          const { error: updateError } = await supabase.from('profiles').update({
-            subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',
-            stripe_subscription_id: subscription.id,
-          }).eq('id', profile.id)
-          if (updateError) throw updateError
+        // Stale/foreign-subscription guard: Stripe does not guarantee event
+        // ordering, so a late event from a customer's OLD subscription (they
+        // canceled, then re-subscribed under a new id) must not touch the
+        // profile. Null on file processes normally — covers profiles
+        // provisioned out-of-band. The ledger row is kept: a correctly
+        // ignored event counts as processed.
+        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+          console.warn(
+            `Stripe webhook: ignoring ${event.type} for subscription ${subscription.id} — ` +
+              `profile ${profile.id} is on subscription ${profile.stripe_subscription_id}`,
+          )
+          break
         }
+
+        // Idempotent write — throw on failure so Stripe retries (see above).
+        const { error: updateError } = await supabase.from('profiles').update({
+          subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',
+          stripe_subscription_id: subscription.id,
+        }).eq('id', profile.id)
+        if (updateError) throw updateError
         break
       }
 
@@ -290,19 +303,29 @@ export async function handleStripeEvent(
         // canceled customer on their paid tier permanently.
         const { data: profile, error: lookupError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, stripe_subscription_id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
         if (lookupError) throw lookupError
+        if (!profile) break
 
-        if (profile) {
-          // Idempotent write — throw on failure so Stripe retries (see above).
-          const { error: deleteError } = await supabase.from('profiles').update({
-            subscription_tier: 'free',
-            stripe_subscription_id: null,
-          }).eq('id', profile.id)
-          if (deleteError) throw deleteError
+        // Stale/foreign-subscription guard — see subscription.updated. A
+        // deletion needs no fresh verification: it is terminal, and Stripe
+        // never reuses a subscription id, so the id match alone is safe.
+        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+          console.warn(
+            `Stripe webhook: ignoring ${event.type} for subscription ${subscription.id} — ` +
+              `profile ${profile.id} is on subscription ${profile.stripe_subscription_id}`,
+          )
+          break
         }
+
+        // Idempotent write — throw on failure so Stripe retries (see above).
+        const { error: deleteError } = await supabase.from('profiles').update({
+          subscription_tier: 'free',
+          stripe_subscription_id: null,
+        }).eq('id', profile.id)
+        if (deleteError) throw deleteError
         break
       }
 
