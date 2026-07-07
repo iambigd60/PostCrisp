@@ -30,12 +30,17 @@ export interface FakeRpcResults {
 // can clear an entry between deliveries to simulate a transient failure.
 export type FakeWriteErrors = Partial<Record<keyof FakeSupabaseTables, { message: string } | undefined>>
 
+// Same idea for reads: select().maybeSingle()/.single() against a listed
+// table resolves with { data: null, error } instead of reading.
+export type FakeReadErrors = FakeWriteErrors
+
 export function createFakeSupabase(opts: {
   tables: FakeSupabaseTables
   rpcs?: FakeRpcResults
   writeErrors?: FakeWriteErrors
+  readErrors?: FakeReadErrors
 }) {
-  const { tables, rpcs = {}, writeErrors } = opts
+  const { tables, rpcs = {}, writeErrors, readErrors } = opts
 
   const fromBuilder = (table: keyof FakeSupabaseTables) => {
     type Filter = { col: string; val: unknown }
@@ -86,6 +91,9 @@ export function createFakeSupabase(opts: {
         return builder
       },
       maybeSingle() {
+        // Injected read failure — consulted at execution time, like writeErrors.
+        const injected = readErrors?.[table]
+        if (injected) return Promise.resolve({ data: null, error: injected })
         if (table === 'profiles') {
           const rows = Array.from(tables.profiles.values())
           const found = rows.find(matches)
@@ -99,7 +107,8 @@ export function createFakeSupabase(opts: {
         return Promise.resolve({ data: null, error: null })
       },
       single() {
-        return builder.maybeSingle().then((r: { data: unknown }) => {
+        return builder.maybeSingle().then((r: { data: unknown; error: null | { message: string } }) => {
+          if (r.error) return r
           if (!r.data) return { data: null, error: { message: 'no rows' } }
           return r
         })

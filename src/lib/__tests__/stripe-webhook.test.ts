@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll, type MockIns
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nextjs'
 import { handleStripeEvent, type StripeWebhookDeps } from '@/lib/stripe-webhook'
-import { createFakeSupabase, type FakeSupabaseTables, type FakeWriteErrors } from './fake-supabase'
+import {
+  createFakeSupabase,
+  type FakeSupabaseTables,
+  type FakeWriteErrors,
+  type FakeReadErrors,
+} from './fake-supabase'
 
 // PRICES resolves env vars at module import — pin them (and clear the legacy
 // STRIPE_PRO_* overrides) before any module loads so the price-ID fallback
@@ -366,6 +371,30 @@ describe('handleStripeEvent — retry-safety on processing failures', () => {
     const retry = await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
     expect(retry).toEqual({ status: 200, body: { received: true } })
     expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
+  })
+
+  it('returns 500 and releases the event when the credit-pack balance read fails', async () => {
+    const tables = setupTables()
+    const readErrors: FakeReadErrors = { profiles: { message: 'read timeout' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, readErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+    const event = checkoutCompletedEvent({
+      id: 'evt_pack_read_1',
+      mode: 'payment',
+      metadata: { credit_pack_id: 'pack_500', credits: '500' },
+    })
+
+    const result = await handleStripeEvent(event, deps)
+
+    // A failed read must NOT fall back to a 0 balance — that would overwrite
+    // the customer's real balance with just the pack amount on the update.
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ credits_balance: 10 })
+    expect(tables.credit_transactions).toHaveLength(0)
+    // Ledger released — nothing was granted, so Stripe's retry is safe.
+    expect(tables.processed_stripe_events!.size).toBe(0)
   })
 
   it('returns 500 and releases the event when the credit-pack balance write fails', async () => {

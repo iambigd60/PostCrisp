@@ -183,12 +183,17 @@ export async function handleStripeEvent(
           // One-time credit pack purchase — grant credits
           const credits = parseInt(meta.credits ?? '0', 10)
           if (credits > 0) {
-            // Fetch current balance
-            const { data: profile } = await supabase
+            // Fetch current balance. A failed read must throw: treating it
+            // as "no row" would fall back to 0 and overwrite the customer's
+            // real balance with just the pack amount. Nothing is written yet,
+            // so the retry is safe. A genuinely missing row / null balance
+            // still legitimately falls back to 0 below.
+            const { data: profile, error: balanceReadError } = await supabase
               .from('profiles')
               .select('credits_balance')
               .eq('id', userId)
               .maybeSingle()
+            if (balanceReadError) throw balanceReadError
             const currentBalance = profile?.credits_balance ?? 0
             const newBalance = currentBalance + credits
 
