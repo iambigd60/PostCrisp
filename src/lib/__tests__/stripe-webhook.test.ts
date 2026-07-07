@@ -242,27 +242,56 @@ describe('handleStripeEvent — subscription tier resolution', () => {
     expect(vi.mocked(Sentry.captureMessage)).not.toHaveBeenCalled()
   })
 
-  it('keeps the metadata tier but reports drift when the billed price maps to a different tier', async () => {
+  it('writes the price-mapped tier and reports drift when metadata disagrees (price-first)', async () => {
     const tables = setupTables()
+    // Metadata says creator, but the actually-billed price is Elite (e.g. a
+    // billing-portal plan switch — Stripe never rewrites the metadata). On
+    // updates the customer gets what they are billed for.
     const { deps } = createDeps(
       tables,
       subscriptionObject({ metadata: { tier: 'creator' }, priceId: PRICE_IDS.elite_monthly }),
     )
 
-    // Metadata says creator, but the actually-billed price is Elite (e.g. a
-    // billing-portal plan switch — Stripe never rewrites the metadata).
     await handleStripeEvent(
       subscriptionUpdatedEvent({ metadata: { tier: 'creator' }, priceId: PRICE_IDS.elite_monthly }),
       deps,
     )
 
-    // Brief-mandated: metadata stays authoritative for the written tier.
-    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'creator' })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
     expect(vi.mocked(Sentry.captureMessage)).toHaveBeenCalledTimes(1)
     const message = vi.mocked(Sentry.captureMessage).mock.calls[0][0]
     expect(message).toContain('sub_1')
     expect(message).toContain("'creator'")
     expect(message).toContain("'elite'")
+  })
+
+  it('falls back to subscription metadata when the billed price is unmapped', async () => {
+    const tables = setupTables()
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ metadata: { tier: 'elite' }, priceId: 'price_unknown' }),
+    )
+
+    await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
+
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
+    expect(vi.mocked(Sentry.captureMessage)).not.toHaveBeenCalled()
+  })
+
+  it('keeps metadata-first resolution (with drift alarm) on the legacy checkout path', async () => {
+    const tables = setupTables()
+    // Legacy session: no session metadata, so the handler retrieves the
+    // subscription and resolves metadata-first — checkout metadata is
+    // written fresh at purchase time, so it stays authoritative there.
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ metadata: { tier: 'creator' }, priceId: PRICE_IDS.elite_monthly }),
+    )
+
+    await handleStripeEvent(checkoutCompletedEvent({ metadata: {} }), deps)
+
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'creator' })
+    expect(vi.mocked(Sentry.captureMessage)).toHaveBeenCalledTimes(1)
   })
 
   it('downgrades to free on a non-active subscription status', async () => {

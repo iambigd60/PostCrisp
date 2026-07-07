@@ -46,32 +46,40 @@ function tierForPriceId(priceId: string | undefined): PaidTier | null {
 // canceled, unpaid, incomplete, incomplete_expired, paused — downgrades.
 const PAID_STATUSES = new Set<Stripe.Subscription.Status>(['active', 'trialing', 'past_due'])
 
+type TierSource = 'metadata' | 'price'
+
 /**
- * Shared tier resolver for all subscription branches: metadata.tier when
- * valid, else the first line item's price ID. Never throws — a throw would
- * 500 the webhook and make Stripe retry a poison event forever — so the
- * unmappable case reports to Sentry and defaults to 'creator'.
+ * Shared tier resolver for the subscription branches. `prefer` picks the
+ * source of truth: the legacy-checkout path stays metadata-first (checkout
+ * metadata is written fresh at purchase time), while subscription.updated is
+ * price-first — Stripe never rewrites subscription metadata when the price
+ * later changes (billing-portal plan switch), so on updates the billed price
+ * is the truth and stale metadata is only a fallback. When both resolve and
+ * disagree, the drift is reported to Sentry either way. Never throws — a
+ * throw would 500 the webhook and make Stripe retry a poison event forever —
+ * so the unmappable case reports to Sentry and defaults to 'creator'.
  */
-function resolveSubscriptionTier(subscription: Stripe.Subscription): PaidTier {
+function resolveSubscriptionTier(
+  subscription: Stripe.Subscription,
+  prefer: TierSource = 'metadata',
+): PaidTier {
   const metaTier = subscription.metadata?.tier
   const priceId = subscription.items?.data?.[0]?.price?.id
-  if (isPaidTier(metaTier)) {
-    // Stripe never rewrites subscription metadata when the price later
-    // changes (e.g. a billing-portal plan switch), so the metadata tier can
-    // drift from what's actually billed. Metadata stays authoritative —
-    // detection only, so drift is loud in Sentry instead of silent.
-    const priceTier = tierForPriceId(priceId)
-    if (priceTier && priceTier !== metaTier) {
-      Sentry.captureMessage(
-        `Stripe webhook: tier drift on subscription ${subscription.id} — ` +
-          `metadata says '${metaTier}' but the billed price maps to '${priceTier}'; using metadata tier`,
-      )
-    }
-    return metaTier
+  const metaResolved = isPaidTier(metaTier) ? metaTier : null
+  const priceResolved = tierForPriceId(priceId)
+
+  if (metaResolved && priceResolved && metaResolved !== priceResolved) {
+    const winner = prefer === 'price' ? priceResolved : metaResolved
+    Sentry.captureMessage(
+      `Stripe webhook: tier drift on subscription ${subscription.id} — ` +
+        `metadata says '${metaResolved}' but the billed price maps to '${priceResolved}'; ` +
+        `using '${winner}' (${prefer}-first)`,
+    )
   }
 
-  const mapped = tierForPriceId(priceId)
-  if (mapped) return mapped
+  const resolved =
+    prefer === 'price' ? priceResolved ?? metaResolved : metaResolved ?? priceResolved
+  if (resolved) return resolved
 
   Sentry.captureMessage(
     `Stripe webhook: could not resolve tier for subscription ${subscription.id} ` +
@@ -302,7 +310,7 @@ export async function handleStripeEvent(
         const isPaid = PAID_STATUSES.has(subscription.status)
         // Idempotent write — throw on failure so Stripe retries (see above).
         const { error: updateError } = await supabase.from('profiles').update({
-          subscription_tier: isPaid ? resolveSubscriptionTier(subscription) : 'free',
+          subscription_tier: isPaid ? resolveSubscriptionTier(subscription, 'price') : 'free',
           stripe_subscription_id: subscription.id,
         }).eq('id', profile.id)
         if (updateError) throw updateError
