@@ -40,3 +40,7 @@ next-env.d.ts
 !.claude/commands/
 .claude/settings.local.json
 .superpowers/
+
+# Personal productivity tracker (local only)
+TASKS.md
+dashboard.html
