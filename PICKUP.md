@@ -1,6 +1,6 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-07-06 (session 19 — billing-integrity sprint Task 1: Stripe webhook fixes, PR open)
+**Last updated:** 2026-07-06 (session 19 — billing-integrity sprint Task 1 MERGED + prod DB protection trigger installed)
 **Build status:** ✅ Local `main` contains un-deployed cost ledger, Foundation Analysis timeout mitigation, and strict social URL validation. Commit/push pending at start of this note.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
@@ -8,9 +8,16 @@
 
 ---
 
-## 🟡 Session 19 — Billing-integrity sprint, Task 1: Stripe webhook (PR open — Dennis has 3 steps)
+## ✅ Session 19 shipped — Billing-integrity sprint, Task 1: Stripe webhook + prod DB protection
 
-**Branch:** `fix/stripe-webhook-integrity` → PR against `main`. First task of the 4-task billing-integrity sprint; the remaining tasks are hard-gated in order (see "Sprint sequencing" below).
+**Merged:** [PR #2](https://github.com/iambigd60/PostCrisp/pull/2) (merge commit `3a150d6`, CI green, auto-deployed via Vercel). First task of the 4-task billing-integrity sprint; the remaining tasks are hard-gated in order (see "Sprint sequencing" below). **Next action: Dennis runs the Task 2 verification checklist (Stripe test-mode).**
+
+### ⚠️ Production DB discovery + fix (same session)
+
+The sprint handoff assumed a `protect_privileged_profile_columns` trigger was already live in prod. **It was not** — direct inspection of the `postcrisp` Supabase project (`sikabeqzypvllimyostg`) found no such trigger/function, while the live RLS policy ("Users can update own profile") allows updating ANY column. Any logged-in user could have self-promoted to admin or flipped their tier. With Dennis's authorization, two migrations were applied via the Supabase API on 2026-07-06:
+
+- `protect_privileged_profile_columns_v1` — the v1 trigger (guards `role`, `subscription_tier`, `stripe_customer_id`, `stripe_subscription_id`; deliberately NOT `credits_balance` until Task 3 ships). Verified live: impersonated-user self-promotion to admin → blocked with the trigger's exception; benign profile update → still succeeds.
+- `processed_stripe_events` — the Task 1 dedupe table (same DDL as the repo migration file).
 
 ### What changed
 
@@ -39,7 +46,7 @@ Built and gated by a multi-agent pipeline: TDD implementation → 3-lens review 
 
 ### Sprint sequencing (hard gates — do not reorder)
 
-1. **Task 1** (this PR) → Dennis: run the migration in Supabase SQL Editor **before merging**, confirm CI green, merge.
+1. **Task 1** — ✅ done: migrations applied to prod, CI green, PR #2 merged 2026-07-06.
 2. **Task 2** — human verification gate (Stripe test-mode Elite purchase, event Resend no-op, `credit_transactions` consume-count baseline). Blocks Task 3.
 3. **Task 3** — move credit writes to the service-role client (`src/lib/credits.ts`, `src/lib/auth-usage.ts`). Code only.
 4. **Task 4** — extend the DB trigger to `credits_balance`/`credits_reset_at`. SQL, human-run, ONLY after Task 3 is merged + deployed + verified. Running it early breaks live generation.
