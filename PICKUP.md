@@ -1,16 +1,16 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-07-07 (session 20 — subscription-lifecycle fixes implemented; PR #3 open, awaiting Dennis's merge)
-**Build status:** ✅ `main` has Task 1 merged (PR #2) + prod trigger installed. 🟢 Lifecycle follow-up implemented on `fix/stripe-subscription-lifecycle` — [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) open (86/86 tests, typecheck clean).
+**Last updated:** 2026-07-07 (session 20 — subscription-lifecycle fixes MERGED via PR #3 and auto-deployed)
+**Build status:** ✅ `main` has Task 1 (PR #2) + prod trigger + the lifecycle fixes ([PR #3](https://github.com/iambigd60/PostCrisp/pull/3), merge `87bd6e6`, 86/86 tests, typecheck clean); Vercel auto-deploys main.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
 
 ---
 
-## ✅ Session 20 — Billing-integrity follow-up: subscription-lifecycle fixes (implemented; PR #3 open)
+## ✅ Session 20 — Billing-integrity follow-up: subscription-lifecycle fixes (merged 2026-07-07)
 
-**Design approved by Dennis 2026-07-07 (paused overnight 07-06 after locking the individual decisions). Implemented same day via TDD — one red-green commit per change, plan at `docs/superpowers/plans/2026-07-07-stripe-subscription-lifecycle.md`. 86/86 tests green (34 webhook tests, 12 new), strict typecheck clean. Next action: Dennis merges [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) when CI is green (safe independently of the Task 2 checklist); Vercel auto-deploys.**
+**Design approved by Dennis 2026-07-07 (paused overnight 07-06 after locking the individual decisions). Implemented same day via TDD — one red-green commit per change, plan at `docs/superpowers/plans/2026-07-07-stripe-subscription-lifecycle.md`. 86/86 tests green (34 webhook tests, 12 new), strict typecheck clean. [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) merged with Dennis's explicit go-ahead (merge `87bd6e6`, CI + CodeRabbit + Vercel preview all green); Vercel auto-deployed main. Remaining sprint action: Dennis runs the Task 2 test-mode checklist (session 19 block) — it gates Task 3.**
 
 **Decisions Dennis locked (2026-07-06 — resolving session 19's "Deferred product decisions" list):**
 1. `past_due` keeps the paid tier while Stripe retries; downgrade only on terminal statuses (`canceled`/`unpaid`/`incomplete_expired`/deletion).
@@ -718,14 +718,14 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | MFA on Tier 1 external accounts (Supabase/Vercel/GitHub/Stripe/Anthropic/Resend/Sentry) | ✅ Done 2026-04-28 (s14c) |
 | **Alpha deployment** | ✅ Live (https://postcrisp.com) |
 | Step 7 — Launch prep | 🟡 1 item blocking (Stripe verification, up to 2 days) |
-| **Billing-integrity sprint** (T1 ✅ merged PR #2 · T2 human verification ⏳ gates T3 · lifecycle fixes ✅ PR #3 open · T4 SQL hard-gated) | 🟡 In progress (s19–20, 2026-07-07) |
+| **Billing-integrity sprint** (T1 ✅ merged PR #2 · T2 human verification ⏳ gates T3 · lifecycle fixes ✅ merged PR #3 · T4 SQL hard-gated) | 🟡 In progress (s19–20, 2026-07-07) |
 
 ---
 
 ## ⏭️ Next session — recommended order
 
 **Do FIRST — billing-integrity sprint:**
-0. Dennis merges [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) (subscription-lifecycle fixes) when CI is green, and runs the Task 2 test-mode checklist from the session 19 block (it gates Task 3, not the PR).
+0. Dennis runs the Task 2 test-mode checklist from the session 19 block (Stripe test-mode Elite purchase, webhook resend, `credit_transactions` query) — it gates Task 3. (Lifecycle fixes: [PR #3](https://github.com/iambigd60/PostCrisp/pull/3) ✅ merged 2026-07-07.)
 
 **Pre-public-launch (Step 7 remaining):**
 1. ~~Custom domain~~ ✅ Done s14b
