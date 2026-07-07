@@ -379,6 +379,41 @@ describe('handleStripeEvent — fresh-state verification on subscription.updated
   })
 })
 
+describe('handleStripeEvent — dunning grace period', () => {
+  it('keeps the paid tier while the subscription is past_due (Stripe is still retrying)', async () => {
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_1' })
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ status: 'past_due', metadata: { tier: 'elite' } }),
+    )
+
+    await handleStripeEvent(
+      subscriptionUpdatedEvent({ status: 'past_due', metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    expect(tables.profiles.get('user-1')).toMatchObject({
+      subscription_tier: 'elite',
+      stripe_subscription_id: 'sub_1',
+    })
+  })
+
+  it.each(['canceled', 'incomplete_expired', 'paused'])(
+    'downgrades to free when the subscription reaches %s',
+    async (status) => {
+      const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_1' })
+      const { deps } = createDeps(
+        tables,
+        subscriptionObject({ status, metadata: { tier: 'elite' } }),
+      )
+
+      await handleStripeEvent(subscriptionUpdatedEvent({ status, metadata: { tier: 'elite' } }), deps)
+
+      expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'free' })
+    },
+  )
+})
+
 describe('handleStripeEvent — idempotency', () => {
   it('processes a replayed credit-pack event only once', async () => {
     const tables = setupTables()

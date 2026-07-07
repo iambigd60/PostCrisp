@@ -40,6 +40,12 @@ function tierForPriceId(priceId: string | undefined): PaidTier | null {
   return null
 }
 
+// Dunning grace period: past_due means Stripe is still retrying the charge
+// on its Dashboard-configured schedule (typically 1–2 weeks), so the
+// customer keeps their paid tier while that runs. Everything else —
+// canceled, unpaid, incomplete, incomplete_expired, paused — downgrades.
+const PAID_STATUSES = new Set<Stripe.Subscription.Status>(['active', 'trialing', 'past_due'])
+
 /**
  * Shared tier resolver for all subscription branches: metadata.tier when
  * valid, else the first line item's price ID. Never throws — a throw would
@@ -293,10 +299,10 @@ export async function handleStripeEvent(
         // and returns 500, so Stripe redelivers later.
         const subscription = await stripe.subscriptions.retrieve(eventSubscription.id)
 
-        const isActive = subscription.status === 'active' || subscription.status === 'trialing'
+        const isPaid = PAID_STATUSES.has(subscription.status)
         // Idempotent write — throw on failure so Stripe retries (see above).
         const { error: updateError } = await supabase.from('profiles').update({
-          subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',
+          subscription_tier: isPaid ? resolveSubscriptionTier(subscription) : 'free',
           stripe_subscription_id: subscription.id,
         }).eq('id', profile.id)
         if (updateError) throw updateError
@@ -357,10 +363,10 @@ export async function handleStripeEvent(
         if (profile?.email) {
           await sendPaymentFailedEmail(profile.email as string)
         }
-        // TODO: dunning grace period — deliberately NOT downgrading the tier
-        // on a failed payment. Stripe retries on its own schedule, and
-        // customer.subscription.updated handles the eventual past_due /
-        // canceled transition. Notify only.
+        // Notify only — no tier change here. The dunning grace period lives
+        // in customer.subscription.updated: past_due keeps the paid tier
+        // while Stripe retries, and the terminal statuses (canceled, unpaid,
+        // incomplete_expired, …) or customer.subscription.deleted downgrade.
         break
       }
 
