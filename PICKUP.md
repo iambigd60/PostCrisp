@@ -1,10 +1,48 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-05-24 (session 18 — cost telemetry + hybrid Foundation Analysis evidence ready to deploy)
+**Last updated:** 2026-07-06 (session 19 — billing-integrity sprint Task 1: Stripe webhook fixes, PR open)
 **Build status:** ✅ Local `main` contains un-deployed cost ledger, Foundation Analysis timeout mitigation, and strict social URL validation. Commit/push pending at start of this note.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
+
+---
+
+## 🟡 Session 19 — Billing-integrity sprint, Task 1: Stripe webhook (PR open — Dennis has 3 steps)
+
+**Branch:** `fix/stripe-webhook-integrity` → PR against `main`. First task of the 4-task billing-integrity sprint; the remaining tasks are hard-gated in order (see "Sprint sequencing" below).
+
+### What changed
+
+- **Elite provisioning bug fixed** — the webhook hardcoded `subscription_tier: 'creator'` for every subscriber, so Elite buyers ($79/mo) were provisioned as Creator. A shared resolver now reads the tier from checkout metadata (validated `creator`/`elite`), falls back to price-ID mapping (legacy `STRIPE_PRO_*` env names still honored), and defaults to `creator` + Sentry alert if unmappable — it never throws, so no poison-event retry loops. Checkout sessions now also carry session-level `metadata: { tier, cycle }`; pre-deploy sessions use a `subscriptions.retrieve` fallback.
+- **Webhook idempotency** — new `processed_stripe_events` dedupe table (`supabase/migrations/20260706093000_processed_stripe_events.sql`, mirrored in `src/lib/supabase-schema.sql`). Event ids are recorded insert-first; duplicate deliveries return 200 no-op, so credit packs can no longer double-grant on Stripe retries. If processing fails, the ledger row is released so Stripe's retry (or a dashboard Resend) can reprocess. If the table is missing (migration lag), the webhook fails open and alarms via Sentry instead of going down.
+- **`invoice.payment_failed` implemented** — looks up the customer via the service-role client and sends a plain-text Resend email (same fetch pattern as the feedback route; non-fatal; no new dependency) linking to `/dashboard/billing`. Notify-only: no tier downgrade (`// TODO: dunning grace period`).
+- **Every DB read/write in the handler is error-gated with retry-safe asymmetry** — idempotent writes throw on failure (→ ledger release → 500 → Stripe retries); the audit insert after a successful credit grant never throws (a retry would double-grant) and alarms via Sentry instead.
+- **Event handling extracted** to `src/lib/stripe-webhook.ts` with injected `{ supabase, stripe }` deps; the route is a thin signature-verification shell. 22 new tests (74 total) green; strict typecheck clean.
+
+### Review provenance
+
+Built and gated by a multi-agent pipeline: TDD implementation → 3-lens review (spec/quality, Stripe semantics, billing security) with every Critical/Important finding adversarially verified by 3 independent refuters → three fix waves → final whole-branch merge review verdict: **ready to merge, no Critical issues**.
+
+### Deferred product decisions (need Dennis; follow-up task chip created)
+
+- `past_due` still downgrades to free immediately (pre-existing mapping, mandated by the sprint handoff) — contradicts the new notify-only dunning email; needs a grace-period decision.
+- No stale-subscription guard: a late `customer.subscription.deleted` event from an OLD subscription can downgrade a customer who re-subscribed (pre-existing).
+- Tier resolver is metadata-first (handoff-mandated); a billing-portal plan switch would drift metadata vs. billed price. Sentry drift detection was added; decide price-first resolution vs. locking the portal to cancel-only.
+- `processed_stripe_events` grows unbounded — add a retention purge later (rows older than ~30 days are safe to prune).
+- Residual accepted tradeoffs: a Stripe redelivery arriving while the first delivery is mid-flight no-ops as duplicate (window strictly smaller than pre-fix); multiple profiles sharing one `stripe_customer_id` (corrupt-data state) now retries loudly instead of failing silently.
+
+### Known debt logged (do NOT act on inside billing PRs)
+
+- **npm audit: 17 vulnerabilities (3 low / 9 moderate / 5 high)** plus transitive deprecation warnings — dev/build tooling, not the running app. Needs its own isolated cleanup pass before public launch. Never `npm audit fix --force`; not even plain `npm audit fix` inside a billing PR.
+- Pre-existing permissive `profiles` UPDATE RLS policy (visible in `src/lib/supabase-schema.sql`): mitigated in production by the live `protect_privileged_profile_columns` trigger; fully closed by sprint Tasks 3–4. When Task 4 lands, also mirror the trigger DDL into `src/lib/supabase-schema.sql` (it is not in the schema file today).
+
+### Sprint sequencing (hard gates — do not reorder)
+
+1. **Task 1** (this PR) → Dennis: run the migration in Supabase SQL Editor **before merging**, confirm CI green, merge.
+2. **Task 2** — human verification gate (Stripe test-mode Elite purchase, event Resend no-op, `credit_transactions` consume-count baseline). Blocks Task 3.
+3. **Task 3** — move credit writes to the service-role client (`src/lib/credits.ts`, `src/lib/auth-usage.ts`). Code only.
+4. **Task 4** — extend the DB trigger to `credits_balance`/`credits_reset_at`. SQL, human-run, ONLY after Task 3 is merged + deployed + verified. Running it early breaks live generation.
 
 ---
 
