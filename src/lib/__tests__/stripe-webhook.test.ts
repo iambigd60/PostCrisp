@@ -760,3 +760,53 @@ describe('handleStripeEvent — invoice.payment_failed', () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('handleStripeEvent — dedupe ledger retention', () => {
+  it('prunes ledger rows older than 30 days while recording a new event', async () => {
+    const tables = setupTables({ stripe_subscription_id: 'sub_1' })
+    const dayMs = 24 * 60 * 60 * 1000
+    tables.processed_stripe_events!.set('evt_old', {
+      event_id: 'evt_old',
+      type: 'noise',
+      created_at: new Date(Date.now() - 31 * dayMs).toISOString(),
+    })
+    tables.processed_stripe_events!.set('evt_recent', {
+      event_id: 'evt_recent',
+      type: 'noise',
+      created_at: new Date(Date.now() - 29 * dayMs).toISOString(),
+    })
+    const { deps } = createDeps(tables, subscriptionObject({ metadata: { tier: 'elite' } }))
+
+    const result = await handleStripeEvent(
+      subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(tables.processed_stripe_events!.has('evt_old')).toBe(false)
+    expect(tables.processed_stripe_events!.has('evt_recent')).toBe(true)
+    expect(tables.processed_stripe_events!.has('evt_sub_updated_1')).toBe(true)
+  })
+
+  it('never fails the webhook when the prune delete errors', async () => {
+    const tables = setupTables({ stripe_subscription_id: 'sub_1' })
+    const deleteErrors: FakeWriteErrors = { processed_stripe_events: { message: 'delete timeout' } }
+    const retrieve = vi
+      .fn()
+      .mockResolvedValue(subscriptionObject({ metadata: { tier: 'elite' } }))
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, deleteErrors }) as any,
+      stripe: { subscriptions: { retrieve } } as unknown as Stripe,
+    }
+
+    const result = await handleStripeEvent(
+      subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    // Pruning is housekeeping, not processing — the event itself succeeds.
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+  })
+})

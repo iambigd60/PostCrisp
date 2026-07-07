@@ -123,6 +123,33 @@ async function recordEventOnce(
   return (data?.length ?? 0) > 0 ? 'new' : 'duplicate'
 }
 
+// Retention for the dedupe ledger: Stripe stops retrying within ~3 days, so
+// rows older than 30 days can never dedupe anything again.
+const LEDGER_RETENTION_DAYS = 30
+
+/**
+ * Best-effort prune, piggybacked on each newly recorded event. Housekeeping,
+ * never processing: failures log and are otherwise ignored, and nothing here
+ * may throw into the caller. Runs on every new event because the delete is a
+ * sub-millisecond scan precisely while this keeps the table permanently
+ * small — revisit with an index + scheduler only if event volume ever makes
+ * it measurable.
+ */
+async function pruneProcessedEvents(supabase: SupabaseClient): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - LEDGER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { error } = await supabase
+      .from('processed_stripe_events')
+      .delete()
+      .lt('created_at', cutoff)
+    if (error) {
+      console.error('Stripe webhook ledger prune failed (non-fatal):', error.message)
+    }
+  } catch (pruneErr) {
+    console.error('Stripe webhook ledger prune failed (non-fatal):', pruneErr)
+  }
+}
+
 // ─── Payment-failed notification via Resend — same raw-REST pattern as the
 // feedback route: guard on RESEND_API_KEY (skip silently if missing), never
 // let an email error fail the webhook response.
@@ -182,6 +209,12 @@ export async function handleStripeEvent(
   const dedupe = await recordEventOnce(supabase, event)
   if (dedupe === 'duplicate') {
     return { status: 200, body: { received: true, duplicate: true } }
+  }
+  if (dedupe === 'new') {
+    // Piggybacked retention pass — see pruneProcessedEvents. Skipped on
+    // 'error' (the table is unhealthy) and on duplicates (already pruned
+    // when the event was first recorded).
+    await pruneProcessedEvents(supabase)
   }
 
   try {
