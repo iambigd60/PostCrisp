@@ -255,9 +255,8 @@ export async function handleStripeEvent(
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
-        const isActive = subscription.status === 'active' || subscription.status === 'trialing'
+        const eventSubscription = event.data.object as Stripe.Subscription
+        const customerId = eventSubscription.customer as string
 
         // maybeSingle so a genuinely unknown customer skips cleanly, while a
         // failed READ throws — otherwise it looks identical to "no profile",
@@ -277,14 +276,24 @@ export async function handleStripeEvent(
         // profile. Null on file processes normally — covers profiles
         // provisioned out-of-band. The ledger row is kept: a correctly
         // ignored event counts as processed.
-        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== eventSubscription.id) {
           console.warn(
-            `Stripe webhook: ignoring ${event.type} for subscription ${subscription.id} — ` +
+            `Stripe webhook: ignoring ${event.type} for subscription ${eventSubscription.id} — ` +
               `profile ${profile.id} is on subscription ${profile.stripe_subscription_id}`,
           )
           break
         }
 
+        // Fresh-state verification: Stripe doesn't guarantee delivery order,
+        // and a redelivered stale "active" event landing after a processed
+        // cancellation would re-provision a paid tier permanently (a dead
+        // subscription emits no correcting events). The event is only a
+        // trigger — Stripe's current view of the subscription is the truth.
+        // A retrieve failure throws: the outer catch releases the ledger row
+        // and returns 500, so Stripe redelivers later.
+        const subscription = await stripe.subscriptions.retrieve(eventSubscription.id)
+
+        const isActive = subscription.status === 'active' || subscription.status === 'trialing'
         // Idempotent write — throw on failure so Stripe retries (see above).
         const { error: updateError } = await supabase.from('profiles').update({
           subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',

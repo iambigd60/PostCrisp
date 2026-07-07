@@ -110,8 +110,27 @@ function checkoutCompletedEvent(opts: {
   } as unknown as Stripe.Event
 }
 
+// Shape shared by subscription.updated event payloads and by
+// stripe.subscriptions.retrieve stubs (the handler verifies against the
+// retrieved object, so most tests feed the same shape to both).
+function subscriptionObject(opts: {
+  subId?: string
+  status?: string
+  metadata?: Record<string, string>
+  priceId?: string
+} = {}): Record<string, unknown> {
+  return {
+    id: opts.subId ?? 'sub_1',
+    customer: 'cus_1',
+    status: opts.status ?? 'active',
+    metadata: opts.metadata ?? {},
+    items: { data: [{ price: { id: opts.priceId ?? 'price_unknown' } }] },
+  }
+}
+
 function subscriptionUpdatedEvent(opts: {
   id?: string
+  subId?: string
   status?: string
   metadata?: Record<string, string>
   priceId?: string
@@ -120,13 +139,7 @@ function subscriptionUpdatedEvent(opts: {
     id: opts.id ?? 'evt_sub_updated_1',
     type: 'customer.subscription.updated',
     data: {
-      object: {
-        id: 'sub_1',
-        customer: 'cus_1',
-        status: opts.status ?? 'active',
-        metadata: opts.metadata ?? {},
-        items: { data: [{ price: { id: opts.priceId ?? 'price_unknown' } }] },
-      },
+      object: subscriptionObject(opts),
     },
   } as unknown as Stripe.Event
 }
@@ -201,7 +214,10 @@ describe('handleStripeEvent — subscription tier resolution', () => {
 
   it('defaults to creator and reports to Sentry when tier is unknown and price is unmappable', async () => {
     const tables = setupTables()
-    const { deps } = createDeps(tables)
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ metadata: { tier: 'team' }, priceId: 'price_unknown' }),
+    )
 
     const result = await handleStripeEvent(
       subscriptionUpdatedEvent({ metadata: { tier: 'team' }, priceId: 'price_unknown' }),
@@ -215,7 +231,7 @@ describe('handleStripeEvent — subscription tier resolution', () => {
 
   it('resolves elite from subscription metadata on customer.subscription.updated', async () => {
     const tables = setupTables()
-    const { deps } = createDeps(tables)
+    const { deps } = createDeps(tables, subscriptionObject({ metadata: { tier: 'elite' } }))
 
     await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
 
@@ -228,7 +244,10 @@ describe('handleStripeEvent — subscription tier resolution', () => {
 
   it('keeps the metadata tier but reports drift when the billed price maps to a different tier', async () => {
     const tables = setupTables()
-    const { deps } = createDeps(tables)
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ metadata: { tier: 'creator' }, priceId: PRICE_IDS.elite_monthly }),
+    )
 
     // Metadata says creator, but the actually-billed price is Elite (e.g. a
     // billing-portal plan switch — Stripe never rewrites the metadata).
@@ -248,7 +267,10 @@ describe('handleStripeEvent — subscription tier resolution', () => {
 
   it('downgrades to free on a non-active subscription status', async () => {
     const tables = setupTables({ subscription_tier: 'elite' })
-    const { deps } = createDeps(tables)
+    const { deps } = createDeps(
+      tables,
+      subscriptionObject({ status: 'unpaid', metadata: { tier: 'elite' } }),
+    )
 
     await handleStripeEvent(
       subscriptionUpdatedEvent({ status: 'unpaid', metadata: { tier: 'elite' } }),
@@ -314,6 +336,46 @@ describe('handleStripeEvent — stale-subscription guard', () => {
       stripe_subscription_id: 'sub_2',
     })
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('handleStripeEvent — fresh-state verification on subscription.updated', () => {
+  it("acts on Stripe's current state, not the event payload (reordering race)", async () => {
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_1' })
+    // A redelivered stale event claims the subscription is active, but
+    // Stripe's current view says canceled — the canceled truth must win, or
+    // a dead subscription re-provisions a paid tier forever.
+    const { deps, retrieve } = createDeps(
+      tables,
+      subscriptionObject({ status: 'canceled', metadata: { tier: 'elite' } }),
+    )
+
+    await handleStripeEvent(
+      subscriptionUpdatedEvent({ status: 'active', metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    expect(retrieve).toHaveBeenCalledWith('sub_1')
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'free' })
+  })
+
+  it('returns 500 and releases the ledger row when the verification retrieve fails', async () => {
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_1' })
+    const retrieve = vi.fn().mockRejectedValue(new Error('stripe api down'))
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables }) as any,
+      stripe: { subscriptions: { retrieve } } as unknown as Stripe,
+    }
+
+    const result = await handleStripeEvent(
+      subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }),
+      deps,
+    )
+
+    // Tier untouched, event still live for Stripe's redelivery.
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
+    expect(tables.processed_stripe_events!.size).toBe(0)
   })
 })
 
@@ -396,7 +458,11 @@ describe('handleStripeEvent — retry-safety on processing failures', () => {
     const writeErrors: FakeWriteErrors = { profiles: { message: 'db connection reset' } }
     const deps: StripeWebhookDeps = {
       supabase: createFakeSupabase({ tables, writeErrors }) as any,
-      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+      stripe: {
+        subscriptions: {
+          retrieve: vi.fn().mockResolvedValue(subscriptionObject({ metadata: { tier: 'elite' } })),
+        },
+      } as unknown as Stripe,
     }
 
     const result = await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
