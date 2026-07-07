@@ -480,6 +480,7 @@ GET route handlers are cached at build time unless they use cookies/auth/headers
 - [ ] Production env vars
 - [ ] Stripe products + webhook pointed at production domain
 - [ ] Stripe Billing Portal configured
+- [ ] **Billing-integrity sprint (2026-07-06, in progress)** — T1 webhook fix ✅ merged (PR #2) + prod trigger installed; T2 Dennis test-mode verification ⏳ (gates T3); subscription-lifecycle fixes designed on `fix/stripe-subscription-lifecycle` (spec: `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md`, awaiting Dennis's final sign-off); T3 service-role credit writes + T4 trigger SQL follow, hard-gated in that order
 - [ ] Google OAuth enabled in Supabase
 - [x] ✅ 2026-04-20 — Rotated `captain@postcrisp.com` password via `scripts/rotate-admin-password.mjs`. Future rotations use the same script.
 

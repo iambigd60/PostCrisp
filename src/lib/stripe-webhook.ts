@@ -40,32 +40,46 @@ function tierForPriceId(priceId: string | undefined): PaidTier | null {
   return null
 }
 
+// Dunning grace period: past_due means Stripe is still retrying the charge
+// on its Dashboard-configured schedule (typically 1–2 weeks), so the
+// customer keeps their paid tier while that runs. Everything else —
+// canceled, unpaid, incomplete, incomplete_expired, paused — downgrades.
+const PAID_STATUSES = new Set<Stripe.Subscription.Status>(['active', 'trialing', 'past_due'])
+
+type TierSource = 'metadata' | 'price'
+
 /**
- * Shared tier resolver for all subscription branches: metadata.tier when
- * valid, else the first line item's price ID. Never throws — a throw would
- * 500 the webhook and make Stripe retry a poison event forever — so the
- * unmappable case reports to Sentry and defaults to 'creator'.
+ * Shared tier resolver for the subscription branches. `prefer` picks the
+ * source of truth: the legacy-checkout path stays metadata-first (checkout
+ * metadata is written fresh at purchase time), while subscription.updated is
+ * price-first — Stripe never rewrites subscription metadata when the price
+ * later changes (billing-portal plan switch), so on updates the billed price
+ * is the truth and stale metadata is only a fallback. When both resolve and
+ * disagree, the drift is reported to Sentry either way. Never throws — a
+ * throw would 500 the webhook and make Stripe retry a poison event forever —
+ * so the unmappable case reports to Sentry and defaults to 'creator'.
  */
-function resolveSubscriptionTier(subscription: Stripe.Subscription): PaidTier {
+function resolveSubscriptionTier(
+  subscription: Stripe.Subscription,
+  prefer: TierSource = 'metadata',
+): PaidTier {
   const metaTier = subscription.metadata?.tier
   const priceId = subscription.items?.data?.[0]?.price?.id
-  if (isPaidTier(metaTier)) {
-    // Stripe never rewrites subscription metadata when the price later
-    // changes (e.g. a billing-portal plan switch), so the metadata tier can
-    // drift from what's actually billed. Metadata stays authoritative —
-    // detection only, so drift is loud in Sentry instead of silent.
-    const priceTier = tierForPriceId(priceId)
-    if (priceTier && priceTier !== metaTier) {
-      Sentry.captureMessage(
-        `Stripe webhook: tier drift on subscription ${subscription.id} — ` +
-          `metadata says '${metaTier}' but the billed price maps to '${priceTier}'; using metadata tier`,
-      )
-    }
-    return metaTier
+  const metaResolved = isPaidTier(metaTier) ? metaTier : null
+  const priceResolved = tierForPriceId(priceId)
+
+  if (metaResolved && priceResolved && metaResolved !== priceResolved) {
+    const winner = prefer === 'price' ? priceResolved : metaResolved
+    Sentry.captureMessage(
+      `Stripe webhook: tier drift on subscription ${subscription.id} — ` +
+        `metadata says '${metaResolved}' but the billed price maps to '${priceResolved}'; ` +
+        `using '${winner}' (${prefer}-first)`,
+    )
   }
 
-  const mapped = tierForPriceId(priceId)
-  if (mapped) return mapped
+  const resolved =
+    prefer === 'price' ? priceResolved ?? metaResolved : metaResolved ?? priceResolved
+  if (resolved) return resolved
 
   Sentry.captureMessage(
     `Stripe webhook: could not resolve tier for subscription ${subscription.id} ` +
@@ -107,6 +121,33 @@ async function recordEventOnce(
   }
 
   return (data?.length ?? 0) > 0 ? 'new' : 'duplicate'
+}
+
+// Retention for the dedupe ledger: Stripe stops retrying within ~3 days, so
+// rows older than 30 days can never dedupe anything again.
+const LEDGER_RETENTION_DAYS = 30
+
+/**
+ * Best-effort prune, piggybacked on each newly recorded event. Housekeeping,
+ * never processing: failures log and are otherwise ignored, and nothing here
+ * may throw into the caller. Runs on every new event because the delete is a
+ * sub-millisecond scan precisely while this keeps the table permanently
+ * small — revisit with an index + scheduler only if event volume ever makes
+ * it measurable.
+ */
+async function pruneProcessedEvents(supabase: SupabaseClient): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - LEDGER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { error } = await supabase
+      .from('processed_stripe_events')
+      .delete()
+      .lt('created_at', cutoff)
+    if (error) {
+      console.error('Stripe webhook ledger prune failed (non-fatal):', error.message)
+    }
+  } catch (pruneErr) {
+    console.error('Stripe webhook ledger prune failed (non-fatal):', pruneErr)
+  }
 }
 
 // ─── Payment-failed notification via Resend — same raw-REST pattern as the
@@ -168,6 +209,12 @@ export async function handleStripeEvent(
   const dedupe = await recordEventOnce(supabase, event)
   if (dedupe === 'duplicate') {
     return { status: 200, body: { received: true, duplicate: true } }
+  }
+  if (dedupe === 'new') {
+    // Piggybacked retention pass — see pruneProcessedEvents. Skipped on
+    // 'error' (the table is unhealthy) and on duplicates (already pruned
+    // when the event was first recorded).
+    await pruneProcessedEvents(supabase)
   }
 
   try {
@@ -255,9 +302,8 @@ export async function handleStripeEvent(
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
-        const isActive = subscription.status === 'active' || subscription.status === 'trialing'
+        const eventSubscription = event.data.object as Stripe.Subscription
+        const customerId = eventSubscription.customer as string
 
         // maybeSingle so a genuinely unknown customer skips cleanly, while a
         // failed READ throws — otherwise it looks identical to "no profile",
@@ -265,19 +311,42 @@ export async function handleStripeEvent(
         // dashboard resend a duplicate no-op.
         const { data: profile, error: lookupError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, stripe_subscription_id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
         if (lookupError) throw lookupError
+        if (!profile) break
 
-        if (profile) {
-          // Idempotent write — throw on failure so Stripe retries (see above).
-          const { error: updateError } = await supabase.from('profiles').update({
-            subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',
-            stripe_subscription_id: subscription.id,
-          }).eq('id', profile.id)
-          if (updateError) throw updateError
+        // Stale/foreign-subscription guard: Stripe does not guarantee event
+        // ordering, so a late event from a customer's OLD subscription (they
+        // canceled, then re-subscribed under a new id) must not touch the
+        // profile. Null on file processes normally — covers profiles
+        // provisioned out-of-band. The ledger row is kept: a correctly
+        // ignored event counts as processed.
+        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== eventSubscription.id) {
+          console.warn(
+            `Stripe webhook: ignoring ${event.type} for subscription ${eventSubscription.id} — ` +
+              `profile ${profile.id} is on subscription ${profile.stripe_subscription_id}`,
+          )
+          break
         }
+
+        // Fresh-state verification: Stripe doesn't guarantee delivery order,
+        // and a redelivered stale "active" event landing after a processed
+        // cancellation would re-provision a paid tier permanently (a dead
+        // subscription emits no correcting events). The event is only a
+        // trigger — Stripe's current view of the subscription is the truth.
+        // A retrieve failure throws: the outer catch releases the ledger row
+        // and returns 500, so Stripe redelivers later.
+        const subscription = await stripe.subscriptions.retrieve(eventSubscription.id)
+
+        const isPaid = PAID_STATUSES.has(subscription.status)
+        // Idempotent write — throw on failure so Stripe retries (see above).
+        const { error: updateError } = await supabase.from('profiles').update({
+          subscription_tier: isPaid ? resolveSubscriptionTier(subscription, 'price') : 'free',
+          stripe_subscription_id: subscription.id,
+        }).eq('id', profile.id)
+        if (updateError) throw updateError
         break
       }
 
@@ -290,19 +359,29 @@ export async function handleStripeEvent(
         // canceled customer on their paid tier permanently.
         const { data: profile, error: lookupError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, stripe_subscription_id')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
         if (lookupError) throw lookupError
+        if (!profile) break
 
-        if (profile) {
-          // Idempotent write — throw on failure so Stripe retries (see above).
-          const { error: deleteError } = await supabase.from('profiles').update({
-            subscription_tier: 'free',
-            stripe_subscription_id: null,
-          }).eq('id', profile.id)
-          if (deleteError) throw deleteError
+        // Stale/foreign-subscription guard — see subscription.updated. A
+        // deletion needs no fresh verification: it is terminal, and Stripe
+        // never reuses a subscription id, so the id match alone is safe.
+        if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+          console.warn(
+            `Stripe webhook: ignoring ${event.type} for subscription ${subscription.id} — ` +
+              `profile ${profile.id} is on subscription ${profile.stripe_subscription_id}`,
+          )
+          break
         }
+
+        // Idempotent write — throw on failure so Stripe retries (see above).
+        const { error: deleteError } = await supabase.from('profiles').update({
+          subscription_tier: 'free',
+          stripe_subscription_id: null,
+        }).eq('id', profile.id)
+        if (deleteError) throw deleteError
         break
       }
 
@@ -325,10 +404,10 @@ export async function handleStripeEvent(
         if (profile?.email) {
           await sendPaymentFailedEmail(profile.email as string)
         }
-        // TODO: dunning grace period — deliberately NOT downgrading the tier
-        // on a failed payment. Stripe retries on its own schedule, and
-        // customer.subscription.updated handles the eventual past_due /
-        // canceled transition. Notify only.
+        // Notify only — no tier change here. The dunning grace period lives
+        // in customer.subscription.updated: past_due keeps the paid tier
+        // while Stripe retries, and the terminal statuses (canceled, unpaid,
+        // incomplete_expired, …) or customer.subscription.deleted downgrade.
         break
       }
 

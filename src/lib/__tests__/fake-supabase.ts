@@ -39,12 +39,16 @@ export function createFakeSupabase(opts: {
   rpcs?: FakeRpcResults
   writeErrors?: FakeWriteErrors
   readErrors?: FakeReadErrors
+  // Consulted only for delete() chains — lets a test fail the prune/cleanup
+  // delete while the upsert on the same table still succeeds.
+  deleteErrors?: FakeWriteErrors
 }) {
-  const { tables, rpcs = {}, writeErrors, readErrors } = opts
+  const { tables, rpcs = {}, writeErrors, readErrors, deleteErrors } = opts
 
   const fromBuilder = (table: keyof FakeSupabaseTables) => {
     type Filter = { col: string; val: unknown }
     const filters: Filter[] = []
+    const ltFilters: Filter[] = []
     let updatePayload: Record<string, unknown> | null = null
     let selectCols: string | null = null
     let isInsert = false
@@ -56,7 +60,12 @@ export function createFakeSupabase(opts: {
     let isDelete = false
 
     const matches = (row: Record<string, unknown>) =>
-      filters.every((f) => row[f.col] === f.val)
+      filters.every((f) => row[f.col] === f.val) &&
+      ltFilters.every((f) => {
+        const value = row[f.col]
+        // Rows without the column never match — mirrors SQL NULL semantics.
+        return typeof value === 'string' && typeof f.val === 'string' && value < f.val
+      })
 
     const builder: any = {
       select(cols?: string) {
@@ -65,6 +74,10 @@ export function createFakeSupabase(opts: {
       },
       eq(col: string, val: unknown) {
         filters.push({ col, val })
+        return builder
+      },
+      lt(col: string, val: unknown) {
+        ltFilters.push({ col, val })
         return builder
       },
       update(payload: Record<string, unknown>) {
@@ -118,7 +131,8 @@ export function createFakeSupabase(opts: {
       then(resolve: (v: { data?: unknown; error: null | { message: string } }) => unknown) {
         // Injected write failure — reads are unaffected (they don't land here).
         const injected =
-          isInsert || isUpsert || isDelete || updatePayload ? writeErrors?.[table] : undefined
+          (isDelete ? deleteErrors?.[table] : undefined) ??
+          (isInsert || isUpsert || isDelete || updatePayload ? writeErrors?.[table] : undefined)
         if (injected) {
           return resolve({ data: null, error: injected })
         }
