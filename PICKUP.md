@@ -1,10 +1,32 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-07-06 (session 19 — billing-integrity sprint Task 1 MERGED + prod DB protection trigger installed)
-**Build status:** ✅ Local `main` contains un-deployed cost ledger, Foundation Analysis timeout mitigation, and strict social URL validation. Commit/push pending at start of this note.
+**Last updated:** 2026-07-06 (session 20 — subscription-lifecycle design locked with Dennis; implementation pending his final sign-off)
+**Build status:** ✅ `main` has Task 1 merged (PR #2) + prod trigger installed. 🟡 Lifecycle follow-up lives on `fix/stripe-subscription-lifecycle` (spec + tracker docs only — no code yet).
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
+
+---
+
+## 🟡 Session 20 — IN PROGRESS — Billing-integrity follow-up: subscription-lifecycle fixes (design locked, code NOT started)
+
+**Paused late 2026-07-06 — Dennis: "save everything, we resume tomorrow."**
+
+**Resume checklist (in order):**
+1. Read `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md` — all five decisions are recorded there (spec already reconciled against the merged PR #2 code).
+2. Get Dennis's final sign-off on the written design (he approved every individual decision but paused for sleep before the overall OK — no implementation until then).
+3. Then: implementation plan → code + tests on `fix/stripe-subscription-lifecycle` (based on main, includes PR #2) → extend `src/lib/__tests__/stripe-webhook.test.ts` (22 webhook tests today, 74 total) → `npm run typecheck && npm test` green → own PR.
+
+**Decisions Dennis locked (2026-07-06 — resolving session 19's "Deferred product decisions" list):**
+1. `past_due` keeps the paid tier while Stripe retries; downgrade only on terminal statuses (`canceled`/`unpaid`/`incomplete_expired`/deletion).
+2. Stale-event guard: ignore `subscription.updated`/`.deleted` events whose subscription id isn't the one on the profile (null on file → process normally).
+3. Tier resolution flips to price-first with metadata fallback. The drift warning PR #2 added stays, reworded — price wins now.
+4. `processed_stripe_events` auto-prunes rows older than 30 days in code (best-effort on each new event) — no pg_cron, nothing for Dennis to run.
+5. `subscription.updated` verifies current state via `stripe.subscriptions.retrieve` before acting — closes the redelivery-reordering race that could grant permanent free paid access. A retrieve failure throws into the existing ledger-release + 500 retry path.
+
+**Mid-session race note:** this session started before PR #2 merged and initially based its work on the old Task 1 branch; after discovering the merge it rebased onto main and reconciled the spec (e.g., tier drift detection DOES exist now — PR #2 added it metadata-first/detection-only — so decision 3 is a priority flip, not a new alarm).
+
+**Sprint gates unchanged:** Task 2 (Dennis's Stripe test-mode checklist) still blocks Task 3; Task 4 SQL still hard-gated behind Task 3 merge+deploy+verify. This lifecycle branch is independent of those gates.
 
 ---
 
@@ -701,10 +723,14 @@ Lessons captured: Vercel env-var changes don't take effect until next build (mus
 | MFA on Tier 1 external accounts (Supabase/Vercel/GitHub/Stripe/Anthropic/Resend/Sentry) | ✅ Done 2026-04-28 (s14c) |
 | **Alpha deployment** | ✅ Live (https://postcrisp.com) |
 | Step 7 — Launch prep | 🟡 1 item blocking (Stripe verification, up to 2 days) |
+| **Billing-integrity sprint** (T1 ✅ merged PR #2 · T2 human verification ⏳ gates T3 · lifecycle fixes 🟡 design locked · T4 SQL hard-gated) | 🟡 In progress (s19–20, 2026-07-06) |
 
 ---
 
 ## ⏭️ Next session — recommended order
+
+**Resume FIRST — session 20 continuation (billing-integrity sprint):**
+0. Subscription-lifecycle fixes: spec at `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md` → get Dennis's final design OK → implementation plan → code + tests on the main-based `fix/stripe-subscription-lifecycle` branch. In parallel, Dennis can run the Task 2 test-mode checklist (it gates Task 3, not this branch).
 
 **Pre-public-launch (Step 7 remaining):**
 1. ~~Custom domain~~ ✅ Done s14b
