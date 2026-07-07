@@ -24,11 +24,18 @@ export interface FakeRpcResults {
   consume_user_credits?: (args: { p_user_id: string; p_amount: number }) => number | null
 }
 
+// Optional per-table write-error injection: any insert/update/upsert/delete
+// against a listed table resolves with { error } instead of writing (reads
+// are untouched). Consulted at execution time, so tests holding a reference
+// can clear an entry between deliveries to simulate a transient failure.
+export type FakeWriteErrors = Partial<Record<keyof FakeSupabaseTables, { message: string } | undefined>>
+
 export function createFakeSupabase(opts: {
   tables: FakeSupabaseTables
   rpcs?: FakeRpcResults
+  writeErrors?: FakeWriteErrors
 }) {
-  const { tables, rpcs = {} } = opts
+  const { tables, rpcs = {}, writeErrors } = opts
 
   const fromBuilder = (table: keyof FakeSupabaseTables) => {
     type Filter = { col: string; val: unknown }
@@ -41,6 +48,7 @@ export function createFakeSupabase(opts: {
     let upsertPayload: Record<string, unknown> | Record<string, unknown>[] | null = null
     let upsertOnConflict: string | null = null
     let upsertIgnoreDuplicates = false
+    let isDelete = false
 
     const matches = (row: Record<string, unknown>) =>
       filters.every((f) => row[f.col] === f.val)
@@ -73,6 +81,10 @@ export function createFakeSupabase(opts: {
         upsertIgnoreDuplicates = opts?.ignoreDuplicates ?? false
         return builder
       },
+      delete() {
+        isDelete = true
+        return builder
+      },
       maybeSingle() {
         if (table === 'profiles') {
           const rows = Array.from(tables.profiles.values())
@@ -95,6 +107,27 @@ export function createFakeSupabase(opts: {
       // Terminal: when caller awaits the chain (no .single/.maybeSingle).
       // This handles update().eq(), insert(), and upsert() patterns.
       then(resolve: (v: { data?: unknown; error: null | { message: string } }) => unknown) {
+        // Injected write failure — reads are unaffected (they don't land here).
+        const injected =
+          isInsert || isUpsert || isDelete || updatePayload ? writeErrors?.[table] : undefined
+        if (injected) {
+          return resolve({ data: null, error: injected })
+        }
+        if (isDelete) {
+          if (table === 'processed_stripe_events') {
+            const map = tables.processed_stripe_events
+            if (!map) {
+              return resolve({
+                data: null,
+                error: { message: 'relation "public.processed_stripe_events" does not exist' },
+              })
+            }
+            for (const [id, row] of Array.from(map.entries())) {
+              if (matches(row)) map.delete(id)
+            }
+          }
+          return resolve({ error: null })
+        }
         if (isInsert && insertPayload) {
           const rows = Array.isArray(insertPayload) ? insertPayload : [insertPayload]
           if (table === 'credit_transactions') tables.credit_transactions.push(...rows)

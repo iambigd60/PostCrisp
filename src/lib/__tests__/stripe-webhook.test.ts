@@ -1,26 +1,47 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll, type MockInstance } from 'vitest'
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nextjs'
 import { handleStripeEvent, type StripeWebhookDeps } from '@/lib/stripe-webhook'
-import { createFakeSupabase, type FakeSupabaseTables } from './fake-supabase'
+import { createFakeSupabase, type FakeSupabaseTables, type FakeWriteErrors } from './fake-supabase'
 
 // PRICES resolves env vars at module import — pin them (and clear the legacy
 // STRIPE_PRO_* overrides) before any module loads so the price-ID fallback
-// tests are deterministic on every machine.
-const PRICE_IDS = vi.hoisted(() => {
+// tests are deterministic on every machine. Originals are captured here and
+// restored in afterAll so the mutation of the shared process.env never leaks
+// into other test files running on the same vitest worker.
+const PRICE_ENV = vi.hoisted(() => {
   const ids = {
     creator_monthly: 'price_creator_monthly_test',
     creator_yearly: 'price_creator_yearly_test',
     elite_monthly: 'price_elite_monthly_test',
     elite_yearly: 'price_elite_yearly_test',
   }
+  const managedKeys = [
+    'STRIPE_PRO_MONTHLY_PRICE_ID',
+    'STRIPE_PRO_YEARLY_PRICE_ID',
+    'STRIPE_CREATOR_MONTHLY_PRICE_ID',
+    'STRIPE_CREATOR_YEARLY_PRICE_ID',
+    'STRIPE_ELITE_MONTHLY_PRICE_ID',
+    'STRIPE_ELITE_YEARLY_PRICE_ID',
+  ]
+  const original: Record<string, string | undefined> = {}
+  for (const key of managedKeys) original[key] = process.env[key]
+
   delete process.env.STRIPE_PRO_MONTHLY_PRICE_ID
   delete process.env.STRIPE_PRO_YEARLY_PRICE_ID
   process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID = ids.creator_monthly
   process.env.STRIPE_CREATOR_YEARLY_PRICE_ID = ids.creator_yearly
   process.env.STRIPE_ELITE_MONTHLY_PRICE_ID = ids.elite_monthly
   process.env.STRIPE_ELITE_YEARLY_PRICE_ID = ids.elite_yearly
-  return ids
+  return { ids, original }
+})
+const PRICE_IDS = PRICE_ENV.ids
+
+afterAll(() => {
+  for (const [key, value] of Object.entries(PRICE_ENV.original)) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
 })
 
 vi.mock('@sentry/nextjs', () => ({
@@ -200,6 +221,26 @@ describe('handleStripeEvent — subscription tier resolution', () => {
     expect(vi.mocked(Sentry.captureMessage)).not.toHaveBeenCalled()
   })
 
+  it('keeps the metadata tier but reports drift when the billed price maps to a different tier', async () => {
+    const tables = setupTables()
+    const { deps } = createDeps(tables)
+
+    // Metadata says creator, but the actually-billed price is Elite (e.g. a
+    // billing-portal plan switch — Stripe never rewrites the metadata).
+    await handleStripeEvent(
+      subscriptionUpdatedEvent({ metadata: { tier: 'creator' }, priceId: PRICE_IDS.elite_monthly }),
+      deps,
+    )
+
+    // Brief-mandated: metadata stays authoritative for the written tier.
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'creator' })
+    expect(vi.mocked(Sentry.captureMessage)).toHaveBeenCalledTimes(1)
+    const message = vi.mocked(Sentry.captureMessage).mock.calls[0][0]
+    expect(message).toContain('sub_1')
+    expect(message).toContain("'creator'")
+    expect(message).toContain("'elite'")
+  })
+
   it('downgrades to free on a non-active subscription status', async () => {
     const tables = setupTables({ subscription_tier: 'elite' })
     const { deps } = createDeps(tables)
@@ -269,6 +310,113 @@ describe('handleStripeEvent — idempotency', () => {
   })
 })
 
+describe('handleStripeEvent — retry-safety on processing failures', () => {
+  it('releases the ledger row on a mid-event throw so the same event id can be redelivered', async () => {
+    const tables = setupTables()
+    // Legacy-session path: subscriptions.retrieve fails transiently on the
+    // first delivery, then recovers — the poison-event regression scenario.
+    const retrieve = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('stripe transient outage'))
+      .mockResolvedValue({
+        id: 'sub_1',
+        metadata: { tier: 'elite' },
+        items: { data: [{ price: { id: PRICE_IDS.elite_monthly } }] },
+      })
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables }) as any,
+      stripe: { subscriptions: { retrieve } } as unknown as Stripe,
+    }
+    const event = checkoutCompletedEvent({ id: 'evt_transient_1', metadata: {} })
+
+    const first = await handleStripeEvent(event, deps)
+    expect(first).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    // Ledger row must be gone — otherwise Stripe's retry no-ops as a
+    // duplicate and the paying customer is never provisioned.
+    expect(tables.processed_stripe_events!.size).toBe(0)
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'free' })
+
+    // Stripe redelivers the SAME event id — it must now process fully.
+    const second = await handleStripeEvent(event, deps)
+    expect(second).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({
+      subscription_tier: 'elite',
+      stripe_subscription_id: 'sub_1',
+    })
+    expect(tables.processed_stripe_events!.has('evt_transient_1')).toBe(true)
+  })
+
+  it('returns 500 and releases the event when an idempotent tier write fails', async () => {
+    const tables = setupTables()
+    const writeErrors: FakeWriteErrors = { profiles: { message: 'db connection reset' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, writeErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+
+    const result = await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
+
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'free' })
+    expect(tables.processed_stripe_events!.size).toBe(0)
+
+    // Once the DB recovers, Stripe's retry of the same event id succeeds —
+    // the write is idempotent, so re-running it is safe.
+    delete writeErrors.profiles
+    const retry = await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
+    expect(retry).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
+  })
+
+  it('returns 500 and releases the event when the credit-pack balance write fails', async () => {
+    const tables = setupTables()
+    const writeErrors: FakeWriteErrors = { profiles: { message: 'db down' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, writeErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+    const event = checkoutCompletedEvent({
+      id: 'evt_pack_fail_1',
+      mode: 'payment',
+      metadata: { credit_pack_id: 'pack_500', credits: '500' },
+    })
+
+    const result = await handleStripeEvent(event, deps)
+
+    // Nothing was granted, so a retry is safe — the event must stay live.
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ credits_balance: 10 })
+    expect(tables.credit_transactions).toHaveLength(0)
+    expect(tables.processed_stripe_events!.size).toBe(0)
+  })
+
+  it('keeps the 200 and reports to Sentry when the credit audit insert fails after the grant', async () => {
+    const tables = setupTables()
+    const writeErrors: FakeWriteErrors = { credit_transactions: { message: 'insert timeout' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, writeErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+    const event = checkoutCompletedEvent({
+      id: 'evt_pack_audit_1',
+      mode: 'payment',
+      metadata: { credit_pack_id: 'pack_500', credits: '500' },
+    })
+
+    const result = await handleStripeEvent(event, deps)
+
+    // The balance is already granted — a 500 here would make Stripe retry
+    // and double-grant. Loud observability instead of a throw.
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ credits_balance: 510 })
+    expect(tables.credit_transactions).toHaveLength(0)
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(Sentry.captureMessage)).toHaveBeenCalledTimes(1)
+    // Ledger row kept — the event is consumed; a retry must no-op.
+    expect(tables.processed_stripe_events!.has('evt_pack_audit_1')).toBe(true)
+  })
+})
+
 describe('handleStripeEvent — invoice.payment_failed', () => {
   const paymentFailedEvent = () =>
     ({
@@ -296,6 +444,10 @@ describe('handleStripeEvent — invoice.payment_failed', () => {
     expect(payload.from).toBe('PostCrisp <noreply@postcrisp.com>')
     expect(payload.to).toEqual(['user-1@example.com'])
     expect(payload.text).toContain('https://postcrisp.test/dashboard/billing')
+    // Accurate copy: no grace-window promise — past_due can hit on the first
+    // failed attempt, so the email says features may pause until it's fixed.
+    expect(payload.text).toContain('paused until your payment method is updated')
+    expect(payload.text).not.toContain('if it keeps failing')
     // Notify only — the tier must survive a payment failure untouched.
     expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
   })
@@ -312,6 +464,24 @@ describe('handleStripeEvent — invoice.payment_failed', () => {
 
     expect(result).toEqual({ status: 200, body: { received: true } })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('logs a Resend HTTP failure by status code only and never fails the webhook', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test_key')
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://postcrisp.test')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 422 }))
+
+    const tables = setupTables()
+    const { deps } = createDeps(tables)
+
+    const result = await handleStripeEvent(paymentFailedEvent(), deps)
+
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+    const logged = consoleErrorSpy.mock.calls[0].join(' ')
+    expect(logged).toContain('422')
+    // Status code only — never the recipient or anything from the response.
+    expect(logged).not.toContain('user-1@example.com')
   })
 
   it('never fails the webhook response when the email send throws', async () => {

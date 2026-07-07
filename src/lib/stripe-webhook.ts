@@ -48,9 +48,22 @@ function tierForPriceId(priceId: string | undefined): PaidTier | null {
  */
 function resolveSubscriptionTier(subscription: Stripe.Subscription): PaidTier {
   const metaTier = subscription.metadata?.tier
-  if (isPaidTier(metaTier)) return metaTier
-
   const priceId = subscription.items?.data?.[0]?.price?.id
+  if (isPaidTier(metaTier)) {
+    // Stripe never rewrites subscription metadata when the price later
+    // changes (e.g. a billing-portal plan switch), so the metadata tier can
+    // drift from what's actually billed. Metadata stays authoritative —
+    // detection only, so drift is loud in Sentry instead of silent.
+    const priceTier = tierForPriceId(priceId)
+    if (priceTier && priceTier !== metaTier) {
+      Sentry.captureMessage(
+        `Stripe webhook: tier drift on subscription ${subscription.id} — ` +
+          `metadata says '${metaTier}' but the billed price maps to '${priceTier}'; using metadata tier`,
+      )
+    }
+    return metaTier
+  }
+
   const mapped = tierForPriceId(priceId)
   if (mapped) return mapped
 
@@ -107,16 +120,18 @@ async function sendPaymentFailedEmail(email: string): Promise<void> {
     // The billing page hosts the customer-portal button (the portal route is
     // an authenticated POST an email can't link to directly).
     const billingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`
+    // Accurate, not alarming: a subscription can go past_due on the first
+    // failed renewal attempt, so don't promise a grace window we don't have.
     const text =
       `Hi,\n\n` +
       `We couldn't process your latest PostCrisp payment. We'll retry automatically, ` +
-      `but if it keeps failing your subscription benefits may pause.\n\n` +
+      `but your paid features may be paused until your payment method is updated.\n\n` +
       `To keep everything running, update your payment method here:\n` +
       `${billingUrl}\n\n` +
       `Questions? Just reply to this email.\n\n` +
       `— The PostCrisp team`
 
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -129,6 +144,10 @@ async function sendPaymentFailedEmail(email: string): Promise<void> {
         text,
       }),
     })
+    if (!res.ok) {
+      // Status code only — never the response body, API key, or recipients.
+      console.error(`payment-failed notification: Resend responded ${res.status} (non-fatal)`)
+    }
   } catch (notifyErr) {
     console.error('payment-failed notification failed (non-fatal):', notifyErr)
   }
@@ -173,12 +192,15 @@ export async function handleStripeEvent(
             const currentBalance = profile?.credits_balance ?? 0
             const newBalance = currentBalance + credits
 
-            await supabase.from('profiles').update({
+            // Nothing granted yet — a failed balance write must throw so the
+            // ledger row is released and Stripe's retry can grant safely.
+            const { error: balanceError } = await supabase.from('profiles').update({
               credits_balance: newBalance,
               stripe_customer_id: customerId,
             }).eq('id', userId)
+            if (balanceError) throw balanceError
 
-            await supabase.from('credit_transactions').insert({
+            const { error: txError } = await supabase.from('credit_transactions').insert({
               user_id: userId,
               type: 'purchase',
               amount: credits,
@@ -186,6 +208,19 @@ export async function handleStripeEvent(
               reason: `Credit pack: ${meta.credit_pack_id} (${credits} credits)`,
               actor_id: userId,
             })
+            if (txError) {
+              // Asymmetry is deliberate: the balance is already granted, so
+              // throwing here would make Stripe retry and re-run the balance
+              // update — a double grant, the exact bug the idempotency guard
+              // exists to prevent. Keep the 200; make the lost audit row loud.
+              console.error(
+                `Stripe webhook: credit_transactions insert failed after balance grant for event ${event.id}:`,
+                txError.message,
+              )
+              Sentry.captureMessage(
+                `Stripe webhook: credits granted but audit row lost for event ${event.id}: ${txError.message}`,
+              )
+            }
           }
         } else if (mode === 'subscription') {
           const subscriptionId = session.subscription as string
@@ -200,11 +235,14 @@ export async function handleStripeEvent(
             tier = resolveSubscriptionTier(subscription)
           }
 
-          await supabase.from('profiles').update({
+          // Idempotent write — throw on failure so the outer catch releases
+          // the ledger row and Stripe's retry can re-run it safely.
+          const { error: tierError } = await supabase.from('profiles').update({
             subscription_tier: tier,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
           }).eq('id', userId)
+          if (tierError) throw tierError
         }
         break
       }
@@ -221,10 +259,12 @@ export async function handleStripeEvent(
           .single()
 
         if (profile) {
-          await supabase.from('profiles').update({
+          // Idempotent write — throw on failure so Stripe retries (see above).
+          const { error: updateError } = await supabase.from('profiles').update({
             subscription_tier: isActive ? resolveSubscriptionTier(subscription) : 'free',
             stripe_subscription_id: subscription.id,
           }).eq('id', profile.id)
+          if (updateError) throw updateError
         }
         break
       }
@@ -240,10 +280,12 @@ export async function handleStripeEvent(
           .single()
 
         if (profile) {
-          await supabase.from('profiles').update({
+          // Idempotent write — throw on failure so Stripe retries (see above).
+          const { error: deleteError } = await supabase.from('profiles').update({
             subscription_tier: 'free',
             stripe_subscription_id: null,
           }).eq('id', profile.id)
+          if (deleteError) throw deleteError
         }
         break
       }
@@ -274,6 +316,22 @@ export async function handleStripeEvent(
     }
   } catch (error) {
     console.error(`Error handling webhook event ${event.type}:`, error)
+    // Insert-first dedupe stays (atomic under concurrent retries), but a
+    // ledger row for an event we FAILED to process would make Stripe's retry
+    // no-op as a duplicate — the event would be permanently lost. Best-effort
+    // delete restores retry-ability; its own try/catch guarantees a cleanup
+    // failure can never mask the 500 below.
+    try {
+      const { error: cleanupError } = await supabase
+        .from('processed_stripe_events')
+        .delete()
+        .eq('event_id', event.id)
+      if (cleanupError) {
+        console.error('Stripe webhook ledger cleanup failed:', cleanupError.message)
+      }
+    } catch (cleanupErr) {
+      console.error('Stripe webhook ledger cleanup failed:', cleanupErr)
+    }
     return { status: 500, body: { error: 'Webhook handler failed' } }
   }
 
