@@ -373,6 +373,48 @@ describe('handleStripeEvent — retry-safety on processing failures', () => {
     expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'elite' })
   })
 
+  it('returns 500 and releases the event when the subscription.updated profile lookup fails', async () => {
+    const tables = setupTables({ subscription_tier: 'creator' })
+    const readErrors: FakeReadErrors = { profiles: { message: 'read timeout' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, readErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+
+    const result = await handleStripeEvent(subscriptionUpdatedEvent({ metadata: { tier: 'elite' } }), deps)
+
+    // A failed read must NOT look like "no profile" — that would 200, keep
+    // the ledger row, and make even a dashboard resend a duplicate no-op.
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'creator' })
+    expect(tables.processed_stripe_events!.size).toBe(0)
+  })
+
+  it('returns 500 and releases the event when the subscription.deleted profile lookup fails', async () => {
+    const tables = setupTables({ subscription_tier: 'elite', stripe_subscription_id: 'sub_1' })
+    const readErrors: FakeReadErrors = { profiles: { message: 'read timeout' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, readErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+    const event = {
+      id: 'evt_sub_deleted_err_1',
+      type: 'customer.subscription.deleted',
+      data: { object: { id: 'sub_1', customer: 'cus_1' } },
+    } as unknown as Stripe.Event
+
+    const result = await handleStripeEvent(event, deps)
+
+    // No later event follows a deletion — a silent skip here would leave a
+    // canceled customer on their paid tier permanently.
+    expect(result).toEqual({ status: 500, body: { error: 'Webhook handler failed' } })
+    expect(tables.profiles.get('user-1')).toMatchObject({
+      subscription_tier: 'elite',
+      stripe_subscription_id: 'sub_1',
+    })
+    expect(tables.processed_stripe_events!.size).toBe(0)
+  })
+
   it('returns 500 and releases the event when the credit-pack balance read fails', async () => {
     const tables = setupTables()
     const readErrors: FakeReadErrors = { profiles: { message: 'read timeout' } }
@@ -493,6 +535,27 @@ describe('handleStripeEvent — invoice.payment_failed', () => {
 
     expect(result).toEqual({ status: 200, body: { received: true } })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('logs but does not fail when the profile lookup for the email errors', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test_key')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const tables = setupTables()
+    const readErrors: FakeReadErrors = { profiles: { message: 'read timeout' } }
+    const deps: StripeWebhookDeps = {
+      supabase: createFakeSupabase({ tables, readErrors }) as any,
+      stripe: { subscriptions: { retrieve: vi.fn() } } as unknown as Stripe,
+    }
+
+    const result = await handleStripeEvent(paymentFailedEvent(), deps)
+
+    // Best-effort email: a 500 for a failed lookup would be worse than a
+    // missed notification, but the miss must be visible in the logs.
+    expect(result).toEqual({ status: 200, body: { received: true } })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
   })
 
   it('logs a Resend HTTP failure by status code only and never fails the webhook', async () => {

@@ -134,8 +134,11 @@ export function createFakeSupabase(opts: {
             for (const [id, row] of Array.from(map.entries())) {
               if (matches(row)) map.delete(id)
             }
+            return resolve({ error: null })
           }
-          return resolve({ error: null })
+          // Fail loudly (per the header contract) rather than pretend the
+          // delete succeeded — add the table here when a helper needs it.
+          throw new Error(`fake-supabase: delete() not implemented for table "${table}"`)
         }
         if (isInsert && insertPayload) {
           const rows = Array.isArray(insertPayload) ? insertPayload : [insertPayload]

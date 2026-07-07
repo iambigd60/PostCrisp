@@ -118,8 +118,10 @@ async function sendPaymentFailedEmail(email: string): Promise<void> {
     if (!apiKey) return
 
     // The billing page hosts the customer-portal button (the portal route is
-    // an authenticated POST an email can't link to directly).
-    const billingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`
+    // an authenticated POST an email can't link to directly). Fall back to
+    // the canonical production URL — a broken "undefined/..." link in a
+    // customer email is worse than a hardcoded fallback.
+    const billingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://postcrisp.com'}/dashboard/billing`
     // Accurate, not alarming: a subscription can go past_due on the first
     // failed renewal attempt, so don't promise a grace window we don't have.
     const text =
@@ -257,11 +259,16 @@ export async function handleStripeEvent(
         const customerId = subscription.customer as string
         const isActive = subscription.status === 'active' || subscription.status === 'trialing'
 
-        const { data: profile } = await supabase
+        // maybeSingle so a genuinely unknown customer skips cleanly, while a
+        // failed READ throws — otherwise it looks identical to "no profile",
+        // the branch no-ops with a 200, and the ledger row makes even a
+        // dashboard resend a duplicate no-op.
+        const { data: profile, error: lookupError } = await supabase
           .from('profiles')
           .select('id')
           .eq('stripe_customer_id', customerId)
-          .single()
+          .maybeSingle()
+        if (lookupError) throw lookupError
 
         if (profile) {
           // Idempotent write — throw on failure so Stripe retries (see above).
@@ -278,11 +285,15 @@ export async function handleStripeEvent(
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
 
-        const { data: profile } = await supabase
+        // Same read gate as subscription.updated — extra critical here: there
+        // is no later event, so a silently skipped downgrade would leave a
+        // canceled customer on their paid tier permanently.
+        const { data: profile, error: lookupError } = await supabase
           .from('profiles')
           .select('id')
           .eq('stripe_customer_id', customerId)
-          .single()
+          .maybeSingle()
+        if (lookupError) throw lookupError
 
         if (profile) {
           // Idempotent write — throw on failure so Stripe retries (see above).
@@ -300,11 +311,16 @@ export async function handleStripeEvent(
         const customerId = invoice.customer as string
         console.warn('Payment failed for customer:', customerId)
 
-        const { data: profile } = await supabase
+        const { data: profile, error: lookupError } = await supabase
           .from('profiles')
           .select('email')
           .eq('stripe_customer_id', customerId)
           .maybeSingle()
+        if (lookupError) {
+          // Best-effort email — a 500 for a failed lookup would be worse than
+          // a missed notification, but the miss must be visible.
+          console.error('Stripe webhook: profile lookup for payment-failed email errored:', lookupError.message)
+        }
 
         if (profile?.email) {
           await sendPaymentFailedEmail(profile.email as string)
