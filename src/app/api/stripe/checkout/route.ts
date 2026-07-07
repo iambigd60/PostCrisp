@@ -56,6 +56,11 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
+      // Session-level metadata so the checkout.session.completed webhook can
+      // read the tier without an extra Stripe API round-trip —
+      // subscription_data.metadata lands on the Subscription object only,
+      // never on the Checkout Session itself.
+      metadata: { tier, cycle },
       subscription_data: {
         metadata: { supabase_user_id: user.id, tier, cycle },
       },

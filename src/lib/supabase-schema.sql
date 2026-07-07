@@ -594,3 +594,14 @@ ALTER TABLE public.feature_access
 ALTER TABLE public.feature_access
   ADD  CONSTRAINT feature_access_min_tier_check
   CHECK (min_tier IN ('starter', 'creator', 'elite'));
+
+-- processed_stripe_events — Stripe webhook idempotency ledger. The webhook
+-- records each event id BEFORE processing (insert-first, atomic on the PK);
+-- a retried delivery conflicts and is skipped, preventing double credit grants.
+CREATE TABLE IF NOT EXISTS public.processed_stripe_events (
+  event_id   TEXT PRIMARY KEY,
+  type       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.processed_stripe_events ENABLE ROW LEVEL SECURITY;
+-- No policies: only the service-role client (which bypasses RLS) ever touches this.
