@@ -18,6 +18,11 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN
 
 const redis = url && token ? new Redis({ url, token }) : null
 
+// Vercel sets VERCEL_ENV to 'production' only on the production deployment
+// (preview/dev get 'preview'/'development'). We treat a missing Upstash
+// config as fatal ONLY in production so local dev and previews stay usable.
+const IS_PRODUCTION = process.env.VERCEL_ENV === 'production'
+
 function createLimiter(window: `${number} ${'s' | 'm' | 'h' | 'd'}`, max: number, prefix: string) {
   if (!redis) return null
   return new Ratelimit({
@@ -51,6 +56,23 @@ export interface RateLimitResult {
 }
 
 /**
+ * Result to use when Upstash is not configured. LOW-1: in production this
+ * must FAIL CLOSED — never silently disable rate limiting — so a misconfig
+ * can't quietly remove the AI-abuse backstop. In dev/preview it no-ops so
+ * local development keeps working without Upstash secrets.
+ */
+function unconfiguredResult(): RateLimitResult {
+  if (IS_PRODUCTION) {
+    console.error(
+      '[rate-limit] Upstash is not configured in production — failing closed. ' +
+        'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.',
+    )
+    return { ok: false, retryAfterSec: 30, reason: 'ip' }
+  }
+  return { ok: true, retryAfterSec: 0 }
+}
+
+/**
  * Extract a best-effort client IP from a Next.js request. Falls back to a
  * stable placeholder if nothing's discoverable so the limiter still keys on
  * something. Vercel sets x-forwarded-for; local dev usually has nothing.
@@ -72,7 +94,7 @@ export async function checkAiRateLimit(
   request: Request,
   userId: string | null,
 ): Promise<RateLimitResult> {
-  if (!redis) return { ok: true, retryAfterSec: 0 }
+  if (!redis) return unconfiguredResult()
 
   const ip = clientIp(request)
 
@@ -97,7 +119,7 @@ export async function checkAiRateLimit(
  * Check the feedback limiter. Pass userId post-auth.
  */
 export async function checkFeedbackRateLimit(userId: string): Promise<RateLimitResult> {
-  if (!feedbackLimiter) return { ok: true, retryAfterSec: 0 }
+  if (!feedbackLimiter) return unconfiguredResult()
   const result = await feedbackLimiter.limit(userId)
   if (!result.success) {
     const retryAfterSec = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000))

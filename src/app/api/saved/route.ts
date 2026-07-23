@@ -12,6 +12,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('saved_content')
     .select('*')
+    .eq('user_id', user.id)  // defense-in-depth: don't rely on RLS alone (LOW-3)
     .order('created_at', { ascending: false });
 
   if (error) {

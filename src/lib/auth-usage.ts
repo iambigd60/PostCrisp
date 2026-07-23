@@ -5,6 +5,7 @@ import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-confi
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
 import { ensureCreditsCurrent, creditCostFor } from './credits'
 import { checkAiRateLimit } from './rate-limit'
+import { serviceRoleClient } from './supabase-admin'
 
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
 export const FREE_DAILY_LIMIT = 10
@@ -96,7 +97,9 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   let dailyUsed = profile.daily_generations_used
 
   if (resetAt.toDateString() !== new Date().toDateString()) {
-    await supabase
+    // Server-controlled quota write — run as service_role (daily_generations_*
+    // are no longer writable by the authenticated role).
+    await (serviceRoleClient() ?? supabase)
       .from('profiles')
       .update({ daily_generations_used: 0, daily_generations_reset_at: new Date().toISOString() })
       .eq('id', user.id)
@@ -157,7 +160,10 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {
-  await supabase
+  // Server-controlled quota write — run as service_role (daily_generations_used
+  // is no longer writable by the authenticated role). Falls back to the passed
+  // client when the service key isn't configured (local dev / tests).
+  await (serviceRoleClient() ?? supabase)
     .from('profiles')
     .update({ daily_generations_used: currentCount + 1 })
     .eq('id', userId)

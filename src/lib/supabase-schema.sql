@@ -394,7 +394,12 @@ CREATE POLICY "Users can view own profile"
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+-- NOTE: column-level UPDATE grants + the protect_privileged_profile_columns
+-- trigger that lock down server-controlled columns live in the SECURITY
+-- HARDENING section at the bottom of this file — they must run after the
+-- foundation columns are added.
 
 -- generations policies
 DROP POLICY IF EXISTS "Users can view own generations" ON public.generations;
@@ -480,7 +485,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, full_name, avatar_url)
@@ -494,6 +499,10 @@ BEGIN
 END;
 $$;
 
+-- Trigger invocation does not require EXECUTE on the function, so this is
+-- safe; it just stops anon/authenticated from calling the definer directly.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -505,9 +514,10 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at = pg_catalog.now();
   RETURN NEW;
 END;
 $$;
@@ -605,3 +615,91 @@ CREATE TABLE IF NOT EXISTS public.processed_stripe_events (
 );
 ALTER TABLE public.processed_stripe_events ENABLE ROW LEVEL SECURITY;
 -- No policies: only the service-role client (which bypasses RLS) ever touches this.
+
+-- ============================================================
+-- SECURITY HARDENING (pre-launch) — audit CRITICAL-1/2, MEDIUM-6.
+-- Kept at the bottom so column grants run after every profiles column
+-- (incl. the foundation columns above) exists. Mirrors migration
+-- supabase/migrations/20260723120000_prelaunch_security_hardening.sql so
+-- environments provisioned from this file match production.
+-- ============================================================
+
+-- CRITICAL-2 + MEDIUM-6: consume_user_credits is SECURITY DEFINER, rejects
+-- non-positive amounts, has an empty search_path, and is callable only by
+-- service_role (the trusted server debit path in src/lib/credits.ts). The
+-- audit's vulnerable 4-arg overload is dropped so RPC resolution is
+-- unambiguous and no PUBLIC-executable overload lingers.
+DROP FUNCTION IF EXISTS public.consume_user_credits(uuid, integer, text, text);
+
+CREATE OR REPLACE FUNCTION public.consume_user_credits(
+  p_user_id uuid,
+  p_amount  integer
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_new_balance integer;
+BEGIN
+  IF p_amount IS NULL OR p_amount <= 0 THEN
+    RAISE EXCEPTION 'consume_user_credits: p_amount must be a positive integer (got %)', p_amount;
+  END IF;
+
+  UPDATE public.profiles
+     SET credits_balance = credits_balance - p_amount
+   WHERE id = p_user_id
+     AND credits_balance >= p_amount
+  RETURNING credits_balance INTO v_new_balance;
+
+  RETURN v_new_balance;
+END;
+$$;
+
+REVOKE ALL     ON FUNCTION public.consume_user_credits(uuid, integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.consume_user_credits(uuid, integer) FROM anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.consume_user_credits(uuid, integer) TO service_role;
+
+-- CRITICAL-1: authenticated may edit ONLY cosmetic/preference columns.
+REVOKE UPDATE ON public.profiles FROM anon, authenticated;
+GRANT  UPDATE (full_name, avatar_url, preferences,
+               use_foundation_in_generations, foundation_cta_dismissed_at)
+  ON public.profiles TO authenticated;
+
+-- CRITICAL-1 defense-in-depth: block client-role edits of privileged columns
+-- even if a column grant is ever mis-applied. SECURITY INVOKER (default) so
+-- current_user reflects the caller; trusted paths run as service_role or the
+-- SECURITY DEFINER RPC owner and pass through.
+CREATE OR REPLACE FUNCTION public.protect_privileged_profile_columns()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF current_user NOT IN ('anon', 'authenticated') THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.role                        IS DISTINCT FROM OLD.role
+     OR NEW.subscription_tier        IS DISTINCT FROM OLD.subscription_tier
+     OR NEW.stripe_customer_id       IS DISTINCT FROM OLD.stripe_customer_id
+     OR NEW.stripe_subscription_id   IS DISTINCT FROM OLD.stripe_subscription_id
+     OR NEW.email                    IS DISTINCT FROM OLD.email
+     OR NEW.credits_balance          IS DISTINCT FROM OLD.credits_balance
+     OR NEW.credits_reset_at         IS DISTINCT FROM OLD.credits_reset_at
+     OR NEW.daily_generations_used   IS DISTINCT FROM OLD.daily_generations_used
+     OR NEW.daily_generations_reset_at IS DISTINCT FROM OLD.daily_generations_reset_at
+  THEN
+    RAISE EXCEPTION 'Updating privileged profile columns (role/tier/stripe/email/credits/quota) is not allowed';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS protect_privileged_profile_columns ON public.profiles;
+CREATE TRIGGER protect_privileged_profile_columns
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_privileged_profile_columns();
