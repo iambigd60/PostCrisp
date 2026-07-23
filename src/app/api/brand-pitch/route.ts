@@ -17,7 +17,7 @@ export interface BrandPitchResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('brand-pitch', { request })
+  const auth = await checkAuthAndUsage('brand-pitch')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

@@ -43,14 +43,14 @@ Required (server, set in Vercel + `.env.local`):
 | `STRIPE_CREATOR_MONTHLY_PRICE_ID` | + `_YEARLY_`, `STRIPE_ELITE_*` per tier/cycle |
 | `RESEND_API_KEY` | Transactional email (auth, feedback notifications) |
 
-Required (observability + rate limiting, both server + client):
+Required (observability, both server + client):
 
 | Var | Purpose |
 |---|---|
 | `SENTRY_DSN` | Server-side error capture (API routes, edge runtime) |
 | `NEXT_PUBLIC_SENTRY_DSN` | Browser-side error capture — same value as `SENTRY_DSN`, but `NEXT_PUBLIC_` prefix is required for browser bundle inlining |
-| `UPSTASH_REDIS_REST_URL` | Rate limiter backend |
-| `UPSTASH_REDIS_REST_TOKEN` | Rate limiter auth |
+
+Edge rate limiting is enforced by Vercel WAF (no env vars) — see [docs/rate-limiting.md](docs/rate-limiting.md). Per-user abuse is bounded by the credit/quota system.
 
 Optional:
 

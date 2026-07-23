@@ -19,7 +19,7 @@ const contentTypeLabels: Record<string, string> = {
 }
 
 export async function GET(request: Request) {
-  const auth = await checkAuthAndUsage('posting-times', { request })
+  const auth = await checkAuthAndUsage('posting-times')
   if (!auth.ok) return auth.response
 
   const { searchParams } = new URL(request.url)

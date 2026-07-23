@@ -39,7 +39,7 @@ function getAnthropic(): Anthropic {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('thumbnail-analyzer', { request })
+  const auth = await checkAuthAndUsage('thumbnail-analyzer')
   if (!auth.ok) return auth.response
 
   const body = await request.json().catch(() => ({}))

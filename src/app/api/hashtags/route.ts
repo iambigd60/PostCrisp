@@ -43,7 +43,6 @@ export async function GET(request: Request) {
   const auth = await checkAuthAndUsage('hashtags', {
     bypassCredits: allowBypass,
     bypassFeatureGate: allowBypass,
-    request,
   })
   if (!auth.ok) return auth.response
 

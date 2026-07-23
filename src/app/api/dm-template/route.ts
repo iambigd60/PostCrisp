@@ -16,7 +16,7 @@ export interface DMTemplate {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('dm-template', { request })
+  const auth = await checkAuthAndUsage('dm-template')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

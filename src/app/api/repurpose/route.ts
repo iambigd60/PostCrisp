@@ -19,7 +19,7 @@ export interface RepurposedItem {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('repurpose', { request })
+  const auth = await checkAuthAndUsage('repurpose')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

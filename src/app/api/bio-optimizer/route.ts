@@ -31,7 +31,7 @@ const PLATFORM_BIO_LIMITS: Record<string, number> = {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('bio-optimizer', { request })
+  const auth = await checkAuthAndUsage('bio-optimizer')
   if (!auth.ok) return auth.response
 
   const body = await request.json()
