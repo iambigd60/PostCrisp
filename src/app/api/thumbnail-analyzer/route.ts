@@ -213,8 +213,8 @@ Rules:
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
-  if (!parsed?.clickPrediction || !Array.isArray(parsed.improvements)) {
-    console.error('Thumbnail analyzer — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+  if (!parsed?.clickPrediction || !Array.isArray(parsed.improvements) || parsed.improvements.length === 0) {
+    console.error('Thumbnail analyzer — unexpected/empty shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
     await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }

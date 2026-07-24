@@ -100,6 +100,19 @@ describe('consumeCredits', () => {
     expect(tables.credit_transactions).toHaveLength(0)
   })
 
+  it('fallback returns null on a lost race — conditional UPDATE affects 0 rows, no ledger row', async () => {
+    const tables = setupTables(10)
+    // Balance passes the pre-read (10 >= 3) but the conditional UPDATE matches
+    // zero rows (a concurrent request already moved the balance).
+    const supabase = createFakeSupabase({ tables, conditionalUpdateMisses: true })
+
+    const result = await consumeCredits(supabase as any, 'user-1', 3, 'viral-ideas')
+
+    expect(result).toBeNull()
+    expect((tables.profiles.get('user-1') as { credits_balance: number }).credits_balance).toBe(10)
+    expect(tables.credit_transactions).toHaveLength(0)
+  })
+
   it('treats cost <= 0 as a no-op debit (admin / tutorial-bypass path)', async () => {
     const tables = setupTables(10)
     const supabase = createFakeSupabase({

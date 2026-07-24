@@ -109,7 +109,22 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   let creditCost = 0
   let creditsBalance = 0
   if (task) {
-    const { balance } = await ensureCreditsCurrent(supabase, user.id, tier)
+    let balance: number
+    try {
+      // ensureCreditsCurrent may run a service-role write on the reset path;
+      // if that write client is misconfigured it throws. Fail CLOSED with the
+      // same clean 503 reserveCredits uses, rather than an unhandled 500.
+      balance = (await ensureCreditsCurrent(supabase, user.id, tier)).balance
+    } catch (err) {
+      console.error('[credits] preflight failed:', err)
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: 'Unable to verify credits right now. Please try again.' },
+          { status: 503 },
+        ),
+      }
+    }
     creditsBalance = balance
     creditCost = (isAdmin || opts.bypassCredits) ? 0 : creditCostFor(task)
 
@@ -178,10 +193,17 @@ export async function reserveCredits(auth: AuthUsageOk): Promise<NextResponse | 
  */
 export async function refundCredits(auth: AuthUsageOk): Promise<void> {
   if (auth.creditCost <= 0 || !auth.task) return
-  await grantCredits(auth.supabase, auth.userId, auth.creditCost, {
-    type: 'refund',
-    reason: `refund: ${auth.task} generation failed`,
-  })
+  // Best-effort compensation. grantCredits runs the protected write as
+  // service_role; swallow any failure (logged) so a refund error can never
+  // bubble out of the route's catch and replace its intended error response.
+  try {
+    await grantCredits(auth.supabase, auth.userId, auth.creditCost, {
+      type: 'refund',
+      reason: `refund: ${auth.task} generation failed`,
+    })
+  } catch (err) {
+    console.error('[credits] refund failed:', err)
+  }
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {

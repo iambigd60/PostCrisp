@@ -88,6 +88,13 @@ Rules:
 
     const parsed = parseLooseJson<BrandPitchResult>(text)
 
+    if (!parsed?.formal?.subject || !parsed?.formal?.body ||
+        !parsed?.casual?.subject || !parsed?.casual?.body || !parsed?.followUp) {
+      console.error('Brand pitch — incomplete pitch shape. Preview:', text.slice(0, 300))
+      await refundCredits(auth)
+      return NextResponse.json({ error: 'AI returned an incomplete pitch. Please try again.' }, { status: 502 })
+    }
+
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
     await auth.supabase.from('generations').insert({

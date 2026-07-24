@@ -47,15 +47,20 @@ export async function POST() {
   try {
     const traits = await analyzeVoiceProfile(profile.samples, auth.tier)
 
-    const { error } = await auth.supabase
+    // .select().maybeSingle() so a zero-row update (e.g. the profile was
+    // concurrently deleted) is detected as a failed save rather than silently
+    // "succeeding" and charging the user for unpersisted traits.
+    const { data: saved, error } = await auth.supabase
       .from('voice_profiles')
       .update({
         traits,
         last_analyzed_at: new Date().toISOString(),
       })
       .eq('user_id', auth.userId)
+      .select('user_id')
+      .maybeSingle()
 
-    if (error) {
+    if (error || !saved) {
       await refundCredits(auth)
       return NextResponse.json({ error: 'Failed to save analysis. Please try again.' }, { status: 500 })
     }

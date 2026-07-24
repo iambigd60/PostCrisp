@@ -90,6 +90,12 @@ Rules:
     const parsed = parseLooseJson<{ hashtags?: unknown[] }>(text)
     const hashtags = parsed.hashtags || []
 
+    if (!Array.isArray(hashtags) || hashtags.length === 0) {
+      console.error('Hashtags — empty/invalid hashtags array. Preview:', text.slice(0, 300))
+      await refundCredits(auth)
+      return NextResponse.json({ error: 'AI returned no hashtags. Please try again.' }, { status: 502 })
+    }
+
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
     await auth.supabase.from('generations').insert({

@@ -92,8 +92,9 @@ Rules:
 
   // Defensive: even if parse succeeds, the shape may be wrong. Surface a
   // clear error rather than silently rendering empty arrays on the client.
-  if (!Array.isArray(parsed.trending) || !Array.isArray(parsed.rising) || !Array.isArray(parsed.niche)) {
-    console.error('Trend radar — unexpected response shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+  if (!Array.isArray(parsed.trending) || !Array.isArray(parsed.rising) || !Array.isArray(parsed.niche) ||
+      (parsed.trending.length === 0 && parsed.rising.length === 0 && parsed.niche.length === 0)) {
+    console.error('Trend radar — unexpected/empty response shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
     await refundCredits(auth)
     return NextResponse.json(
       { error: 'AI returned an unexpected response. Please try again.' },
