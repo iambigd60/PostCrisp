@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
   daily_generations_used     INTEGER NOT NULL DEFAULT 0,
   daily_generations_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  credits_balance            INTEGER NOT NULL DEFAULT 10,  -- starter default
+  credits_balance            INTEGER NOT NULL DEFAULT 10,  -- starter default (spendable total)
+  purchased_credits          INTEGER NOT NULL DEFAULT 0,   -- non-expiring portion (credit packs); survives allowance reset
   credits_reset_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -647,8 +648,11 @@ BEGIN
     RAISE EXCEPTION 'consume_user_credits: p_amount must be a positive integer (got %)', p_amount;
   END IF;
 
+  -- Spend the cycling allowance first; only draw down purchased_credits when
+  -- the balance would drop below it.
   UPDATE public.profiles
-     SET credits_balance = credits_balance - p_amount
+     SET credits_balance   = credits_balance - p_amount,
+         purchased_credits = LEAST(purchased_credits, credits_balance - p_amount)
    WHERE id = p_user_id
      AND credits_balance >= p_amount
   RETURNING credits_balance INTO v_new_balance;
@@ -688,6 +692,7 @@ BEGIN
     IF NEW.role                       IS DISTINCT FROM 'user'
        OR NEW.subscription_tier       IS DISTINCT FROM 'free'
        OR NEW.credits_balance         IS DISTINCT FROM 10
+       OR NEW.purchased_credits       IS DISTINCT FROM 0
        OR NEW.stripe_customer_id      IS NOT NULL
        OR NEW.stripe_subscription_id  IS NOT NULL
        OR NEW.daily_generations_used  IS DISTINCT FROM 0
@@ -703,6 +708,7 @@ BEGIN
      OR NEW.stripe_subscription_id   IS DISTINCT FROM OLD.stripe_subscription_id
      OR NEW.email                    IS DISTINCT FROM OLD.email
      OR NEW.credits_balance          IS DISTINCT FROM OLD.credits_balance
+     OR NEW.purchased_credits        IS DISTINCT FROM OLD.purchased_credits
      OR NEW.credits_reset_at         IS DISTINCT FROM OLD.credits_reset_at
      OR NEW.daily_generations_used   IS DISTINCT FROM OLD.daily_generations_used
      OR NEW.daily_generations_reset_at IS DISTINCT FROM OLD.daily_generations_reset_at

@@ -83,11 +83,13 @@ export async function ensureCreditsCurrent(
 ): Promise<{ balance: number; resetAt: Date }> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('credits_balance, credits_reset_at')
+    .select('credits_balance, credits_reset_at, purchased_credits')
     .eq('id', userId)
     .maybeSingle()
 
   const currentBalance = profile?.credits_balance ?? 0
+  // Purchased credits are non-expiring — they must survive the allowance reset.
+  const purchasedCredits = profile?.purchased_credits ?? 0
   const resetAt = profile?.credits_reset_at ? new Date(profile.credits_reset_at) : new Date(0)
   const now = new Date()
 
@@ -95,9 +97,12 @@ export async function ensureCreditsCurrent(
     return { balance: currentBalance, resetAt }
   }
 
-  // Reset time has passed — refresh allowance
+  // Reset time has passed — refresh the cycling allowance ON TOP OF any
+  // purchased credits still held (which never expire). purchased_credits itself
+  // is unchanged: those credits remain in the new balance.
   const { credits, cycle } = TIER_ALLOWANCE[tier]
   const newResetAt = nextResetDate(now, cycle)
+  const newBalance = credits + purchasedCredits
 
   // Server-controlled write — must run as service_role (credits_balance is no
   // longer writable by the authenticated role).
@@ -106,7 +111,7 @@ export async function ensureCreditsCurrent(
   const { error } = await writer
     .from('profiles')
     .update({
-      credits_balance: credits,
+      credits_balance: newBalance,
       credits_reset_at: newResetAt.toISOString(),
     })
     .eq('id', userId)
@@ -120,12 +125,12 @@ export async function ensureCreditsCurrent(
     user_id: userId,
     type: 'reset',
     amount: credits,
-    balance_after: credits,
+    balance_after: newBalance,
     reason: `${cycle} allowance reset (${tier})`,
     actor_id: userId,
   })
 
-  return { balance: credits, resetAt: newResetAt }
+  return { balance: newBalance, resetAt: newResetAt }
 }
 
 /**
@@ -195,18 +200,22 @@ async function consumeCreditsFallback(
 ): Promise<{ balanceAfter: number } | null> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('credits_balance')
+    .select('credits_balance, purchased_credits')
     .eq('id', userId)
     .maybeSingle()
 
   const current = profile?.credits_balance ?? 0
+  const purchasedCredits = profile?.purchased_credits ?? 0
   if (current < cost) return null
 
   const newBalance = current - cost
+  // Spend the cycling allowance first; only reduce the purchased tracker if the
+  // balance drops below it (i.e. the spend reached into purchased credits).
+  const newPurchased = Math.min(purchasedCredits, newBalance)
 
   const { data: updatedRows, error } = await supabase
     .from('profiles')
-    .update({ credits_balance: newBalance })
+    .update({ credits_balance: newBalance, purchased_credits: newPurchased })
     .eq('id', userId)
     .eq('credits_balance', current)  // optimistic concurrency check
     .select('credits_balance')
@@ -247,21 +256,29 @@ export async function grantCredits(
   // column grant + trigger). Use the same elevated writer as the debit paths.
   const writer = writeClient(supabase)
 
+  // Grants other than refunds are non-expiring (admin comps, purchases), so
+  // they must also land in the purchased_credits bucket or the next allowance
+  // reset would discard them. Refunds are allowance-side compensation and stay
+  // in credits_balance only.
+  const bumpsPurchased = opts.type !== 'refund'
+
   // Read-modify-write with a conditional UPDATE + retry so concurrent grants
   // (e.g. a refund racing a credit-pack fulfillment) can't lose an update.
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: profile } = await writer
       .from('profiles')
-      .select('credits_balance')
+      .select('credits_balance, purchased_credits')
       .eq('id', userId)
       .maybeSingle()
 
     const current = profile?.credits_balance ?? 0
+    const currentPurchased = profile?.purchased_credits ?? 0
     const newBalance = current + amount
+    const newPurchased = bumpsPurchased ? currentPurchased + amount : currentPurchased
 
     const { data: rows, error } = await writer
       .from('profiles')
-      .update({ credits_balance: newBalance })
+      .update({ credits_balance: newBalance, purchased_credits: newPurchased })
       .eq('id', userId)
       .eq('credits_balance', current)  // optimistic guard against lost updates
       .select('credits_balance')

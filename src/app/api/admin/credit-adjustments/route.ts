@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   // Find user by email
   const { data: target } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, email, credits_balance')
+    .select('id, email, credits_balance, purchased_credits')
     .eq('email', userEmail)
     .maybeSingle()
 
@@ -66,15 +66,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, action: 'granted', amount, newBalance: result.balanceAfter })
   }
 
-  // Negative amount — adjust down
+  // Negative amount — adjust down. Clamp the purchased tracker so it never
+  // exceeds the reduced balance (else the next reset would restore removed
+  // credits as "purchased").
   const newBalance = Math.max(0, target.credits_balance + amount)  // amount is negative
+  const newPurchased = Math.min(target.purchased_credits ?? 0, newBalance)
 
-  const { error: updateError } = await auth.supabaseAdmin
+  // Optimistic-concurrency guard: only write if the balance hasn't moved since
+  // the read (e.g. a user generation in between), so the adjustment can't clobber
+  // a concurrent change.
+  const { data: adjRows, error: updateError } = await auth.supabaseAdmin
     .from('profiles')
-    .update({ credits_balance: newBalance })
+    .update({ credits_balance: newBalance, purchased_credits: newPurchased })
     .eq('id', target.id)
+    .eq('credits_balance', target.credits_balance)
+    .select('id')
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+  if (!adjRows || adjRows.length === 0) {
+    return NextResponse.json({ error: 'Balance changed during the adjustment — please retry.' }, { status: 409 })
+  }
 
   await auth.supabaseAdmin.from('credit_transactions').insert({
     user_id: target.id,

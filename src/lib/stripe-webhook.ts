@@ -251,20 +251,30 @@ export async function handleStripeEvent(
             // still legitimately falls back to 0 below.
             const { data: profile, error: balanceReadError } = await supabase
               .from('profiles')
-              .select('credits_balance')
+              .select('credits_balance, purchased_credits')
               .eq('id', userId)
               .maybeSingle()
             if (balanceReadError) throw balanceReadError
             const currentBalance = profile?.credits_balance ?? 0
+            const currentPurchased = profile?.purchased_credits ?? 0
             const newBalance = currentBalance + credits
 
             // Nothing granted yet — a failed balance write must throw so the
             // ledger row is released and Stripe's retry can grant safely.
-            const { error: balanceError } = await supabase.from('profiles').update({
+            // Purchased credits track the non-expiring portion so the monthly
+            // allowance reset never wipes a pack the customer paid for. The
+            // .eq('credits_balance', currentBalance) guard makes the grant
+            // atomic: if a concurrent write moved the balance since the read,
+            // it matches 0 rows and we throw → Stripe retries with a fresh read.
+            const { data: balanceRows, error: balanceError } = await supabase.from('profiles').update({
               credits_balance: newBalance,
+              purchased_credits: currentPurchased + credits,
               stripe_customer_id: customerId,
-            }).eq('id', userId)
+            }).eq('id', userId).eq('credits_balance', currentBalance).select('id')
             if (balanceError) throw balanceError
+            if (!balanceRows || balanceRows.length === 0) {
+              throw new Error(`credit-pack grant hit a concurrent balance change for user ${userId}; releasing for retry`)
+            }
 
             const { error: txError } = await supabase.from('credit_transactions').insert({
               user_id: userId,
