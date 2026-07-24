@@ -256,21 +256,29 @@ export async function grantCredits(
   // column grant + trigger). Use the same elevated writer as the debit paths.
   const writer = writeClient(supabase)
 
+  // Grants other than refunds are non-expiring (admin comps, purchases), so
+  // they must also land in the purchased_credits bucket or the next allowance
+  // reset would discard them. Refunds are allowance-side compensation and stay
+  // in credits_balance only.
+  const bumpsPurchased = opts.type !== 'refund'
+
   // Read-modify-write with a conditional UPDATE + retry so concurrent grants
   // (e.g. a refund racing a credit-pack fulfillment) can't lose an update.
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: profile } = await writer
       .from('profiles')
-      .select('credits_balance')
+      .select('credits_balance, purchased_credits')
       .eq('id', userId)
       .maybeSingle()
 
     const current = profile?.credits_balance ?? 0
+    const currentPurchased = profile?.purchased_credits ?? 0
     const newBalance = current + amount
+    const newPurchased = bumpsPurchased ? currentPurchased + amount : currentPurchased
 
     const { data: rows, error } = await writer
       .from('profiles')
-      .update({ credits_balance: newBalance })
+      .update({ credits_balance: newBalance, purchased_credits: newPurchased })
       .eq('id', userId)
       .eq('credits_balance', current)  // optimistic guard against lost updates
       .select('credits_balance')

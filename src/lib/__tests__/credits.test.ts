@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { consumeCredits, creditCostFor, ensureCreditsCurrent } from '@/lib/credits'
+import { consumeCredits, creditCostFor, ensureCreditsCurrent, grantCredits } from '@/lib/credits'
 import { createFakeSupabase, type FakeSupabaseTables } from './fake-supabase'
 
 function setupTables(
@@ -180,5 +180,31 @@ describe('purchased-credits bucket', () => {
     expect(result).toEqual({ balanceAfter: 1300 })
     expect(profile(tables).credits_balance).toBe(1300)
     expect(profile(tables).purchased_credits).toBe(1300)  // clamped to the new balance
+  })
+})
+
+describe('grantCredits — purchased bucket persistence', () => {
+  const profile = (t: FakeSupabaseTables) => t.profiles.get('user-1') as { credits_balance: number; purchased_credits: number }
+
+  it('an admin grant persists into purchased_credits so it survives the allowance reset', async () => {
+    const tables = setupTables(500, { purchased: 0 })
+    const supabase = createFakeSupabase({ tables })
+
+    const res = await grantCredits(supabase as any, 'user-1', 100, { type: 'grant', reason: 'comp' })
+
+    expect(res).toEqual({ balanceAfter: 600 })
+    expect(profile(tables).credits_balance).toBe(600)
+    expect(profile(tables).purchased_credits).toBe(100)  // non-expiring
+  })
+
+  it('a refund stays allowance-side — purchased_credits is untouched', async () => {
+    const tables = setupTables(500, { purchased: 0 })
+    const supabase = createFakeSupabase({ tables })
+
+    const res = await grantCredits(supabase as any, 'user-1', 5, { type: 'refund', reason: 'refund: captions failed' })
+
+    expect(res).toEqual({ balanceAfter: 505 })
+    expect(profile(tables).credits_balance).toBe(505)
+    expect(profile(tables).purchased_credits).toBe(0)  // refunds don't bump purchased
   })
 })

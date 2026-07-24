@@ -72,12 +72,20 @@ export async function POST(request: Request) {
   const newBalance = Math.max(0, target.credits_balance + amount)  // amount is negative
   const newPurchased = Math.min(target.purchased_credits ?? 0, newBalance)
 
-  const { error: updateError } = await auth.supabaseAdmin
+  // Optimistic-concurrency guard: only write if the balance hasn't moved since
+  // the read (e.g. a user generation in between), so the adjustment can't clobber
+  // a concurrent change.
+  const { data: adjRows, error: updateError } = await auth.supabaseAdmin
     .from('profiles')
     .update({ credits_balance: newBalance, purchased_credits: newPurchased })
     .eq('id', target.id)
+    .eq('credits_balance', target.credits_balance)
+    .select('id')
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+  if (!adjRows || adjRows.length === 0) {
+    return NextResponse.json({ error: 'Balance changed during the adjustment — please retry.' }, { status: 409 })
+  }
 
   await auth.supabaseAdmin.from('credit_transactions').insert({
     user_id: target.id,
