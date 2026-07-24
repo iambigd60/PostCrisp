@@ -93,6 +93,7 @@ function checkoutCompletedEvent(opts: {
   id?: string
   mode?: 'subscription' | 'payment'
   metadata?: Record<string, string>
+  paymentStatus?: string
 } = {}): Stripe.Event {
   const mode = opts.mode ?? 'subscription'
   return {
@@ -104,6 +105,9 @@ function checkoutCompletedEvent(opts: {
         customer: 'cus_1',
         subscription: mode === 'subscription' ? 'sub_1' : null,
         mode,
+        // Real Stripe checkout.session.completed carries payment_status;
+        // provisioning is gated on it settling. Default to 'paid'.
+        payment_status: opts.paymentStatus ?? 'paid',
         metadata: opts.metadata ?? {},
       },
     },
@@ -325,6 +329,40 @@ describe('handleStripeEvent — subscription tier resolution', () => {
       subscription_tier: 'free',
       stripe_subscription_id: null,
     })
+  })
+})
+
+describe('handleStripeEvent — payment_status gating', () => {
+  it('does NOT grant credit-pack credits when the checkout session is unpaid', async () => {
+    const tables = setupTables()
+    const { deps } = createDeps(tables)
+    const event = checkoutCompletedEvent({
+      id: 'evt_unpaid_pack',
+      mode: 'payment',
+      metadata: { credit_pack_id: 'pack_500', credits: '500' },
+      paymentStatus: 'unpaid',
+    })
+
+    const res = await handleStripeEvent(event, deps)
+
+    expect(res).toEqual({ status: 200, body: { received: true } })
+    expect(tables.profiles.get('user-1')).toMatchObject({ credits_balance: 10 })
+    expect(tables.credit_transactions).toHaveLength(0)
+  })
+
+  it('does NOT provision a subscription tier when the checkout session is unpaid', async () => {
+    const tables = setupTables()
+    const { deps } = createDeps(tables)
+    const event = checkoutCompletedEvent({
+      id: 'evt_unpaid_sub',
+      mode: 'subscription',
+      metadata: { tier: 'creator' },
+      paymentStatus: 'unpaid',
+    })
+
+    await handleStripeEvent(event, deps)
+
+    expect(tables.profiles.get('user-1')).toMatchObject({ subscription_tier: 'free' })
   })
 })
 

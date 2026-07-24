@@ -35,6 +35,10 @@ export interface FoundationAnalysisResult {
 }
 
 export async function POST(request: Request) {
+  // Authenticate + feature-gate before doing any body parsing / validation work.
+  const auth = await checkAuthAndUsage('foundation-analysis')
+  if (!auth.ok) return auth.response
+
   const body = (await request.json()) as Partial<FoundationInput>
 
   // Validate required fields
@@ -54,9 +58,6 @@ export async function POST(request: Request) {
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
   }
-
-  const auth = await checkAuthAndUsage('foundation-analysis')
-  if (!auth.ok) return auth.response
 
   const input = body as FoundationInput
   const prompt = buildFoundationPrompt(input)

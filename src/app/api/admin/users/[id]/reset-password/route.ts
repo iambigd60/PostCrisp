@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server'
 // Uses the same flow as /forgot-password, just initiated by an admin.
 // The user clicks the email link → /auth/callback exchanges the code for a
 // recovery session → redirects to /auth/reset-password where they set a new pw.
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
@@ -26,13 +26,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  // Derive origin from the request (works in any env without needing
-  // NEXT_PUBLIC_SITE_URL). Falls back to env var then to an empty relative URL.
-  const origin =
-    request.headers.get('origin') ||
-    (request.headers.get('host') ? `https://${request.headers.get('host')}` : '') ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    ''
+  // Build the recovery-link origin from the fixed app URL — never from
+  // request Host/Origin headers, which are attacker-controllable and would
+  // enable password-reset-link poisoning (same hardening as /forgot-password).
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+  if (!origin) {
+    console.error('[admin reset-password] NEXT_PUBLIC_APP_URL is not set')
+    return NextResponse.json({ error: 'Server is not configured for password resets.' }, { status: 500 })
+  }
 
   // Trigger the recovery email via user-scoped client (which respects the
   // configured SMTP — Resend in our case). Supabase appends its PKCE code
