@@ -251,17 +251,21 @@ export async function handleStripeEvent(
             // still legitimately falls back to 0 below.
             const { data: profile, error: balanceReadError } = await supabase
               .from('profiles')
-              .select('credits_balance')
+              .select('credits_balance, purchased_credits')
               .eq('id', userId)
               .maybeSingle()
             if (balanceReadError) throw balanceReadError
             const currentBalance = profile?.credits_balance ?? 0
+            const currentPurchased = profile?.purchased_credits ?? 0
             const newBalance = currentBalance + credits
 
             // Nothing granted yet — a failed balance write must throw so the
             // ledger row is released and Stripe's retry can grant safely.
+            // Purchased credits track the non-expiring portion so the monthly
+            // allowance reset never wipes a pack the customer paid for.
             const { error: balanceError } = await supabase.from('profiles').update({
               credits_balance: newBalance,
+              purchased_credits: currentPurchased + credits,
               stripe_customer_id: customerId,
             }).eq('id', userId)
             if (balanceError) throw balanceError
