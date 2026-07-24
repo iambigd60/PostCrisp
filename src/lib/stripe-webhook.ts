@@ -228,6 +228,18 @@ export async function handleStripeEvent(
 
         if (!userId) break
 
+        // Only provision once payment has actually settled. Card-only checkout
+        // completes as 'paid', but if any delayed/async payment method is ever
+        // enabled the event can fire before funds settle ('unpaid') — never
+        // grant credits/tier before then. 'no_payment_required' covers
+        // legitimate zero-cost / trial sessions.
+        if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+          console.warn(
+            `Stripe webhook: checkout.session.completed ${event.id} has payment_status=${session.payment_status}; skipping provisioning until paid`,
+          )
+          break
+        }
+
         if (mode === 'payment' && meta.credit_pack_id) {
           // One-time credit pack purchase — grant credits
           const credits = parseInt(meta.credits ?? '0', 10)

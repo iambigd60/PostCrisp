@@ -719,3 +719,22 @@ CREATE TRIGGER protect_privileged_profile_columns
   BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_privileged_profile_columns();
+
+-- ------------------------------------------------------------
+-- Defense-in-depth: remove latent client write grants on service-role-only
+-- tables (each already denies anon/authenticated writes via RLS — no
+-- permissive write policy — so this is belt-and-suspenders). All real writes
+-- run as service_role. feature_access / ai_config_overrides are intentionally
+-- omitted (they carry an admin FOR ALL policy for authenticated admin writes).
+-- ------------------------------------------------------------
+REVOKE INSERT, UPDATE, DELETE ON public.credit_transactions FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.admin_actions       FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.platform_settings   FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.invite_codes        FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.generation_ai_calls FROM anon, authenticated;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON public.processed_stripe_events FROM anon, authenticated;
+
+-- feedback: users may INSERT their own rows, but only the user-supplied columns
+-- (admin-workflow columns keep their defaults until an admin/service write).
+REVOKE INSERT, UPDATE, DELETE ON public.feedback FROM anon, authenticated;
+GRANT  INSERT (user_id, message, category, url, user_agent) ON public.feedback TO authenticated;

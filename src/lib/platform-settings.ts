@@ -10,8 +10,13 @@ export interface AccessControl {
   updated_at?: string
 }
 
-const DEFAULT_ACCESS_CONTROL: AccessControl = {
-  signup_mode: 'open',
+// Fail-CLOSED default. Used only when the access_control row is missing or the
+// read fails — never allow open, un-invited signup on a transient DB error /
+// misconfiguration. Login stays enabled (it's credential-gated and we don't
+// want a DB blip to lock out existing users); signup is the attack surface, so
+// it defaults to 'closed' until a real config is read.
+const FAILCLOSED_ACCESS_CONTROL: AccessControl = {
+  signup_mode: 'closed',
   invite_code: null,
   login_enabled: true,
 }
@@ -33,19 +38,46 @@ export async function readAccessControl(): Promise<AccessControl> {
 
   try {
     const admin = serviceClient()
-    const { data } = await admin
+    const { data, error } = await admin
       .from('platform_settings')
       .select('value, updated_at')
       .eq('key', 'access_control')
       .maybeSingle()
 
-    const value: AccessControl = data?.value
-      ? { ...DEFAULT_ACCESS_CONTROL, ...(data.value as Partial<AccessControl>) }
-      : DEFAULT_ACCESS_CONTROL
+    // Read error or missing config row → fail closed, and do NOT cache the
+    // fallback so the next call re-reads once the DB recovers.
+    if (error) {
+      console.error('[access-control] read failed — failing closed:', error.message)
+      return FAILCLOSED_ACCESS_CONTROL
+    }
+    if (!data?.value) {
+      return FAILCLOSED_ACCESS_CONTROL
+    }
+
+    // Merge onto the fail-closed base AND validate the security-relevant fields.
+    // A spread alone isn't enough: a corrupt row with signup_mode null/unknown
+    // would overwrite 'closed', and the signup action (which only special-cases
+    // 'closed'/'invite') would then fall through to allowing signup. Coerce an
+    // unrecognized mode back to 'closed', and a non-boolean login flag to true.
+    const stored = data.value as Partial<AccessControl>
+    const validMode =
+      stored.signup_mode === 'open' ||
+      stored.signup_mode === 'invite' ||
+      stored.signup_mode === 'closed'
+    const value: AccessControl = {
+      ...FAILCLOSED_ACCESS_CONTROL,
+      ...stored,
+      signup_mode: validMode ? (stored.signup_mode as SignupMode) : FAILCLOSED_ACCESS_CONTROL.signup_mode,
+      login_enabled:
+        typeof stored.login_enabled === 'boolean'
+          ? stored.login_enabled
+          : FAILCLOSED_ACCESS_CONTROL.login_enabled,
+    }
     _cache = { value, expiresAt: Date.now() + CACHE_TTL_MS }
     return value
-  } catch {
-    return DEFAULT_ACCESS_CONTROL
+  } catch (err) {
+    console.error('[access-control] read threw — failing closed:', err)
+    return FAILCLOSED_ACCESS_CONTROL
   }
 }
 
