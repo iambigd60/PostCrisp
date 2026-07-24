@@ -736,5 +736,5 @@ REVOKE SELECT, INSERT, UPDATE, DELETE ON public.processed_stripe_events FROM ano
 
 -- feedback: users may INSERT their own rows, but only the user-supplied columns
 -- (admin-workflow columns keep their defaults until an admin/service write).
-REVOKE INSERT ON public.feedback FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.feedback FROM anon, authenticated;
 GRANT  INSERT (user_id, message, category, url, user_agent) ON public.feedback TO authenticated;

@@ -30,5 +30,7 @@ REVOKE SELECT, INSERT, UPDATE, DELETE ON public.processed_stripe_events FROM ano
 -- Restrict the insertable columns to the user-supplied set; the workflow
 -- columns keep their defaults (status defaults to 'new') until a service-role /
 -- admin write updates them.
-REVOKE INSERT ON public.feedback FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.feedback FROM anon, authenticated;
 GRANT  INSERT (user_id, message, category, url, user_agent) ON public.feedback TO authenticated;
+-- feedback UPDATE/DELETE (resolve, triage) run as service_role via admin routes;
+-- there is no client UPDATE/DELETE policy, so this only removes latent grants.
