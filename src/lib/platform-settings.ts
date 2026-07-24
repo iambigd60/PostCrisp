@@ -54,9 +54,25 @@ export async function readAccessControl(): Promise<AccessControl> {
       return FAILCLOSED_ACCESS_CONTROL
     }
 
-    // Merge onto the fail-closed base so a partial/corrupt row can't silently
-    // re-open signup (a missing signup_mode stays 'closed').
-    const value: AccessControl = { ...FAILCLOSED_ACCESS_CONTROL, ...(data.value as Partial<AccessControl>) }
+    // Merge onto the fail-closed base AND validate the security-relevant fields.
+    // A spread alone isn't enough: a corrupt row with signup_mode null/unknown
+    // would overwrite 'closed', and the signup action (which only special-cases
+    // 'closed'/'invite') would then fall through to allowing signup. Coerce an
+    // unrecognized mode back to 'closed', and a non-boolean login flag to true.
+    const stored = data.value as Partial<AccessControl>
+    const validMode =
+      stored.signup_mode === 'open' ||
+      stored.signup_mode === 'invite' ||
+      stored.signup_mode === 'closed'
+    const value: AccessControl = {
+      ...FAILCLOSED_ACCESS_CONTROL,
+      ...stored,
+      signup_mode: validMode ? (stored.signup_mode as SignupMode) : FAILCLOSED_ACCESS_CONTROL.signup_mode,
+      login_enabled:
+        typeof stored.login_enabled === 'boolean'
+          ? stored.login_enabled
+          : FAILCLOSED_ACCESS_CONTROL.login_enabled,
+    }
     _cache = { value, expiresAt: Date.now() + CACHE_TTL_MS }
     return value
   } catch (err) {
