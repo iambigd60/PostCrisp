@@ -109,7 +109,6 @@ export async function POST(request: Request) {
   const auth = await checkAuthAndUsage('viral-ideas', {
     bypassCredits: allowBypass,
     bypassFeatureGate: allowBypass,
-    request,
   })
   if (!auth.ok) return auth.response
 

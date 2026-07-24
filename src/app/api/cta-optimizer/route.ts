@@ -39,7 +39,7 @@ const ALLOWED_GOALS = new Set([
 const MAX_CONTENT_LEN = 8000
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('cta-optimizer', { request })
+  const auth = await checkAuthAndUsage('cta-optimizer')
   if (!auth.ok) return auth.response
 
   const body = await request.json().catch(() => ({}))

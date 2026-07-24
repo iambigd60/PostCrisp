@@ -21,7 +21,7 @@ export interface SoundTrend {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('sound-tracker', { request })
+  const auth = await checkAuthAndUsage('sound-tracker')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

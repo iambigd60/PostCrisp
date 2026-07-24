@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
 import { ensureCreditsCurrent, creditCostFor } from './credits'
-import { checkAiRateLimit } from './rate-limit'
+import { serviceRoleClient } from './supabase-admin'
 
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
 export const FREE_DAILY_LIMIT = 10
@@ -41,11 +41,6 @@ export interface CheckAuthOptions {
    *  users still need a one-time guided run during onboarding. Caller must
    *  validate the tutorial-state guard before passing this. */
   bypassFeatureGate?: boolean
-  /** When provided, applies the AI rate-limit (per-user + per-IP) before
-   *  the auth/credit checks. Routes should pass the inbound Request so the
-   *  limiter can extract the client IP. Without this, rate limiting is
-   *  skipped — unconfigured Upstash also no-ops. */
-  request?: Request
 }
 
 export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions = {}): Promise<AuthUsageOk | AuthUsageDenied> {
@@ -56,31 +51,9 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
     return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  // Rate limit: per-user + per-IP sliding window. Caller must pass the
-  // Request to enable this; without it, limiting silently no-ops (covers
-  // local dev and any route not yet migrated to pass `request`).
-  if (opts.request) {
-    const rl = await checkAiRateLimit(opts.request, user.id)
-    if (!rl.ok) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          {
-            error: rl.reason === 'ip'
-              ? 'Too many requests from this network. Slow down and try again shortly.'
-              : 'You\'re generating too quickly. Give it a moment and try again.',
-            code: 'RATE_LIMITED',
-            retryAfterSec: rl.retryAfterSec,
-          },
-          {
-            status: 429,
-            headers: { 'Retry-After': String(rl.retryAfterSec) },
-          },
-        ),
-      }
-    }
-  }
-
+  // Edge rate limiting (per-IP) is handled by Vercel WAF — see
+  // docs/rate-limiting.md. Per-user abuse is bounded by the credit/quota
+  // checks below, which remain the primary business control.
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('subscription_tier, role, daily_generations_used, daily_generations_reset_at')
@@ -96,7 +69,9 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   let dailyUsed = profile.daily_generations_used
 
   if (resetAt.toDateString() !== new Date().toDateString()) {
-    await supabase
+    // Server-controlled quota write — run as service_role (daily_generations_*
+    // are no longer writable by the authenticated role).
+    await (serviceRoleClient() ?? supabase)
       .from('profiles')
       .update({ daily_generations_used: 0, daily_generations_reset_at: new Date().toISOString() })
       .eq('id', user.id)
@@ -157,7 +132,10 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {
-  await supabase
+  // Server-controlled quota write — run as service_role (daily_generations_used
+  // is no longer writable by the authenticated role). Falls back to the passed
+  // client when the service key isn't configured (local dev / tests).
+  await (serviceRoleClient() ?? supabase)
     .from('profiles')
     .update({ daily_generations_used: currentCount + 1 })
     .eq('id', userId)

@@ -21,7 +21,7 @@ export interface YouTubeSEOResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('youtube-seo', { request })
+  const auth = await checkAuthAndUsage('youtube-seo')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

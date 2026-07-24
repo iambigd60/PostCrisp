@@ -16,8 +16,20 @@ import {
   type CrispTask,
   type Tier,
 } from './crisp-engine-config'
+import { serviceRoleClient } from './supabase-admin'
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>
+
+/**
+ * Resolve the client used for server-controlled credit writes. Credit and
+ * quota columns on `profiles` are no longer writable by the authenticated
+ * role (see the pre-launch security migration), so debits/resets must run
+ * as service_role. Falls back to the passed user-scoped client when the
+ * service key isn't configured (local dev / unit tests).
+ */
+function writeClient(supabase: ServerClient): ServerClient {
+  return (serviceRoleClient() ?? supabase) as ServerClient
+}
 
 export interface CreditProfile {
   balance: number
@@ -77,7 +89,11 @@ export async function ensureCreditsCurrent(
   const { credits, cycle } = TIER_ALLOWANCE[tier]
   const newResetAt = nextResetDate(now, cycle)
 
-  const { error } = await supabase
+  // Server-controlled write — must run as service_role (credits_balance is no
+  // longer writable by the authenticated role).
+  const writer = writeClient(supabase)
+
+  const { error } = await writer
     .from('profiles')
     .update({
       credits_balance: credits,
@@ -90,7 +106,7 @@ export async function ensureCreditsCurrent(
     return { balance: currentBalance, resetAt }
   }
 
-  await supabase.from('credit_transactions').insert({
+  await writer.from('credit_transactions').insert({
     user_id: userId,
     type: 'reset',
     amount: credits,
@@ -123,21 +139,25 @@ export async function consumeCredits(
     return { balanceAfter: data?.credits_balance ?? 0 }
   }
 
+  // Server-controlled write path — the RPC is SECURITY DEFINER and callable
+  // only by service_role; the transaction ledger has no client INSERT policy.
+  const writer = writeClient(supabase)
+
   // Conditional atomic decrement — only succeeds if balance is sufficient
-  const { data: updated, error } = await supabase.rpc('consume_user_credits', {
+  const { data: updated, error } = await writer.rpc('consume_user_credits', {
     p_user_id: userId,
     p_amount: cost,
   })
 
   if (error) {
     // RPC not installed — fall back to read-then-update (tiny race window)
-    return consumeCreditsFallback(supabase, userId, cost, task, generationId)
+    return consumeCreditsFallback(writer, userId, cost, task, generationId)
   }
 
   const newBalance = updated as number | null
   if (newBalance === null) return null  // insufficient balance
 
-  await supabase.from('credit_transactions').insert({
+  await writer.from('credit_transactions').insert({
     user_id: userId,
     type: 'consume',
     amount: -cost,

@@ -1,21 +1,22 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 
 export async function sendPasswordReset(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
 
-  // Derive origin so the recovery email link lands on this deployment's
-  // /auth/callback, not a stale/missing NEXT_PUBLIC_SITE_URL.
-  const h = await headers()
-  const host = h.get('host')
-  const proto = h.get('x-forwarded-proto') ?? (host?.includes('localhost') ? 'http' : 'https')
-  const origin = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL ?? '')
+  // Use the fixed, env-configured canonical origin for the recovery link.
+  // NEVER derive it from the request Host header — that is attacker-controllable
+  // and enables password-reset-link poisoning (HIGH-2). In local dev this is
+  // http://localhost:3000 (see .env.local.example).
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '')
+  if (!appUrl) {
+    return { error: 'Password reset is temporarily unavailable. Please try again later.' }
+  }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/reset-password`,
+    redirectTo: `${appUrl}/auth/reset-password`,
   })
 
   if (error) {

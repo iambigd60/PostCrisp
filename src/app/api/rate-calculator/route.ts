@@ -19,7 +19,7 @@ export interface RateResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('rate-calculator', { request })
+  const auth = await checkAuthAndUsage('rate-calculator')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

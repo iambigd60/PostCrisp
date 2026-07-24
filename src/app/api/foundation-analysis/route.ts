@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
   }
 
-  const auth = await checkAuthAndUsage('foundation-analysis', { request })
+  const auth = await checkAuthAndUsage('foundation-analysis')
   if (!auth.ok) return auth.response
 
   const input = body as FoundationInput

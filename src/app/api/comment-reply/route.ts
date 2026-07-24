@@ -18,7 +18,7 @@ export interface ReplyResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('comment-reply', { request })
+  const auth = await checkAuthAndUsage('comment-reply')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

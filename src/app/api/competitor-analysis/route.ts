@@ -20,7 +20,7 @@ export interface CompetitorAnalysisResult {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('competitor-analysis', { request })
+  const auth = await checkAuthAndUsage('competitor-analysis')
   if (!auth.ok) return auth.response
 
   const body = await request.json()

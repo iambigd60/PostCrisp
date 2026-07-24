@@ -19,7 +19,7 @@ export interface CollabStrategy {
 }
 
 export async function POST(request: Request) {
-  const auth = await checkAuthAndUsage('collab-finder', { request })
+  const auth = await checkAuthAndUsage('collab-finder')
   if (!auth.ok) return auth.response
 
   const body = await request.json()
