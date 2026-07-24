@@ -202,11 +202,17 @@ export function createFakeSupabase(opts: {
         }
         if (updatePayload && table === 'profiles') {
           const entries = Array.from(tables.profiles.entries())
+          const affected: Record<string, unknown>[] = []
           for (const [key, row] of entries) {
             if (matches(row)) {
-              tables.profiles.set(key, { ...row, ...updatePayload })
+              const updated = { ...row, ...updatePayload }
+              tables.profiles.set(key, updated)
+              affected.push(updated)
             }
           }
+          // When the caller chained .select(), return the affected rows so
+          // conditional-UPDATE callers can detect a 0-row (lost-race) update.
+          if (selectCols) return resolve({ data: affected, error: null })
           return resolve({ error: null })
         }
         return resolve({ error: null })

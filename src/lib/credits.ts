@@ -28,7 +28,17 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>
  * service key isn't configured (local dev / unit tests).
  */
 function writeClient(supabase: ServerClient): ServerClient {
-  return (serviceRoleClient() ?? supabase) as ServerClient
+  const svc = serviceRoleClient()
+  if (svc) return svc as ServerClient
+  // In production the hardened DB rejects credit/quota writes from the
+  // authenticated role, so falling back to the user client would silently
+  // fail every debit — and (historically) hand out free generations. Fail
+  // loud instead of failing open. Dev/preview/tests still fall back so they
+  // work without a service-role key.
+  if (process.env.VERCEL_ENV === 'production') {
+    throw new Error('[credits] SUPABASE_SERVICE_ROLE_KEY is required in production for credit writes')
+  }
+  return supabase
 }
 
 export interface CreditProfile {
@@ -194,13 +204,18 @@ async function consumeCreditsFallback(
 
   const newBalance = current - cost
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('profiles')
     .update({ credits_balance: newBalance })
     .eq('id', userId)
     .eq('credits_balance', current)  // optimistic concurrency check
+    .select('credits_balance')
 
-  if (error) return null
+  // A lost race (a concurrent request already moved the balance) matches zero
+  // rows and returns NO error. Without inspecting the affected rows we'd treat
+  // that as a successful debit and hand out a free generation — so an empty
+  // result must be reported as "insufficient / not debited".
+  if (error || !updatedRows || updatedRows.length === 0) return null
 
   await supabase.from('credit_transactions').insert({
     user_id: userId,

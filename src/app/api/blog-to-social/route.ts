@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
@@ -72,6 +71,9 @@ Rules:
 - hashtags 3-8 for IG/TikTok, 1-3 for X/LinkedIn, optional elsewhere
 - sourceSection helps the user remember where it came from`
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   try {
@@ -88,6 +90,7 @@ Rules:
     totalTokens = result.totalTokens
   } catch (error) {
     console.error('Blog-to-social — model call failed:', error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -97,11 +100,13 @@ Rules:
     posts = parsed.posts ?? []
   } catch (error) {
     console.error('Blog-to-social — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
   if (!Array.isArray(posts) || posts.length === 0) {
     console.error('Blog-to-social — empty/invalid posts array. Preview:', text.slice(0, 300))
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned no posts. Please try again.' }, { status: 502 })
   }
 
@@ -115,7 +120,6 @@ Rules:
       output_data: { posts },
       tokens_used: totalTokens,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'blog-to-social')
   } catch (error) {
     console.error('Blog-to-social — persistence failed (non-fatal):', error)
   }

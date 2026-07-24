@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -57,6 +56,9 @@ Rules:
 - Each question should be niche-specific and genuinely interesting to answer`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'polls',
@@ -80,10 +82,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'polls')
-
     return NextResponse.json({ polls })
   } catch (error) {
+    await refundCredits(auth)
     console.error('Polls error:', error)
     return NextResponse.json({ error: 'Failed to generate polls. Please try again.' }, { status: 500 })
   }

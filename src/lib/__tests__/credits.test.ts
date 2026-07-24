@@ -75,6 +75,31 @@ describe('consumeCredits', () => {
     expect((tables.profiles.get('user-1') as { credits_balance: number }).credits_balance).toBe(2)
   })
 
+  it('falls back to a conditional UPDATE (with row-count check) when the RPC is unavailable', async () => {
+    const tables = setupTables(10)
+    // No rpcs provided → the RPC call errors → consumeCredits uses the
+    // read-then-conditional-update fallback. The fake now returns the affected
+    // rows for update().select(), so a real debit is detected as success.
+    const supabase = createFakeSupabase({ tables })
+
+    const result = await consumeCredits(supabase as any, 'user-1', 3, 'viral-ideas')
+
+    expect(result).toEqual({ balanceAfter: 7 })
+    expect((tables.profiles.get('user-1') as { credits_balance: number }).credits_balance).toBe(7)
+    expect(tables.credit_transactions).toHaveLength(1)
+  })
+
+  it('fallback returns null when the balance is already too low (no debit, no txn)', async () => {
+    const tables = setupTables(2)
+    const supabase = createFakeSupabase({ tables })
+
+    const result = await consumeCredits(supabase as any, 'user-1', 5, 'channel-analysis')
+
+    expect(result).toBeNull()
+    expect((tables.profiles.get('user-1') as { credits_balance: number }).credits_balance).toBe(2)
+    expect(tables.credit_transactions).toHaveLength(0)
+  })
+
   it('treats cost <= 0 as a no-op debit (admin / tutorial-bypass path)', async () => {
     const tables = setupTables(10)
     const supabase = createFakeSupabase({

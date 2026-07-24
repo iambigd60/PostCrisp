@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
 import {
   loadVoiceProfile,
   analyzeVoiceProfile,
   MIN_SAMPLES_FOR_ANALYSIS,
 } from '@/lib/voice-profile'
-import { tierFromDbValue } from '@/lib/crisp-engine-config'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -17,14 +16,16 @@ export const dynamic = 'force-dynamic'
 // POST — run trait extraction on the user's current samples. Saves traits
 // to the voice_profiles row. Idempotent — safe to re-run after adding
 // more samples.
+//
+// This is a real LLM generation, so it MUST be gated + metered like every
+// other AI route. It routes through the 'bio-optimizer' engine config
+// internally (see analyzeVoiceProfile), so we meter it as that task — all
+// tiers, 2 credits — rather than leaving it as a free, unbounded call.
 export async function POST() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const auth = await checkAuthAndUsage('bio-optimizer')
+  if (!auth.ok) return auth.response
 
-  const profile = await loadVoiceProfile(supabase, user.id)
+  const profile = await loadVoiceProfile(auth.supabase, auth.userId)
   if (!profile) {
     return NextResponse.json({ error: 'No voice profile yet — add samples first.' }, { status: 400 })
   }
@@ -38,32 +39,32 @@ export async function POST() {
     )
   }
 
-  // Read user's current tier so analysis runs on the right model (Creator+
-  // gets Sonnet quality; Starter gets cheaper).
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', user.id)
-    .maybeSingle()
-  const tier = tierFromDbValue(profileRow?.subscription_tier)
+  // Reserve credits atomically BEFORE the model call — do not run (or re-run)
+  // the analysis for free under concurrency.
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
 
   try {
-    const traits = await analyzeVoiceProfile(profile.samples, tier)
+    const traits = await analyzeVoiceProfile(profile.samples, auth.tier)
 
-    const { error } = await supabase
+    const { error } = await auth.supabase
       .from('voice_profiles')
       .update({
         traits,
         last_analyzed_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      await refundCredits(auth)
+      return NextResponse.json({ error: 'Failed to save analysis. Please try again.' }, { status: 500 })
     }
+
+    await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
     return NextResponse.json({ ok: true, traits })
   } catch (err) {
+    await refundCredits(auth)
     const msg = err instanceof Error ? err.message : 'Analysis failed'
     return NextResponse.json({ error: msg }, { status: 500 })
   }

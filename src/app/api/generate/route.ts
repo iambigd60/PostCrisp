@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 import { loadCreatorContext } from '@/lib/creator-context-block'
@@ -103,6 +102,9 @@ Return ONLY valid JSON with this structure — no markdown:
   const prompt = [creatorContext, promptBody].filter(Boolean).join('\n\n')
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'captions',
@@ -126,10 +128,9 @@ Return ONLY valid JSON with this structure — no markdown:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'captions')
-
     return NextResponse.json({ captions, platform, tone, contentType, generatedAt: new Date().toISOString() })
   } catch (error) {
+    await refundCredits(auth)
     console.error('Caption generation error:', error)
     return NextResponse.json({ error: 'Failed to generate captions. Please try again.' }, { status: 500 })
   }

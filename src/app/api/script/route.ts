@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -65,6 +64,9 @@ Rules:
 - wordCount: actual spoken word count across hook + intro + sections + cta + outro`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'script',
@@ -87,10 +89,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'script')
-
     return NextResponse.json(parsed)
   } catch (error) {
+    await refundCredits(auth)
     console.error('Script generation error:', error)
     return NextResponse.json({ error: 'Failed to generate script. Please try again.' }, { status: 500 })
   }

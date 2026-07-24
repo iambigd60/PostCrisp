@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -57,6 +56,9 @@ Rules:
 - Vary sound types across genres and use cases`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const { text, totalTokens } = await crispGenerate({
       task: 'sound-tracker',
       tier: auth.tier,
@@ -77,10 +79,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'sound-tracker')
-
     return NextResponse.json(parsed)
   } catch (error) {
+    await refundCredits(auth)
     console.error('Sound tracker error:', error)
     return NextResponse.json({ error: 'Failed to load sounds. Please try again.' }, { status: 500 })
   }

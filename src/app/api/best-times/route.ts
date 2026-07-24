@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -67,6 +66,9 @@ Rules:
 - tips array must be exactly 3 items, each actionable and specific to the inputs above`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const { text, totalTokens } = await crispGenerate({
       task: 'posting-times',
       tier: auth.tier,
@@ -87,10 +89,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'posting-times')
-
     return NextResponse.json({ platform, niche, contentType, region, ...parsed })
   } catch (error) {
+    await refundCredits(auth)
     console.error('Best times generation error:', error)
     return NextResponse.json({ error: 'Failed to analyze posting times. Please try again.' }, { status: 500 })
   }

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { upsertCreatorProfile } from '@/lib/creator-profile'
 import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 import { isSocialPlatformUrl, looksLikeUrl, socialPlatformLabel, validateEvidencePostsForPlatform } from '@/lib/social-url'
@@ -63,6 +62,9 @@ export async function POST(request: Request) {
   const prompt = buildFoundationPrompt(input)
   const useRefine = auth.tier === 'elite' && process.env.ENABLE_FOUNDATION_REFINE === 'true'
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   let refined = false
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
     console.log(`[foundation-analysis] crispGenerate done — tier=${auth.tier} refined=${refined} elapsedMs=${Date.now() - tStart} tokens=${totalTokens} model=${result.modelUsed}`)
   } catch (error) {
     console.error(`[foundation-analysis] model call failed after ${Date.now() - tStart}ms:`, error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -91,6 +94,7 @@ export async function POST(request: Request) {
     parsed = parseLooseJson<FoundationAnalysisResult>(text)
   } catch (error) {
     console.error('Foundation analysis — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
@@ -113,10 +117,11 @@ export async function POST(request: Request) {
     !Array.isArray(cp.topBlockers)
   ) {
     console.error('Foundation analysis — unexpected shape:', { keys: Object.keys(parsed ?? {}), profileKeys: Object.keys(cp ?? {}), preview: text.slice(0, 300) })
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }
 
-  // Persist generation row + credit debit (best-effort).
+  // Persist generation row (best-effort — credits already debited up front).
   let analysisId: string | null = null
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
@@ -136,7 +141,6 @@ export async function POST(request: Request) {
       tier: auth.tier,
       calls: aiCalls,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'foundation-analysis')
   } catch (error) {
     console.error('[foundation-analysis] generation persist failed (non-fatal):', error)
   }

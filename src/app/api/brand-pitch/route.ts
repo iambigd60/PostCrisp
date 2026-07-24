@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -75,6 +74,9 @@ Rules:
 - Never use generic filler like "hope this finds you well"`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'brand-pitch',
@@ -97,10 +99,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'brand-pitch')
-
     return NextResponse.json(parsed)
   } catch (error) {
+    await refundCredits(auth)
     console.error('Brand pitch generation error:', error)
     return NextResponse.json({ error: 'Failed to generate pitch. Please try again.' }, { status: 500 })
   }

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -65,6 +64,9 @@ Rules:
 - Thumbnail text is 2-5 words, high contrast, attention-grabbing`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'youtube-seo',
@@ -87,10 +89,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'youtube-seo')
-
     return NextResponse.json(parsed)
   } catch (error) {
+    await refundCredits(auth)
     console.error('YouTube SEO error:', error)
     return NextResponse.json({ error: 'Failed to optimize. Please try again.' }, { status: 500 })
   }

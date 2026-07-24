@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
-import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
@@ -129,6 +128,9 @@ Rules:
   // crisp-engine logs per-pass timing — check Vercel logs to monitor.
   const useRefine = auth.tier === 'elite'
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   let refined = false
@@ -151,6 +153,7 @@ Rules:
     console.log(`[channel-analysis] crispGenerate done — tier=${auth.tier} refined=${refined} elapsedMs=${Date.now() - tStart} tokens=${totalTokens} model=${result.modelUsed}`)
   } catch (error) {
     console.error(`[channel-analysis] model call failed after ${Date.now() - tStart}ms:`, error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -159,11 +162,13 @@ Rules:
     parsed = parseLooseJson<ChannelAnalysisResult>(text)
   } catch (error) {
     console.error('Channel analysis — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
   if (!parsed?.overallAssessment || !Array.isArray(parsed.strengths) || !Array.isArray(parsed.gaps)) {
     console.error('Channel analysis — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }
 
@@ -190,9 +195,6 @@ Rules:
       tier: auth.tier,
       calls: aiCalls,
     })
-    // bypass-credits flow already left auth.creditCost = 0 — calling consumeCredits
-    // is a no-op there but kept for symmetry / non-tutorial path.
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'channel-analysis')
   } catch (error) {
     console.error('Channel analysis — persistence failed (non-fatal):', error)
   }

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
 import { systemPromptFor } from '@/lib/system-prompts'
 import { estimateAiCallCostUsd } from '@/lib/ai-costs'
@@ -130,6 +129,9 @@ Rules:
 - Include 3-5 improvements. At least one MUST be priority: "high".
 - If the image is genuinely good, say so — don't manufacture critique.`
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   // Phase 1: vision call to Anthropic. Most likely failure point — large
   // base64 image, network hiccup, or 5xx from their API.
   let text = ''
@@ -186,14 +188,18 @@ Rules:
     const status = err?.status
     console.error('Thumbnail analyzer — vision call failed:', { status, name: err?.name, message: err?.message }, error)
     if (status === 429) {
+      await refundCredits(auth)
       return NextResponse.json({ error: 'AI provider is rate-limiting us. Try again in a few seconds.' }, { status: 429 })
     }
     if (status === 413 || (err?.message ?? '').toLowerCase().includes('too large')) {
+      await refundCredits(auth)
       return NextResponse.json({ error: 'Image is too large for the AI provider. Try one under 5 MB.' }, { status: 413 })
     }
     if (status && status >= 500) {
+      await refundCredits(auth)
       return NextResponse.json({ error: 'AI provider is having issues. Please retry in a moment.' }, { status: 502 })
     }
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI vision call failed. Please try again.' }, { status: 502 })
   }
 
@@ -203,11 +209,13 @@ Rules:
     parsed = parseLooseJson<ThumbnailAnalysisResult>(text)
   } catch (error) {
     console.error('Thumbnail analyzer — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
   if (!parsed?.clickPrediction || !Array.isArray(parsed.improvements)) {
     console.error('Thumbnail analyzer — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }
 
@@ -232,7 +240,6 @@ Rules:
       tier: auth.tier,
       calls: aiCalls,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'thumbnail-analyzer')
   } catch (error) {
     console.error('Thumbnail analyzer — persistence failed (non-fatal):', error)
   }
