@@ -661,16 +661,18 @@ REVOKE ALL     ON FUNCTION public.consume_user_credits(uuid, integer) FROM PUBLI
 REVOKE EXECUTE ON FUNCTION public.consume_user_credits(uuid, integer) FROM anon, authenticated;
 GRANT  EXECUTE ON FUNCTION public.consume_user_credits(uuid, integer) TO service_role;
 
--- CRITICAL-1: authenticated may edit ONLY cosmetic/preference columns.
+-- CRITICAL-1: authenticated may edit ONLY cosmetic/preference columns, and
+-- may not INSERT profiles at all (rows are created by handle_new_user()).
 REVOKE UPDATE ON public.profiles FROM anon, authenticated;
+REVOKE INSERT ON public.profiles FROM anon, authenticated;
 GRANT  UPDATE (full_name, avatar_url, preferences,
                use_foundation_in_generations, foundation_cta_dismissed_at)
   ON public.profiles TO authenticated;
 
--- CRITICAL-1 defense-in-depth: block client-role edits of privileged columns
--- even if a column grant is ever mis-applied. SECURITY INVOKER (default) so
--- current_user reflects the caller; trusted paths run as service_role or the
--- SECURITY DEFINER RPC owner and pass through.
+-- CRITICAL-1 defense-in-depth: block client-role writes of privileged columns
+-- even if a grant is ever mis-applied, on INSERT as well as UPDATE. SECURITY
+-- INVOKER (default) so current_user reflects the caller; trusted paths run as
+-- service_role or the SECURITY DEFINER owner and pass through.
 CREATE OR REPLACE FUNCTION public.protect_privileged_profile_columns()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -678,6 +680,20 @@ SET search_path = ''
 AS $$
 BEGIN
   IF current_user NOT IN ('anon', 'authenticated') THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    -- A client-role INSERT may only create a row with the safe defaults.
+    IF NEW.role                       IS DISTINCT FROM 'user'
+       OR NEW.subscription_tier       IS DISTINCT FROM 'free'
+       OR NEW.credits_balance         IS DISTINCT FROM 10
+       OR NEW.stripe_customer_id      IS NOT NULL
+       OR NEW.stripe_subscription_id  IS NOT NULL
+       OR NEW.daily_generations_used  IS DISTINCT FROM 0
+    THEN
+      RAISE EXCEPTION 'Inserting privileged profile columns (role/tier/stripe/credits/quota) is not allowed';
+    END IF;
     RETURN NEW;
   END IF;
 
@@ -700,6 +716,6 @@ $$;
 
 DROP TRIGGER IF EXISTS protect_privileged_profile_columns ON public.profiles;
 CREATE TRIGGER protect_privileged_profile_columns
-  BEFORE UPDATE ON public.profiles
+  BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_privileged_profile_columns();

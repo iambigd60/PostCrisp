@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { loadCreatorContext } from '@/lib/creator-context-block'
 
@@ -92,6 +91,9 @@ Rules:
   const prompt = [creatorContext, promptBody].filter(Boolean).join('\n\n')
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'bio-optimizer',
@@ -114,10 +116,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'bio-optimizer')
-
     return NextResponse.json({ options: parsed.options ?? [], charLimit })
   } catch (error) {
+    await refundCredits(auth)
     console.error('Bio optimizer error:', error)
     return NextResponse.json({ error: 'Failed to optimize bio. Please try again.' }, { status: 500 })
   }

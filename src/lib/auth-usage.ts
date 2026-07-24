@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/utils/supabase/server'
 import { tierFromDbValue, type CrispTask, type Tier } from './crisp-engine-config'
 import { resolveFeatureAccess, featureBlockedResponse } from './feature-access'
-import { ensureCreditsCurrent, creditCostFor } from './credits'
+import { ensureCreditsCurrent, creditCostFor, consumeCredits, grantCredits } from './credits'
 import { serviceRoleClient } from './supabase-admin'
 
 // Legacy — kept for admin feature access UI only. Credits are now the primary cap.
@@ -19,6 +19,7 @@ type AuthUsageOk = {
   tier: Tier
   role: 'user' | 'admin'
   dailyUsed: number
+  task?: CrispTask          // the task being gated (used by reserve/refund)
   creditCost: number        // how many credits this task costs (0 for admins)
   creditsBalance: number    // user's balance AFTER the preflight / allowance refresh
   supabase: ServerClient
@@ -108,7 +109,22 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
   let creditCost = 0
   let creditsBalance = 0
   if (task) {
-    const { balance } = await ensureCreditsCurrent(supabase, user.id, tier)
+    let balance: number
+    try {
+      // ensureCreditsCurrent may run a service-role write on the reset path;
+      // if that write client is misconfigured it throws. Fail CLOSED with the
+      // same clean 503 reserveCredits uses, rather than an unhandled 500.
+      balance = (await ensureCreditsCurrent(supabase, user.id, tier)).balance
+    } catch (err) {
+      console.error('[credits] preflight failed:', err)
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: 'Unable to verify credits right now. Please try again.' },
+          { status: 503 },
+        ),
+      }
+    }
     creditsBalance = balance
     creditCost = (isAdmin || opts.bypassCredits) ? 0 : creditCostFor(task)
 
@@ -128,7 +144,66 @@ export async function checkAuthAndUsage(task?: CrispTask, opts: CheckAuthOptions
     }
   }
 
-  return { ok: true, userId: user.id, tier, role, dailyUsed, creditCost, creditsBalance, supabase }
+  return { ok: true, userId: user.id, tier, role, dailyUsed, task, creditCost, creditsBalance, supabase }
+}
+
+/**
+ * Atomically reserve (debit) this request's credit cost BEFORE the expensive
+ * model call. Returns a 402 response when the balance is insufficient — this
+ * closes the concurrency gap that a preflight-only balance check misses (N
+ * parallel requests all passing the read, then all generating). Call it right
+ * before invoking the model, after input validation; on generation failure
+ * call refundCredits() so the user is never charged for output they didn't get.
+ *
+ * No-ops (returns null) for admins / tutorial bypass / task-less calls, where
+ * creditCost is 0.
+ */
+export async function reserveCredits(auth: AuthUsageOk): Promise<NextResponse | null> {
+  if (auth.creditCost <= 0 || !auth.task) return null
+  let res: Awaited<ReturnType<typeof consumeCredits>>
+  try {
+    res = await consumeCredits(auth.supabase, auth.userId, auth.creditCost, auth.task)
+  } catch (err) {
+    // A hard failure debiting credits (e.g. a misconfigured service-role key
+    // in production) must fail CLOSED — deny the request rather than run the
+    // model for free. Returning a response (never throwing) also guarantees
+    // the caller's catch/refund path only runs for a debit that DID happen.
+    console.error('[credits] reserve failed:', err)
+    return NextResponse.json(
+      { error: 'Unable to verify credits right now. Please try again.' },
+      { status: 503 },
+    )
+  }
+  if (!res) {
+    return NextResponse.json(
+      {
+        error: `Not enough credits. This action costs ${auth.creditCost} credits.`,
+        code: 'INSUFFICIENT_CREDITS',
+        creditCost: auth.creditCost,
+      },
+      { status: 402 },
+    )
+  }
+  return null
+}
+
+/**
+ * Refund a credit cost reserved by reserveCredits(). Call in the failure path
+ * of a route whose generation threw after the reservation succeeded.
+ */
+export async function refundCredits(auth: AuthUsageOk): Promise<void> {
+  if (auth.creditCost <= 0 || !auth.task) return
+  // Best-effort compensation. grantCredits runs the protected write as
+  // service_role; swallow any failure (logged) so a refund error can never
+  // bubble out of the route's catch and replace its intended error response.
+  try {
+    await grantCredits(auth.supabase, auth.userId, auth.creditCost, {
+      type: 'refund',
+      reason: `refund: ${auth.task} generation failed`,
+    })
+  } catch (err) {
+    console.error('[credits] refund failed:', err)
+  }
 }
 
 export async function incrementUsage(supabase: ServerClient, userId: string, currentCount: number) {

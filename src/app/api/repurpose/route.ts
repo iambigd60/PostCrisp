@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
@@ -63,6 +62,9 @@ Rules:
 - hashtags: 5-15 for IG/TikTok, 0-3 for X/LinkedIn/Facebook/Threads
 - notes: optional 1-sentence reason this version fits the platform`
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   try {
@@ -79,6 +81,7 @@ Rules:
     totalTokens = result.totalTokens
   } catch (error) {
     console.error('Repurpose — model call failed:', error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -88,11 +91,13 @@ Rules:
     items = parsed.items ?? []
   } catch (error) {
     console.error('Repurpose — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
   if (!Array.isArray(items) || items.length === 0) {
     console.error('Repurpose — empty/invalid items array. Preview:', text.slice(0, 300))
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned no repurposed items. Please try again.' }, { status: 502 })
   }
 
@@ -106,7 +111,6 @@ Rules:
       output_data: { items },
       tokens_used: totalTokens,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'repurpose')
   } catch (error) {
     console.error('Repurpose — persistence failed (non-fatal):', error)
   }

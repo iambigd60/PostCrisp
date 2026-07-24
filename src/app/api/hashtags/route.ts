@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -78,6 +77,9 @@ Rules:
 - Sort each group by score descending`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const { text, totalTokens } = await crispGenerate({
       task: 'hashtags',
       tier: auth.tier,
@@ -87,6 +89,12 @@ Rules:
 
     const parsed = parseLooseJson<{ hashtags?: unknown[] }>(text)
     const hashtags = parsed.hashtags || []
+
+    if (!Array.isArray(hashtags) || hashtags.length === 0) {
+      console.error('Hashtags — empty/invalid hashtags array. Preview:', text.slice(0, 300))
+      await refundCredits(auth)
+      return NextResponse.json({ error: 'AI returned no hashtags. Please try again.' }, { status: 502 })
+    }
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
@@ -99,10 +107,9 @@ Rules:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'hashtags')
-
     return NextResponse.json({ hashtags, query, platform, count, mix })
   } catch (error) {
+    await refundCredits(auth)
     console.error('Hashtag generation error:', error)
     return NextResponse.json({ error: 'Failed to find hashtags. Please try again.' }, { status: 500 })
   }

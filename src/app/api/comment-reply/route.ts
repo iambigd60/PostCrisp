@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { validateInputs } from '@/lib/input-limits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
@@ -53,6 +52,9 @@ Return ONLY valid JSON:
 }`
 
   try {
+    const denied = await reserveCredits(auth)
+    if (denied) return denied
+
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const { text, totalTokens } = await crispGenerate({
       task: 'comment-reply',
@@ -75,10 +77,9 @@ Return ONLY valid JSON:
       tokens_used: totalTokens,
     })
 
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'comment-reply')
-
     return NextResponse.json(parsed)
   } catch (error) {
+    await refundCredits(auth)
     console.error('Comment reply error:', error)
     return NextResponse.json({ error: 'Failed to generate replies. Please try again.' }, { status: 500 })
   }

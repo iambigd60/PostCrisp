@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -120,6 +119,9 @@ Rules:
 - warnings is optional. Include only if the source content has CONCRETE structural issues hurting conversion.`
 
   // Phase 1: model call
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   try {
@@ -135,6 +137,7 @@ Rules:
     totalTokens = result.totalTokens
   } catch (error) {
     console.error('CTA optimizer — model call failed:', error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -144,12 +147,14 @@ Rules:
     parsed = parseLooseJson<CTAOptimizerResult>(text)
   } catch (error) {
     console.error('CTA optimizer — JSON parse failed. First 500 chars:', text.slice(0, 500), error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
   // Phase 3: shape validation
   if (!parsed?.recommended?.cta || !Array.isArray(parsed.alternatives) || !Array.isArray(parsed.patterns)) {
     console.error('CTA optimizer — unexpected shape:', { keys: Object.keys(parsed ?? {}), preview: text.slice(0, 300) })
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned an unexpected response. Please try again.' }, { status: 502 })
   }
 
@@ -171,7 +176,6 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'cta-optimizer')
   } catch (error) {
     console.error('CTA optimizer — persistence failed (non-fatal):', error)
   }

@@ -28,7 +28,17 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>
  * service key isn't configured (local dev / unit tests).
  */
 function writeClient(supabase: ServerClient): ServerClient {
-  return (serviceRoleClient() ?? supabase) as ServerClient
+  const svc = serviceRoleClient()
+  if (svc) return svc as ServerClient
+  // In production the hardened DB rejects credit/quota writes from the
+  // authenticated role, so falling back to the user client would silently
+  // fail every debit — and (historically) hand out free generations. Fail
+  // loud instead of failing open. Dev/preview/tests still fall back so they
+  // work without a service-role key.
+  if (process.env.VERCEL_ENV === 'production') {
+    throw new Error('[credits] SUPABASE_SERVICE_ROLE_KEY is required in production for credit writes')
+  }
+  return supabase
 }
 
 export interface CreditProfile {
@@ -194,13 +204,18 @@ async function consumeCreditsFallback(
 
   const newBalance = current - cost
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('profiles')
     .update({ credits_balance: newBalance })
     .eq('id', userId)
     .eq('credits_balance', current)  // optimistic concurrency check
+    .select('credits_balance')
 
-  if (error) return null
+  // A lost race (a concurrent request already moved the balance) matches zero
+  // rows and returns NO error. Without inspecting the affected rows we'd treat
+  // that as a successful debit and hand out a free generation — so an empty
+  // result must be reported as "insufficient / not debited".
+  if (error || !updatedRows || updatedRows.length === 0) return null
 
   await supabase.from('credit_transactions').insert({
     user_id: userId,
@@ -227,31 +242,45 @@ export async function grantCredits(
 ): Promise<{ balanceAfter: number } | null> {
   if (amount <= 0) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('credits_balance')
-    .eq('id', userId)
-    .maybeSingle()
+  // credits_balance and the credit_transactions ledger are protected writes —
+  // they must run as service_role (the authenticated role is blocked by the
+  // column grant + trigger). Use the same elevated writer as the debit paths.
+  const writer = writeClient(supabase)
 
-  const current = profile?.credits_balance ?? 0
-  const newBalance = current + amount
+  // Read-modify-write with a conditional UPDATE + retry so concurrent grants
+  // (e.g. a refund racing a credit-pack fulfillment) can't lose an update.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data: profile } = await writer
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', userId)
+      .maybeSingle()
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ credits_balance: newBalance })
-    .eq('id', userId)
+    const current = profile?.credits_balance ?? 0
+    const newBalance = current + amount
 
-  if (error) return null
+    const { data: rows, error } = await writer
+      .from('profiles')
+      .update({ credits_balance: newBalance })
+      .eq('id', userId)
+      .eq('credits_balance', current)  // optimistic guard against lost updates
+      .select('credits_balance')
 
-  await supabase.from('credit_transactions').insert({
-    user_id: userId,
-    type: opts.type,
-    amount,
-    balance_after: newBalance,
-    reason: opts.reason,
-    generation_id: opts.generationId ?? null,
-    actor_id: opts.actorId ?? userId,
-  })
+    if (error) return null
+    if (!rows || rows.length === 0) continue  // lost race — re-read and retry
 
-  return { balanceAfter: newBalance }
+    await writer.from('credit_transactions').insert({
+      user_id: userId,
+      type: opts.type,
+      amount,
+      balance_after: newBalance,
+      reason: opts.reason,
+      generation_id: opts.generationId ?? null,
+      actor_id: opts.actorId ?? userId,
+    })
+
+    return { balanceAfter: newBalance }
+  }
+
+  return null
 }

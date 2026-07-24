@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { checkAuthAndUsage, incrementUsage } from '@/lib/auth-usage'
+import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
-import { consumeCredits } from '@/lib/credits'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { loadCreatorContext } from '@/lib/creator-context-block'
@@ -165,6 +164,9 @@ Rules:
   // Budget ~500 output tokens per idea. Cap at Opus's practical limit.
   const maxTokens = Math.min(8000, 800 + safeCount * 520)
 
+  const denied = await reserveCredits(auth)
+  if (denied) return denied
+
   let text = ''
   let totalTokens = 0
   try {
@@ -180,6 +182,7 @@ Rules:
     totalTokens = result.totalTokens
   } catch (error) {
     console.error('Viral ideas — model call failed:', error)
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI provider error. Please try again in a moment.' }, { status: 502 })
   }
 
@@ -190,6 +193,7 @@ Rules:
 
   if (ideas.length === 0) {
     console.error('Viral ideas — zero parseable ideas. Preview:', text.slice(0, 500))
+    await refundCredits(auth)
     return NextResponse.json({ error: 'AI returned malformed output. Please try again.' }, { status: 502 })
   }
 
@@ -203,7 +207,6 @@ Rules:
       output_data: { ideas },
       tokens_used: totalTokens,
     })
-    await consumeCredits(auth.supabase, auth.userId, auth.creditCost, 'viral-ideas')
   } catch (error) {
     console.error('Viral ideas — persistence failed (non-fatal):', error)
   }

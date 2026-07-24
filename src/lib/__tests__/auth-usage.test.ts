@@ -39,9 +39,13 @@ vi.mock('@/lib/feature-access', () => ({
 
 const ensureCreditsCurrent = vi.fn()
 const creditCostFor = vi.fn(() => 5)
+const consumeCredits = vi.fn()
+const grantCredits = vi.fn()
 vi.mock('@/lib/credits', () => ({
   ensureCreditsCurrent: () => ensureCreditsCurrent(),
   creditCostFor: () => creditCostFor(),
+  consumeCredits: (...args: unknown[]) => consumeCredits(...args),
+  grantCredits: (...args: unknown[]) => grantCredits(...args),
 }))
 
 const ORIGINAL_ENV = { ...process.env }
@@ -60,6 +64,8 @@ beforeEach(() => {
   delete process.env.UPSTASH_REDIS_REST_TOKEN
   ensureCreditsCurrent.mockReset()
   creditCostFor.mockReset().mockReturnValue(5)
+  consumeCredits.mockReset()
+  grantCredits.mockReset()
 })
 
 afterEach(() => {
@@ -102,5 +108,65 @@ describe('checkAuthAndUsage — credit enforcement without Upstash', () => {
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('expected denial')
     expect(result.response.status).toBe(401)
+  })
+})
+
+describe('reserveCredits / refundCredits — reserve-before-generate', () => {
+  beforeEach(() => {
+    ensureCreditsCurrent.mockResolvedValue({ balance: 100 })
+  })
+
+  async function okAuth() {
+    const { checkAuthAndUsage } = await import('@/lib/auth-usage')
+    const auth = await checkAuthAndUsage('hashtags')
+    if (!auth.ok) throw new Error('expected ok auth')
+    return auth
+  }
+
+  it('proceeds (returns null) and atomically debits when the balance covers the cost', async () => {
+    consumeCredits.mockResolvedValue({ balanceAfter: 95 })
+    const { reserveCredits } = await import('@/lib/auth-usage')
+    const auth = await okAuth()
+
+    const denied = await reserveCredits(auth)
+
+    expect(denied).toBeNull()
+    expect(consumeCredits).toHaveBeenCalledWith(expect.anything(), 'user-1', 5, 'hashtags')
+  })
+
+  it('denies with 402 when the atomic debit fails (lost race / insufficient) — no free generation', async () => {
+    consumeCredits.mockResolvedValue(null)
+    const { reserveCredits } = await import('@/lib/auth-usage')
+    const auth = await okAuth()
+
+    const denied = await reserveCredits(auth)
+
+    expect(denied).not.toBeNull()
+    expect(denied!.status).toBe(402)
+  })
+
+  it('fails CLOSED with 503 (never free) when the debit throws — e.g. missing service-role key', async () => {
+    consumeCredits.mockRejectedValue(new Error('service role required in production'))
+    const { reserveCredits } = await import('@/lib/auth-usage')
+    const auth = await okAuth()
+
+    const denied = await reserveCredits(auth)
+
+    expect(denied).not.toBeNull()
+    expect(denied!.status).toBe(503)
+  })
+
+  it('refundCredits returns the reserved cost via grantCredits', async () => {
+    const { refundCredits } = await import('@/lib/auth-usage')
+    const auth = await okAuth()
+
+    await refundCredits(auth)
+
+    expect(grantCredits).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      5,
+      expect.objectContaining({ type: 'refund' }),
+    )
   })
 })

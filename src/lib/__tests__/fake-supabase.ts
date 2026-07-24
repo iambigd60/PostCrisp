@@ -42,8 +42,12 @@ export function createFakeSupabase(opts: {
   // Consulted only for delete() chains — lets a test fail the prune/cleanup
   // delete while the upsert on the same table still succeeds.
   deleteErrors?: FakeWriteErrors
+  // When true, a profiles UPDATE that chained .select() resolves with an empty
+  // affected-rows array (and does NOT mutate) — simulating a lost optimistic
+  // race where `.eq('credits_balance', current)` matched zero rows.
+  conditionalUpdateMisses?: boolean
 }) {
-  const { tables, rpcs = {}, writeErrors, readErrors, deleteErrors } = opts
+  const { tables, rpcs = {}, writeErrors, readErrors, deleteErrors, conditionalUpdateMisses } = opts
 
   const fromBuilder = (table: keyof FakeSupabaseTables) => {
     type Filter = { col: string; val: unknown }
@@ -201,12 +205,22 @@ export function createFakeSupabase(opts: {
           return resolve({ error: null })
         }
         if (updatePayload && table === 'profiles') {
+          if (conditionalUpdateMisses && selectCols) {
+            // Lost race: the conditional filter matched no rows — no mutation.
+            return resolve({ data: [], error: null })
+          }
           const entries = Array.from(tables.profiles.entries())
+          const affected: Record<string, unknown>[] = []
           for (const [key, row] of entries) {
             if (matches(row)) {
-              tables.profiles.set(key, { ...row, ...updatePayload })
+              const updated = { ...row, ...updatePayload }
+              tables.profiles.set(key, updated)
+              affected.push(updated)
             }
           }
+          // When the caller chained .select(), return the affected rows so
+          // conditional-UPDATE callers can detect a 0-row (lost-race) update.
+          if (selectCols) return resolve({ data: affected, error: null })
           return resolve({ error: null })
         }
         return resolve({ error: null })
