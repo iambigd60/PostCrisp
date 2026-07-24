@@ -10,8 +10,13 @@ export interface AccessControl {
   updated_at?: string
 }
 
-const DEFAULT_ACCESS_CONTROL: AccessControl = {
-  signup_mode: 'open',
+// Fail-CLOSED default. Used only when the access_control row is missing or the
+// read fails — never allow open, un-invited signup on a transient DB error /
+// misconfiguration. Login stays enabled (it's credential-gated and we don't
+// want a DB blip to lock out existing users); signup is the attack surface, so
+// it defaults to 'closed' until a real config is read.
+const FAILCLOSED_ACCESS_CONTROL: AccessControl = {
+  signup_mode: 'closed',
   invite_code: null,
   login_enabled: true,
 }
@@ -33,19 +38,30 @@ export async function readAccessControl(): Promise<AccessControl> {
 
   try {
     const admin = serviceClient()
-    const { data } = await admin
+    const { data, error } = await admin
       .from('platform_settings')
       .select('value, updated_at')
       .eq('key', 'access_control')
       .maybeSingle()
 
-    const value: AccessControl = data?.value
-      ? { ...DEFAULT_ACCESS_CONTROL, ...(data.value as Partial<AccessControl>) }
-      : DEFAULT_ACCESS_CONTROL
+    // Read error or missing config row → fail closed, and do NOT cache the
+    // fallback so the next call re-reads once the DB recovers.
+    if (error) {
+      console.error('[access-control] read failed — failing closed:', error.message)
+      return FAILCLOSED_ACCESS_CONTROL
+    }
+    if (!data?.value) {
+      return FAILCLOSED_ACCESS_CONTROL
+    }
+
+    // Merge onto the fail-closed base so a partial/corrupt row can't silently
+    // re-open signup (a missing signup_mode stays 'closed').
+    const value: AccessControl = { ...FAILCLOSED_ACCESS_CONTROL, ...(data.value as Partial<AccessControl>) }
     _cache = { value, expiresAt: Date.now() + CACHE_TTL_MS }
     return value
-  } catch {
-    return DEFAULT_ACCESS_CONTROL
+  } catch (err) {
+    console.error('[access-control] read threw — failing closed:', err)
+    return FAILCLOSED_ACCESS_CONTROL
   }
 }
 

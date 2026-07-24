@@ -21,11 +21,26 @@ export async function PATCH(request: Request) {
   }
 
   if (body.profilePatch) {
-    const { error } = await supabase
-      .from('creator_profiles')
-      .update({ ...body.profilePatch, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    // Whitelist the editable columns — never spread the raw client object into
+    // the update (mass-assignment: it could set user_id/source_analysis_id/
+    // created_at or any future privileged column).
+    const ALLOWED_FIELDS = [
+      'content_pillars', 'voice_signature', 'audience_persona', 'growth_stage',
+      'monetization_position', 'format_strengths', 'differentiators', 'top_blockers',
+    ] as const
+    const raw = body.profilePatch as Record<string, unknown>
+    const patch: Record<string, unknown> = {}
+    for (const key of ALLOWED_FIELDS) {
+      if (key in raw) patch[key] = raw[key]
+    }
+
+    if (Object.keys(patch).length > 0) {
+      const { error } = await supabase
+        .from('creator_profiles')
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    }
   }
 
   if (typeof body.useFoundationInGenerations === 'boolean') {
