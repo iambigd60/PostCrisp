@@ -107,9 +107,19 @@ export default function OnboardingPage() {
       // Gate replay: once the tutorial is completed, send them to the dashboard.
       // The server-side bypass guard would still deny free credits anyway, so
       // re-running the wizard would just charge them — bad UX, send home instead.
-      const prefs = (profileRes.data?.preferences ?? {}) as { tutorial_progress?: SavedTutorialProgress }
+      // Also treat a non-null onboarded_at as finished, even with no
+      // tutorial_progress record: pre-tutorial alpha testers were marked
+      // onboarded before this wizard existed, and chooseDestination
+      // (post-auth-destination.ts) already sends them to /dashboard on every
+      // sign-in path via `tutorialCompleted || onboardedAt != null`. Without
+      // this check here too, that same tester would see the full wizard again
+      // if they reached /onboarding via the sidebar link.
+      const prefs = (profileRes.data?.preferences ?? {}) as {
+        tutorial_progress?: SavedTutorialProgress
+        onboarded_at?: string | null
+      }
       const tp = prefs.tutorial_progress
-      if (tp?.completed) {
+      if (tp?.completed || prefs.onboarded_at != null) {
         router.replace('/dashboard')
         return
       }
