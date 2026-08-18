@@ -9,6 +9,8 @@
  * path cannot quietly regress it.
  */
 
+import { hasFinishedFirstSession } from './first-session-state'
+
 /**
  * True when `next` is a safe same-origin relative path. This is validate-by-
  * construction rather than a prefix blocklist: a prefix-only check (reject
@@ -53,11 +55,11 @@ export function chooseDestination(input: {
   // An explicit safe next wins — password recovery relies on this.
   if (isSafeRelativePath(input.explicitNext)) return input.explicitNext
 
-  // Users who finished the wizard, or pre-tutorial testers already marked
-  // onboarded, must not be sent back through it. `!= null` (not truthiness)
-  // so a stored empty string still counts as "has been onboarded" rather
-  // than being misread as absent and routed back into the wizard.
-  if (input.tutorialCompleted || input.onboardedAt != null) return '/dashboard'
+  // Users who finished the first session, or pre-tutorial testers already
+  // marked onboarded, must not be sent back through it. Shared with the
+  // onboarding page's own replay gate — see hasFinishedFirstSession's
+  // docstring for why this is one definition, not two.
+  if (hasFinishedFirstSession(input.tutorialCompleted, input.onboardedAt)) return '/dashboard'
 
   return '/onboarding'
 }

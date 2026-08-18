@@ -36,6 +36,26 @@ export interface FirstSessionProgress {
   pack_saved?: boolean
 }
 
+/**
+ * Whether a user has finished onboarding and must not be replayed through it.
+ *
+ * ONE definition, deliberately. Two hand-written copies of this predicate
+ * previously drifted apart and shipped a bug — see post-auth-destination.ts.
+ * Both the auth callback (chooseDestination) and the onboarding page's replay
+ * gate consult this, so they cannot disagree about who is done.
+ *
+ * `onboardedAt != null` (not truthiness) is load-bearing: a stored empty
+ * string must still count as onboarded, and post-auth-destination's tests
+ * pin that. `!=` (loose) is deliberate too — it treats `undefined` the same
+ * as `null` so callers don't need to normalise a possibly-absent field first.
+ */
+export function hasFinishedFirstSession(
+  tutorialCompleted: boolean,
+  onboardedAt: string | null | undefined,
+): boolean {
+  return tutorialCompleted || onboardedAt != null
+}
+
 export function isSnoozed(progress: FirstSessionProgress | undefined, now: Date): boolean {
   const raw = progress?.snoozed_until
   if (!raw) return false

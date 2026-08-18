@@ -9,6 +9,7 @@ import { PackStage, type CreatorPack } from '@/components/onboarding/PackStage'
 import { OwnStage } from '@/components/onboarding/OwnStage'
 import {
   snoozeUntil,
+  hasFinishedFirstSession,
   type FirstSessionProgress,
   type FirstSessionStage,
 } from '@/lib/first-session-state'
@@ -33,6 +34,16 @@ const STAGE_LABELS: Record<FirstSessionStage, string> = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  // `stage` always starts at 'ask' on mount — it is deliberately NOT restored
+  // from `tp.stage` in the load effect below, only `saved` (the persisted
+  // niche/platform/tone) is. That is why the `ask` / `own` render guards
+  // further down (`stage === 'pack' && ask`, `stage === 'own' && ask && pack`)
+  // are currently unreachable dead code: `ask`/`pack` state and `stage` are
+  // only ever advanced together, inside handleAskDone/handlePackDone. If a
+  // future change starts restoring `stage` from persisted progress WITHOUT
+  // also restoring `ask`/`pack`, those guards would start doing real work —
+  // silently rendering a blank content pane instead of resuming at the right
+  // stage. Keep `stage` and `ask`/`pack` restoration in lockstep.
   const [stage, setStage] = useState<FirstSessionStage>('ask')
   const [ask, setAsk] = useState<AskResult | null>(null)
   const [pack, setPack] = useState<CreatorPack | null>(null)
@@ -60,8 +71,8 @@ export default function OnboardingPage() {
       const tp = prefs.tutorial_progress
 
       // Finished — the new session, or the old wizard. Do not replay it.
-      // Same predicate as chooseDestination, deliberately.
-      if (tp?.completed || prefs.onboarded_at != null) {
+      // Shared predicate with chooseDestination — see hasFinishedFirstSession.
+      if (hasFinishedFirstSession(!!tp?.completed, prefs.onboarded_at)) {
         router.replace('/dashboard')
         return
       }
@@ -177,6 +188,7 @@ export default function OnboardingPage() {
               onLater={handleLater}
             />
           )}
+          {/* `&& ask` / `&& ask && pack` — see the note by the `stage` useState above. */}
           {stage === 'pack' && ask && (
             <PackStage ask={ask} onDone={handlePackDone} onLater={handleLater} />
           )}
