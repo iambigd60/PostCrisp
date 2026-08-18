@@ -55,9 +55,14 @@ export async function resolveTutorialCharge(
 
   const decision = decideTutorialCharge({ tutorialModeRequested, userPresent, bypassGranted })
 
-  // A spent tutorial run must NEVER fall through to a silent charge. The client
-  // shows an explicit "generate anyway for N credits?" prompt and re-requests
-  // without tutorialMode if the user agrees.
+  // A spent tutorial run must NEVER fall through to a silent charge. The
+  // request is refused with a stable `code` (TUTORIAL_RUN_SPENT_CODE) so a
+  // client COULD offer an explicit "generate anyway for N credits?" paid
+  // retry by re-requesting without tutorialMode — but no client does that
+  // today. Every tutorial step just turns this 409 into a generic error
+  // toast (see apiFetch/ApiError), so right now the user simply cannot
+  // regenerate inside the wizard once their per-feature freebie is spent.
+  // Building that retry affordance is deliberately deferred.
   if (decision === 'refuse') {
     return {
       ok: false,
