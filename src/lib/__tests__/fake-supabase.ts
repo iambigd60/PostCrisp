@@ -64,7 +64,18 @@ export function createFakeSupabase(opts: {
     let isDelete = false
 
     const matches = (row: Record<string, unknown>) =>
-      filters.every((f) => row[f.col] === f.val) &&
+      filters.every((f) => {
+        // Supports Postgres JSON text-extraction filters like
+        // `.eq('input_data->>tutorialMode', 'true')` (used by
+        // hasUsedTutorialBypass). `->>` always yields text in Postgres, so
+        // compare via String() on both sides regardless of the stored type.
+        if (f.col.includes('->>')) {
+          const [base, jsonKey] = f.col.split('->>')
+          const container = row[base] as Record<string, unknown> | null | undefined
+          return container != null && String(container[jsonKey]) === String(f.val)
+        }
+        return row[f.col] === f.val
+      }) &&
       ltFilters.every((f) => {
         const value = row[f.col]
         // Rows without the column never match — mirrors SQL NULL semantics.
@@ -132,7 +143,7 @@ export function createFakeSupabase(opts: {
       },
       // Terminal: when caller awaits the chain (no .single/.maybeSingle).
       // This handles update().eq(), insert(), and upsert() patterns.
-      then(resolve: (v: { data?: unknown; error: null | { message: string } }) => unknown) {
+      then(resolve: (v: { data?: unknown; count?: number; error: null | { message: string } }) => unknown) {
         // Injected write failure — reads are unaffected (they don't land here).
         const injected =
           (isDelete ? deleteErrors?.[table] : undefined) ??
@@ -222,6 +233,14 @@ export function createFakeSupabase(opts: {
           // conditional-UPDATE callers can detect a 0-row (lost-race) update.
           if (selectCols) return resolve({ data: affected, error: null })
           return resolve({ error: null })
+        }
+        // Bare select+eq chain awaited directly (no insert/upsert/update/
+        // delete) — used for `.select('id', { count: 'exact', head: true })`
+        // head-count queries, e.g. hasUsedTutorialBypass. Only 'generations'
+        // is implemented; add other tables here as helpers need them.
+        if (table === 'generations') {
+          const matched = tables.generations.filter(matches)
+          return resolve({ data: null, count: matched.length, error: null })
         }
         return resolve({ error: null })
       },
