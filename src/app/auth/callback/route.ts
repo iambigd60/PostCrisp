@@ -20,11 +20,18 @@ export async function GET(request: Request) {
 
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('preferences')
           .eq('id', user.id)
           .maybeSingle()
+        if (profileError) {
+          // Don't fail the sign-in over this — worst case a real read
+          // failure silently routes a returning user into the wizard. But
+          // that should never happen quietly: log it so a systemic outage
+          // shows up instead of looking like a wave of confused new users.
+          console.error('[auth callback] failed to read profile preferences', profileError)
+        }
         const prefs = (profile?.preferences ?? {}) as {
           tutorial_progress?: { completed?: boolean }
           onboarded_at?: string | null

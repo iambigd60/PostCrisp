@@ -2,6 +2,7 @@ import 'server-only'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { hasCurrentAcceptance, type AlphaNdaAcceptance } from './alpha-agreement'
+import { isSafeRelativePath } from './post-auth-destination'
 
 /**
  * Server-side guard for authenticated routes. Ensures the user has accepted
@@ -34,7 +35,12 @@ export async function requireAlphaAcceptance(nextPath: string = '/dashboard'): P
   const prefs = (profile?.preferences ?? {}) as { alpha_nda?: AlphaNdaAcceptance | null }
   if (hasCurrentAcceptance(prefs.alpha_nda ?? null)) return
 
-  // Missing or stale-version acceptance → redirect to the gate.
-  const safePath = nextPath.startsWith('/') ? nextPath : '/dashboard'
+  // Missing or stale-version acceptance → redirect to the gate. Use the same
+  // guard as every other post-auth redirect decision rather than a weaker
+  // `startsWith('/')`-only check, which would let `//evil.example.com`
+  // through as an open redirect. Not currently exploitable — both callers
+  // pass a literal — but a fourth path quietly regressing this is exactly
+  // the failure this centralisation exists to prevent.
+  const safePath = isSafeRelativePath(nextPath) ? nextPath : '/dashboard'
   redirect(`/accept-terms?next=${encodeURIComponent(safePath)}`)
 }

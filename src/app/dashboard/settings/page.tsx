@@ -298,8 +298,14 @@ export default function SettingsPage() {
     setSendingReset(true)
     try {
       const supabase = createClient()
+      // Point straight at /auth/reset-password, not /auth/callback: recovery
+      // doesn't route through the callback (its ?code= doesn't combine
+      // cleanly with a ?next=), and /auth/callback's post-signin destination
+      // logic now defaults non-onboarded users into the wizard, so sending a
+      // password-reset click there would have made this worse. Matches
+      // forgot-password/actions.ts and the admin reset-password route.
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       })
       if (error) throw error
       addToast('Password reset email sent — check your inbox', 'success')

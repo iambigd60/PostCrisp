@@ -21,6 +21,28 @@ describe('isSafeRelativePath', () => {
   it('rejects an embedded scheme', () => {
     expect(isSafeRelativePath('/redirect?to=javascript://evil')).toBe(false)
   })
+
+  // Fix round 1: a prefix-only guard (reject `//`, reject `://`) still let
+  // these through. WHATWG URL parsing treats a backslash as a path separator
+  // and strips tab/newline/CR before parsing, so both turn what looks like a
+  // same-origin path into a cross-origin authority reference once resolved
+  // relatively — exactly what `router.replace` does. Validate-by-construction
+  // (resolve against a sentinel base, compare origins) closes this.
+  it('rejects a backslash-as-slash host (WHATWG URL parsing quirk)', () => {
+    expect(isSafeRelativePath('/\\evil.example.com')).toBe(false)
+  })
+
+  it('rejects a real tab character before the host (control-char stripping quirk)', () => {
+    expect(isSafeRelativePath('/\t/evil.example.com')).toBe(false)
+  })
+
+  it('rejects the empty string', () => {
+    expect(isSafeRelativePath('')).toBe(false)
+  })
+
+  it('accepts a legitimate path with a query string', () => {
+    expect(isSafeRelativePath('/dashboard?tab=billing')).toBe(true)
+  })
 })
 
 describe('chooseDestination', () => {
@@ -61,6 +83,17 @@ describe('chooseDestination', () => {
       explicitNext: null,
       tutorialCompleted: false,
       onboardedAt: '2026-04-19T00:00:00.000Z',
+    })).toBe('/dashboard')
+  })
+
+  // Fix round 1: onboardedAt is now checked with `!= null`, not truthiness,
+  // so a stored empty string (a degenerate but non-null value) still counts
+  // as "has been onboarded" instead of being misread as absent.
+  it('treats a stored empty-string onboarded_at as still onboarded', () => {
+    expect(chooseDestination({
+      explicitNext: null,
+      tutorialCompleted: false,
+      onboardedAt: '',
     })).toBe('/dashboard')
   })
 })

@@ -12,6 +12,7 @@ import {
   ALPHA_AGREEMENT_VERSION,
   ALPHA_AGREEMENT_EFFECTIVE_DATE,
 } from '@/lib/alpha-agreement'
+import { isSafeRelativePath } from '@/lib/post-auth-destination'
 
 // Outer wrapper adds the Suspense boundary Next.js 14 requires around any
 // client component that reads useSearchParams — otherwise the static-export
@@ -73,7 +74,14 @@ function AcceptTermsPageInner() {
       // previously dropped brand-new users straight past the wizard.
       // /onboarding itself redirects already-completed users onward, so this
       // stays safe for a returning user who somehow lands here.
-      const next = searchParams?.get('next') || '/onboarding'
+      //
+      // `next` is attacker-controlled (it's a query param) and reaches
+      // router.replace, which resolves its href against location.href and
+      // hard-navigates off-site if the resolved origin differs — so it must
+      // be validated with the same guard the auth callback uses, not just
+      // defaulted when literally absent.
+      const rawNext = searchParams?.get('next')
+      const next = isSafeRelativePath(rawNext) ? rawNext : '/onboarding'
       router.replace(next)
     } catch (err) {
       addToast(err instanceof ApiError ? err.message : 'Failed to save acceptance', 'error')
