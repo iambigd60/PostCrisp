@@ -707,7 +707,6 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
   const [niche, setNiche] = useState<string>(() => ctx.niche || ctx.captionTopic || '')
   const [generating, setGenerating] = useState(false)
   const [ideas, setIdeas] = useState<ViralIdea[]>([])
-  const [autoRan, setAutoRan] = useState(false)
   const { addToast } = useToast()
 
   const platform = ctx.selectedChannel?.platform ?? 'instagram'
@@ -737,15 +736,6 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
       setGenerating(false)
     }
   }
-
-  // Auto-run once on mount if we already have niche context (carried from analyze/captions)
-  useEffect(() => {
-    if (niche && ideas.length === 0 && !generating && !autoRan) {
-      setAutoRan(true)
-      handleGenerate()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const carried = !!(ctx.niche || ctx.captionTopic)
 
