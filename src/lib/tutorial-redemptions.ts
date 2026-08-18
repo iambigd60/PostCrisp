@@ -16,7 +16,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
  */
 
 type RedemptionWriter = {
-  from(table: string): { upsert(row: unknown, options: unknown): unknown }
+  from(table: string): {
+    upsert(row: unknown, options: unknown): PromiseLike<{ error: { message: string } | null }>
+  }
 }
 
 function serviceWriter(): RedemptionWriter {
@@ -34,10 +36,22 @@ export async function recordTutorialRedemption(
 ): Promise<void> {
   try {
     const client = writer ?? serviceWriter()
-    await client
+    const { error } = await client
       .from('tutorial_redemptions')
       .upsert({ user_id: userId, feature }, { onConflict: 'user_id,feature', ignoreDuplicates: true })
+    if (error) {
+      // supabase-js RESOLVES with { error } on a PostgREST failure (missing
+      // relation, missing grant, etc.) rather than rejecting — that is the
+      // realistic "migration not applied yet" failure mode, and it never
+      // reaches the catch below. Log it here so a dead write leaves a trace.
+      // Still never throws: the user already received the generation, so
+      // failing the response over a ledger write would be worse than the
+      // bounded, one-per-feature risk of missing a redemption record.
+      console.error('[tutorial-redemptions] write returned an error', { userId, feature, error })
+    }
   } catch (err) {
+    // Covers a thrown/rejected client — e.g. a network error, or a test
+    // double that throws synchronously instead of resolving with { error }.
     console.error('[tutorial-redemptions] failed to record redemption', { userId, feature, err })
   }
 }

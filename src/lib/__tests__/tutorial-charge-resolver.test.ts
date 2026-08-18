@@ -20,26 +20,33 @@ import { createFakeSupabase, type FakeSupabaseTables } from './fake-supabase'
 // client grants at all, so a session/anon client would read count: null and
 // silently grant the bypass forever. It builds its own service-role client
 // via `createClient` from '@supabase/supabase-js' instead (same pattern as
-// recordTutorialRedemption's writer). We mock that import too, pointed at
-// the SAME fake `tables` object as the session client, so a test can set up
-// tutorial_redemptions rows once and have both the write-side and read-side
-// mocks agree on what's been redeemed.
+// recordTutorialRedemption's writer). We mock that import too, but pointed
+// at a SEPARATE fake instance (`ledgerInstance`) from the session client
+// (`supabaseInstance`) — deliberately, not for convenience. Tests seed
+// tutorial_redemptions rows only on `ledgerInstance`, never on the session
+// client's tables. If hasUsedTutorialBypass ever regressed to reading
+// through the caller's `supabase` argument instead of its own service-role
+// client, every "already spent" test below would see an empty ledger on
+// `supabaseInstance` and start granting bypasses it shouldn't — this file
+// would fail loudly instead of staying green. Pointing both mocks at one
+// shared instance (as an earlier version of this file did) defeated that:
+// it made the regression this suite exists to catch invisible.
 
 let currentUser: { id: string } | null
 
 const getUserMock = vi.fn(async () => ({ data: { user: currentUser }, error: null }))
 let supabaseInstance: ReturnType<typeof buildSupabase>
+let ledgerInstance: ReturnType<typeof buildLedger>
 const createClientMock = vi.fn(async () => supabaseInstance)
 
 vi.mock('@/utils/supabase/server', () => ({
   createClient: () => createClientMock(),
 }))
 
-// hasUsedTutorialBypass's service-role reader — see comment above. Resolves
-// to whatever `supabaseInstance` currently is, same fake tables as the
-// session client, so tutorial_redemptions fixtures apply to both.
+// hasUsedTutorialBypass's service-role reader — see comment above.
+// Deliberately a DIFFERENT fake instance from the session client.
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => supabaseInstance,
+  createClient: () => ledgerInstance,
 }))
 
 function buildSupabase(tables: FakeSupabaseTables) {
@@ -58,6 +65,22 @@ function setupTables(overrides: Partial<FakeSupabaseTables> = {}): FakeSupabaseT
   }
 }
 
+// The service-role ledger fake backing hasUsedTutorialBypass's own client.
+// Only tutorial_redemptions matters here — the other tables are never
+// queried through this instance in production, so they're left empty.
+function buildLedger(tutorialRedemptions: Record<string, unknown>[] = []) {
+  return createFakeSupabase({
+    tables: {
+      profiles: new Map(),
+      credit_transactions: [],
+      generations: [],
+      generation_ai_calls: [],
+      creator_profiles: new Map(),
+      tutorial_redemptions: tutorialRedemptions,
+    },
+  })
+}
+
 // The four literal feature keys the AI routes actually pass to
 // resolveTutorialCharge AND write into generations.feature on insert
 // (channel-analysis/route.ts, hashtags/route.ts, generate/route.ts,
@@ -73,17 +96,16 @@ beforeEach(() => {
   currentUser = { id: 'user-1' }
   getUserMock.mockClear()
   createClientMock.mockClear()
+  ledgerInstance = buildLedger() // default: no prior redemption
 })
 
 describe('resolveTutorialCharge', () => {
   it('refuses with a 409 carrying code "tutorial_run_spent" when the freebie is already spent', async () => {
     const tables = setupTables({
       profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-      tutorial_redemptions: [
-        { user_id: 'user-1', feature: 'channel_analysis' },
-      ],
     })
     supabaseInstance = buildSupabase(tables)
+    ledgerInstance = buildLedger([{ user_id: 'user-1', feature: 'channel_analysis' }])
     const { resolveTutorialCharge } = await import('@/lib/tutorial-charge-resolver')
 
     const result = await resolveTutorialCharge('channel_analysis', true, 'Your free tutorial run for Channel Analysis has already been used.')
@@ -147,11 +169,9 @@ describe('resolveTutorialCharge', () => {
       async (feature) => {
         const tables = setupTables({
           profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-          tutorial_redemptions: [
-            { user_id: 'user-1', feature },
-          ],
         })
         supabaseInstance = buildSupabase(tables)
+        ledgerInstance = buildLedger([{ user_id: 'user-1', feature }])
         const { resolveTutorialCharge } = await import('@/lib/tutorial-charge-resolver')
 
         const result = await resolveTutorialCharge(feature, true, 'already used')
@@ -166,11 +186,9 @@ describe('resolveTutorialCharge', () => {
       // recordTutorialRedemption (and writes it into generations.feature).
       const tables = setupTables({
         profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-        tutorial_redemptions: [
-          { user_id: 'user-1', feature: 'channel_analysis' },
-        ],
       })
       supabaseInstance = buildSupabase(tables)
+      ledgerInstance = buildLedger([{ user_id: 'user-1', feature: 'channel_analysis' }])
       const { resolveTutorialCharge } = await import('@/lib/tutorial-charge-resolver')
 
       // If a route ever passed the hyphenated 'channel-analysis' instead,

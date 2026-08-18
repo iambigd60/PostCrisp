@@ -36,8 +36,10 @@ GRANT  SELECT, INSERT ON public.tutorial_redemptions TO service_role;
 GRANT  USAGE, SELECT ON SEQUENCE public.tutorial_redemptions_id_seq TO service_role;
 
 -- Backfill from history so existing testers do not get their freebies back when
--- the source of truth changes. ON CONFLICT because a user may have several
--- tutorial rows per feature if they previously reset the old counter.
+-- the source of truth changes. DISTINCT ON already collapses a user having
+-- several tutorial rows per feature (e.g. from resetting the old counter) down
+-- to one; ON CONFLICT DO NOTHING is for re-running this INSERT against a
+-- table that already holds rows (e.g. a retried/re-applied migration).
 INSERT INTO public.tutorial_redemptions (user_id, feature, redeemed_at)
 SELECT DISTINCT ON (user_id, feature) user_id, feature, created_at
   FROM public.generations

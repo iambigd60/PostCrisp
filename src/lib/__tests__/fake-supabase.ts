@@ -70,9 +70,9 @@ export function createFakeSupabase(opts: {
     const matches = (row: Record<string, unknown>) =>
       filters.every((f) => {
         // Supports Postgres JSON text-extraction filters like
-        // `.eq('input_data->>tutorialMode', 'true')` (used by
-        // hasUsedTutorialBypass). `->>` always yields text in Postgres, so
-        // compare via String() on both sides regardless of the stored type.
+        // `.eq('input_data->>tutorialMode', 'true')`. `->>` always yields
+        // text in Postgres, so compare via String() on both sides regardless
+        // of the stored type.
         if (f.col.includes('->>')) {
           const [base, jsonKey] = f.col.split('->>')
           const container = row[base] as Record<string, unknown> | null | undefined
@@ -147,7 +147,7 @@ export function createFakeSupabase(opts: {
       },
       // Terminal: when caller awaits the chain (no .single/.maybeSingle).
       // This handles update().eq(), insert(), and upsert() patterns.
-      then(resolve: (v: { data?: unknown; count?: number; error: null | { message: string } }) => unknown) {
+      then(resolve: (v: { data?: unknown; count?: number | null; error: null | { message: string } }) => unknown) {
         // Injected write failure — reads are unaffected (they don't land here).
         const injected =
           (isDelete ? deleteErrors?.[table] : undefined) ??
@@ -240,15 +240,21 @@ export function createFakeSupabase(opts: {
         }
         // Bare select+eq chain awaited directly (no insert/upsert/update/
         // delete) — used for `.select('id', { count: 'exact', head: true })`
-        // head-count queries, e.g. hasUsedTutorialBypass (now reads
-        // tutorial_redemptions, not generations — the 'generations' branch
-        // remains for other head-count callers/tests). Add other tables here
-        // as helpers need them.
+        // head-count queries, e.g. hasUsedTutorialBypass (reads
+        // tutorial_redemptions — the 'generations' branch remains for other
+        // head-count callers/tests). readErrors applies here too, so a test
+        // can simulate a broken/missing relation (count: null, error set) —
+        // e.g. hasUsedTutorialBypass's fail-closed path. Add other tables
+        // here as helpers need them.
         if (table === 'generations') {
+          const injected = readErrors?.[table]
+          if (injected) return resolve({ data: null, count: null, error: injected })
           const matched = tables.generations.filter(matches)
           return resolve({ data: null, count: matched.length, error: null })
         }
         if (table === 'tutorial_redemptions') {
+          const injected = readErrors?.[table]
+          if (injected) return resolve({ data: null, count: null, error: injected })
           const rows = tables.tutorial_redemptions ?? []
           const matched = rows.filter(matches)
           return resolve({ data: null, count: matched.length, error: null })

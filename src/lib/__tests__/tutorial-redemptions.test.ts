@@ -1,13 +1,17 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
 
-function fakeWriter(calls: unknown[], opts: { throwOnInsert?: boolean } = {}) {
+function fakeWriter(
+  calls: unknown[],
+  opts: { throwOnInsert?: boolean; resolveWithError?: { message: string } } = {},
+) {
   return {
     from(table: string) {
       return {
         upsert(row: unknown, options: unknown) {
           if (opts.throwOnInsert) throw new Error('simulated write failure')
           calls.push({ table, row, options })
+          if (opts.resolveWithError) return Promise.resolve({ error: opts.resolveWithError })
           return Promise.resolve({ error: null })
         },
       }
@@ -42,5 +46,27 @@ describe('recordTutorialRedemption', () => {
     await expect(
       recordTutorialRedemption('user-1', 'hashtags', fakeWriter(calls, { throwOnInsert: true }) as never),
     ).resolves.toBeUndefined()
+  })
+
+  it('also never throws AND logs it when the write resolves with a PostgREST error instead of throwing — the realistic failure mode, since supabase-js resolves rather than rejects on a query error (e.g. a missing relation before the migration is applied)', async () => {
+    const calls: unknown[] = []
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(
+      recordTutorialRedemption(
+        'user-1',
+        'viral_ideas',
+        fakeWriter(calls, {
+          resolveWithError: { message: 'relation "public.tutorial_redemptions" does not exist' },
+        }) as never,
+      ),
+    ).resolves.toBeUndefined()
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '[tutorial-redemptions] write returned an error',
+      expect.objectContaining({ userId: 'user-1', feature: 'viral_ideas' }),
+    )
+
+    consoleError.mockRestore()
   })
 })

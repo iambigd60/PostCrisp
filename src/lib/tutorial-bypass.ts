@@ -66,6 +66,19 @@ export async function isInActiveTutorial(
 }
 
 /**
+ * Service-role client for reading the append-only redemption ledger. See the
+ * doc comment on hasUsedTutorialBypass below for why this cannot be built
+ * from the caller's session client.
+ */
+function redemptionReader() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+}
+
+/**
  * Returns true when the bypass has already been consumed for this user
  * + feature pair. We detect this by querying the append-only
  * tutorial_redemptions ledger for a prior row. Server-authoritative — the
@@ -86,14 +99,6 @@ export async function isInActiveTutorial(
  * `feature` must match the value the route writes into generations.feature
  * (e.g. 'channel_analysis', 'captions', 'hashtags', 'viral_ideas').
  */
-function redemptionReader() {
-  return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  )
-}
-
 export async function hasUsedTutorialBypass(
   supabase: ServerClient,
   userId: string,
@@ -101,11 +106,29 @@ export async function hasUsedTutorialBypass(
 ): Promise<boolean> {
   void supabase // deliberately unused for the read — see doc comment above
 
-  const { count } = await redemptionReader()
+  const { count, error } = await redemptionReader()
     .from('tutorial_redemptions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('feature', feature)
+
+  if (error) {
+    // FAIL CLOSED. `count` is also null on an error response (e.g. the
+    // migration that creates tutorial_redemptions hasn't been applied to
+    // this environment yet — "relation does not exist"), which is
+    // indistinguishable from "zero rows" if we only look at count. Treating
+    // that as "not used" would silently grant the tutorial freebie to every
+    // request, forever, with no operational signal — the exact fail-open
+    // hazard this ledger exists to close, just reached through the error
+    // channel instead of a client-grants gap. So an unreadable ledger is
+    // treated as "already used" instead: in a broken-migration environment
+    // nobody gets a tutorial freebie and the wizard shows "already used" —
+    // wrong, but bounded to onboarding UX, loud via the log below, and cheap
+    // to notice and fix. The alternative is silent and costs real credits.
+    // Do NOT soften this to `return false` — that reintroduces the hazard.
+    console.error('[tutorial-bypass] tutorial_redemptions read failed — denying the bypass', { userId, feature, error })
+    return true
+  }
 
   return (count ?? 0) > 0
 }
