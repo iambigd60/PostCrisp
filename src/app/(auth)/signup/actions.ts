@@ -52,11 +52,25 @@ export async function signup(formData: FormData) {
   // ─── Proceed with signup ──────────────────────────────────────────────
   const supabase = await createClient()
 
+  // Use the fixed, env-configured canonical origin for the confirmation
+  // link. NEVER derive it from the request Host header — that is attacker-
+  // controllable and enables link poisoning, same as the password-reset
+  // flow. In local dev this is http://localhost:3000 (see .env.local.example).
+  // Without this, the confirmation link falls back to whatever the Supabase
+  // dashboard's Site URL resolves to, which may not point at /auth/callback —
+  // silently skipping the onboarding-routing fix for the email-confirmation
+  // path most production users take.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '')
+  if (!appUrl) {
+    return { error: 'Signup is temporarily unavailable. Please try again later.' }
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
+      emailRedirectTo: `${appUrl}/auth/callback`,
     },
   })
 
