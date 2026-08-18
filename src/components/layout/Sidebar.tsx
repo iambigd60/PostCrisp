@@ -23,7 +23,7 @@ interface NavGroup {
 // Top-level links (rendered above groups)
 const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: "📊" };
 const VOICE_ITEM: NavItem = { href: "/dashboard/voice", label: "Voice Trainer", icon: "🎙️" };
-const TUTORIAL_ITEM: NavItem = { href: "/onboarding", label: "Tutorial", icon: "🎓" };
+const TUTORIAL_ITEM: NavItem = { href: "/onboarding", label: "Finish setup", icon: "✨" };
 
 // Grouped feature navigation. Fixed order: Create · Optimize · Grow · Monetize · Library.
 const NAV_GROUPS: NavGroup[] = [
