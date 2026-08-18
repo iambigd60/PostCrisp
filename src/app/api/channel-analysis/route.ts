@@ -3,8 +3,7 @@ import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
-import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
-import { decideTutorialCharge, TUTORIAL_RUN_SPENT_CODE } from '@/lib/tutorial-charge-policy'
+import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
 import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
 // Vercel function timeout. Default is 10s (Hobby) / 60s (Pro). Channel
@@ -32,28 +31,16 @@ export async function POST(request: Request) {
   // Tutorial mode bypasses the user's credit allowance — PostCrisp absorbs
   // the cost so testers finish the tutorial with their full starter credits
   // intact. Validated via the shared tutorial-state guard.
-  let bypassGranted = false
-  if (tutorialMode) {
-    const supabase = await (await import('@/utils/supabase/server')).createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) bypassGranted = await shouldGrantTutorialBypass(supabase, user.id, 'channel_analysis')
-  }
-
-  const decision = decideTutorialCharge({ tutorialModeRequested: !!tutorialMode, bypassGranted })
-
-  // A spent tutorial run must NEVER fall through to a silent charge. The client
-  // shows an explicit "generate anyway for N credits?" prompt and re-requests
-  // without tutorialMode if the user agrees.
-  if (decision === 'refuse') {
-    return NextResponse.json(
-      { error: 'Your free tutorial run for Channel Analysis has already been used.', code: TUTORIAL_RUN_SPENT_CODE },
-      { status: 409 },
-    )
-  }
+  const tutorialResult = await resolveTutorialCharge(
+    'channel_analysis',
+    !!tutorialMode,
+    'Your free tutorial run for Channel Analysis has already been used.',
+  )
+  if (!tutorialResult.ok) return tutorialResult.response
 
   const auth = await checkAuthAndUsage('channel-analysis', {
-    bypassCredits: decision === 'bypass',
-    bypassFeatureGate: decision === 'bypass',
+    bypassCredits: tutorialResult.bypassCredits,
+    bypassFeatureGate: tutorialResult.bypassFeatureGate,
   })
   if (!auth.ok) return auth.response
 
@@ -196,7 +183,7 @@ Rules:
       user_id: auth.userId,
       feature: 'channel_analysis',
       platform,
-      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: decision === 'bypass', refined },
+      input_data: { niche, followerCount, postingCadence, contentFocus, currentChallenges, handleToAnalyze, tutorialMode: tutorialResult.bypassCredits, refined },
       output_data: parsed,
       tokens_used: totalTokens,
     }).select('id').single()
@@ -215,7 +202,7 @@ Rules:
   // Tutorial mode: return the result with sections marked locked so the
   // client renders them through LockedSection. The full result is still
   // saved to generations (above) for post-upgrade reveal.
-  if (tutorialMode && decision === 'bypass') {
+  if (tutorialMode && tutorialResult.bypassCredits) {
     const locked = {
       overallAssessment: parsed.overallAssessment,
       // Show 2 of 3 strengths and 1 of 4 gaps unlocked
