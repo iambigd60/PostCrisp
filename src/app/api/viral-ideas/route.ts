@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
+import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { loadCreatorContext } from '@/lib/creator-context-block'
 
@@ -207,6 +208,10 @@ Rules:
       output_data: { ideas },
       tokens_used: totalTokens,
     })
+
+    if (tutorialResult.bypassCredits) {
+      await recordTutorialRedemption(auth.userId, 'viral_ideas')
+    }
   } catch (error) {
     console.error('Viral ideas — persistence failed (non-fatal):', error)
   }

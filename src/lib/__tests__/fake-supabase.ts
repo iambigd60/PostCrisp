@@ -18,6 +18,10 @@ export interface FakeSupabaseTables {
   // Optional — omit to simulate the table missing (migration not yet run),
   // which the fake surfaces as a "relation does not exist" query error.
   processed_stripe_events?: Map<string, Record<string, unknown>>
+  // Optional — the append-only tutorial redemption ledger. Read-only from
+  // hasUsedTutorialBypass's perspective (service-role head-count query);
+  // omit or leave empty to simulate "no prior redemption".
+  tutorial_redemptions?: Record<string, unknown>[]
 }
 
 export interface FakeRpcResults {
@@ -236,10 +240,17 @@ export function createFakeSupabase(opts: {
         }
         // Bare select+eq chain awaited directly (no insert/upsert/update/
         // delete) — used for `.select('id', { count: 'exact', head: true })`
-        // head-count queries, e.g. hasUsedTutorialBypass. Only 'generations'
-        // is implemented; add other tables here as helpers need them.
+        // head-count queries, e.g. hasUsedTutorialBypass (now reads
+        // tutorial_redemptions, not generations — the 'generations' branch
+        // remains for other head-count callers/tests). Add other tables here
+        // as helpers need them.
         if (table === 'generations') {
           const matched = tables.generations.filter(matches)
+          return resolve({ data: null, count: matched.length, error: null })
+        }
+        if (table === 'tutorial_redemptions') {
+          const rows = tables.tutorial_redemptions ?? []
+          const matched = rows.filter(matches)
           return resolve({ data: null, count: matched.length, error: null })
         }
         return resolve({ error: null })

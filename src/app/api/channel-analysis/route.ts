@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
+import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
 import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
 // Vercel function timeout. Default is 10s (Hobby) / 60s (Pro). Channel
@@ -188,6 +189,11 @@ Rules:
       tokens_used: totalTokens,
     }).select('id').single()
     analysisId = inserted?.id ?? null
+
+    if (tutorialResult.bypassCredits) {
+      await recordTutorialRedemption(auth.userId, 'channel_analysis')
+    }
+
     await recordGenerationAiCalls(auth.supabase, {
       generationId: analysisId,
       userId: auth.userId,

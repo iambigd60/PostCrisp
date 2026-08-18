@@ -14,6 +14,16 @@ import { createFakeSupabase, type FakeSupabaseTables } from './fake-supabase'
 // I/O, same as checkAuthAndUsage) returns a fake client. No dependency-
 // injection seam was needed in production code — module mocking already
 // works for this shape of function, per that precedent.
+//
+// hasUsedTutorialBypass (called transitively via shouldGrantTutorialBypass)
+// does NOT read through that session client — tutorial_redemptions has no
+// client grants at all, so a session/anon client would read count: null and
+// silently grant the bypass forever. It builds its own service-role client
+// via `createClient` from '@supabase/supabase-js' instead (same pattern as
+// recordTutorialRedemption's writer). We mock that import too, pointed at
+// the SAME fake `tables` object as the session client, so a test can set up
+// tutorial_redemptions rows once and have both the write-side and read-side
+// mocks agree on what's been redeemed.
 
 let currentUser: { id: string } | null
 
@@ -23,6 +33,13 @@ const createClientMock = vi.fn(async () => supabaseInstance)
 
 vi.mock('@/utils/supabase/server', () => ({
   createClient: () => createClientMock(),
+}))
+
+// hasUsedTutorialBypass's service-role reader — see comment above. Resolves
+// to whatever `supabaseInstance` currently is, same fake tables as the
+// session client, so tutorial_redemptions fixtures apply to both.
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: () => supabaseInstance,
 }))
 
 function buildSupabase(tables: FakeSupabaseTables) {
@@ -62,8 +79,8 @@ describe('resolveTutorialCharge', () => {
   it('refuses with a 409 carrying code "tutorial_run_spent" when the freebie is already spent', async () => {
     const tables = setupTables({
       profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-      generations: [
-        { user_id: 'user-1', feature: 'channel_analysis', input_data: { tutorialMode: true } },
+      tutorial_redemptions: [
+        { user_id: 'user-1', feature: 'channel_analysis' },
       ],
     })
     supabaseInstance = buildSupabase(tables)
@@ -130,8 +147,8 @@ describe('resolveTutorialCharge', () => {
       async (feature) => {
         const tables = setupTables({
           profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-          generations: [
-            { user_id: 'user-1', feature, input_data: { tutorialMode: true } },
+          tutorial_redemptions: [
+            { user_id: 'user-1', feature },
           ],
         })
         supabaseInstance = buildSupabase(tables)
@@ -144,12 +161,13 @@ describe('resolveTutorialCharge', () => {
     )
 
     it('demonstrates the hazard: a hyphenated key that does not match the stored feature grants an infinite repeat bypass', async () => {
-      // The prior run is recorded under the correct underscore key, exactly
-      // as channel-analysis/route.ts writes it into generations.feature.
+      // The prior redemption is recorded under the correct underscore key,
+      // exactly as channel-analysis/route.ts passes it to
+      // recordTutorialRedemption (and writes it into generations.feature).
       const tables = setupTables({
         profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-        generations: [
-          { user_id: 'user-1', feature: 'channel_analysis', input_data: { tutorialMode: true } },
+        tutorial_redemptions: [
+          { user_id: 'user-1', feature: 'channel_analysis' },
         ],
       })
       supabaseInstance = buildSupabase(tables)

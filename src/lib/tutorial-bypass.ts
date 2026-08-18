@@ -11,14 +11,20 @@
  * generation, one free Hashtags lookup, and one free Viral Ideas batch.
  * After that, the feature charges normal credits and respects tier gates.
  *
- * Prior-use detection reads the generations table — every tutorial run
- * is recorded with input_data.tutorialMode = true, so a single existence
- * query is enough. This gate is server-authoritative: even if a client
- * spoofs tutorial_progress.completed=false to extend the active window,
- * the per-feature lock still fires after the first run.
+ * Prior-use detection reads the append-only tutorial_redemptions ledger
+ * (see recordTutorialRedemption), NOT the generations table. It used to read
+ * generations, but users hold own-row DELETE on generations and the
+ * generations detail page exposes a Delete button — so that count reset from
+ * ordinary UI, with no console. tutorial_redemptions has RLS enabled with no
+ * permissive policy and no client grants at all, so nothing short of
+ * service_role can read or write it; that is what makes the per-feature cap
+ * real instead of advisory. This gate is server-authoritative: even if a
+ * client spoofs tutorial_progress.completed=false to extend the active
+ * window, the per-feature lock still fires after the first run.
  */
 
 import type { createClient } from '@/utils/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -61,24 +67,45 @@ export async function isInActiveTutorial(
 
 /**
  * Returns true when the bypass has already been consumed for this user
- * + feature pair. We detect this by querying the generations table for
- * any past row where input_data.tutorialMode === true. Server-authoritative
- * — the user can't reset this from the client.
+ * + feature pair. We detect this by querying the append-only
+ * tutorial_redemptions ledger for a prior row. Server-authoritative — the
+ * user can't reset this from the client, because tutorial_redemptions grants
+ * no client access at all (RLS on, no policy, no anon/authenticated grants).
+ *
+ * That "no client grants" fact is also why this function cannot use the
+ * `supabase` argument for the read, even though it still accepts it to keep
+ * a stable signature for its caller (shouldGrantTutorialBypass). `supabase`
+ * is the caller's session client — anon key plus the user's cookies — and an
+ * anon/authenticated role reading a table with no permissive policy gets
+ * `count: null`, not a permission error. `(count ?? 0) > 0` on that would
+ * silently evaluate to false forever, granting the "free run" bypass on
+ * every request, indefinitely. So this reads through its own service-role
+ * client instead — the same pattern recordTutorialRedemption uses for the
+ * write side of this same table.
  *
  * `feature` must match the value the route writes into generations.feature
  * (e.g. 'channel_analysis', 'captions', 'hashtags', 'viral_ideas').
  */
+function redemptionReader() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+}
+
 export async function hasUsedTutorialBypass(
   supabase: ServerClient,
   userId: string,
   feature: string,
 ): Promise<boolean> {
-  const { count } = await supabase
-    .from('generations')
+  void supabase // deliberately unused for the read — see doc comment above
+
+  const { count } = await redemptionReader()
+    .from('tutorial_redemptions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('feature', feature)
-    .eq('input_data->>tutorialMode', 'true')
 
   return (count ?? 0) > 0
 }

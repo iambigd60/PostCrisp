@@ -4,6 +4,7 @@ import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
+import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
 import { loadCreatorContext } from '@/lib/creator-context-block'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -127,6 +128,10 @@ Return ONLY valid JSON with this structure — no markdown:
       output_data: { captions },
       tokens_used: totalTokens,
     })
+
+    if (tutorialResult.bypassCredits) {
+      await recordTutorialRedemption(auth.userId, 'captions')
+    }
 
     return NextResponse.json({ captions, platform, tone, contentType, generatedAt: new Date().toISOString() })
   } catch (error) {

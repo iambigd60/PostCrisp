@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
+import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -106,6 +107,10 @@ Rules:
       output_data: { hashtags },
       tokens_used: totalTokens,
     })
+
+    if (tutorialResult.bypassCredits) {
+      await recordTutorialRedemption(auth.userId, 'hashtags')
+    }
 
     return NextResponse.json({ hashtags, query, platform, count, mix })
   } catch (error) {
