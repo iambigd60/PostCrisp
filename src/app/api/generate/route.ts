@@ -118,6 +118,12 @@ Return ONLY valid JSON with this structure — no markdown:
     const parsed = parseLooseJson<{ captions?: string[] }>(text)
     const captions: string[] = parsed.captions || []
 
+    if (!Array.isArray(captions) || captions.length === 0) {
+      console.error('Captions — empty/invalid captions array. Preview:', text.slice(0, 300))
+      await refundCredits(auth)
+      return NextResponse.json({ error: 'AI returned no captions. Please try again.' }, { status: 502 })
+    }
+
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
     await auth.supabase.from('generations').insert({
