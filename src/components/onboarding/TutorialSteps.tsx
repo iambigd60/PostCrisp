@@ -750,8 +750,12 @@ export function ViralIdeasStep({ ctx, onNext, onSkip }: StepProps) {
         </p>
       </div>
 
-      {/* Niche input — visible when nothing carried over OR no ideas yet so user can edit */}
-      {!carried && ideas.length === 0 && !generating && (
+      {/* Niche input — visible until ideas exist. Pre-fills from the carried
+          niche/topic (analyze/captions steps) so a carried-context user can
+          still edit it before generating; this is the only way this step's
+          generation is ever triggered, so it must stay reachable even when
+          a niche was carried over. */}
+      {ideas.length === 0 && !generating && (
         <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-5 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
