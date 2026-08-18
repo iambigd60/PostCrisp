@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { apiFetch, ApiError } from '@/lib/api'
+import { snoozeUntil } from '@/lib/first-session-state'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { ChannelsSection } from '@/components/ChannelsSection'
@@ -184,20 +185,28 @@ export default function OnboardingPage() {
   const finish = async (skipped = false) => {
     setFinishing(true)
     try {
+      // Skip means LATER, not never. completed:true was a permanent stop for
+      // isInActiveTutorial, so skipping destroyed the remaining free runs and
+      // hid the sidebar link back, which keys on the same flag.
+      const base = {
+        analysis_id: tutorialCtx.analysisId,
+        caption_topic: tutorialCtx.captionTopic || null,
+        niche: tutorialCtx.niche || null,
+        selected_channel_id: tutorialCtx.selectedChannel?.id ?? null,
+        has_saved_item: !!tutorialCtx.hasSavedItem,
+      }
+
+      const progress = skipped
+        ? { ...base, step, completed: false, snoozed_until: snoozeUntil(new Date()) }
+        : { ...base, step: 'save' as const, completed: true, snoozed_until: null }
+
       await apiFetch('/api/user/preferences', {
         method: 'PUT',
-        body: JSON.stringify({
-          onboarded_at: new Date().toISOString(),
-          tutorial_progress: {
-            step: 'save',
-            completed: true,
-            analysis_id: tutorialCtx.analysisId,
-            caption_topic: tutorialCtx.captionTopic || null,
-            niche: tutorialCtx.niche || null,
-            selected_channel_id: tutorialCtx.selectedChannel?.id ?? null,
-            has_saved_item: !!tutorialCtx.hasSavedItem,
-          },
-        }),
+        body: JSON.stringify(
+          skipped
+            ? { tutorial_progress: progress }
+            : { onboarded_at: new Date().toISOString(), tutorial_progress: progress },
+        ),
       })
     } catch (err) {
       if (!skipped && err instanceof ApiError) addToast(err.message, 'error')
@@ -222,9 +231,10 @@ export default function OnboardingPage() {
         <button
           onClick={() => finish(true)}
           disabled={finishing}
+          title="We'll keep your free runs and remind you on the dashboard."
           className="text-xs sm:text-sm text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
         >
-          Skip all
+          Finish later
         </button>
       </div>
 
