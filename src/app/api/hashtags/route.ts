@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
+import { decideTutorialCharge, TUTORIAL_RUN_SPENT_CODE } from '@/lib/tutorial-charge-policy'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
 // Opus on long outputs) regularly hit 30-60s with variance to ~90s. 120s
@@ -32,16 +33,28 @@ export async function GET(request: Request) {
   const tutorialMode = searchParams.get('tutorial') === '1'
 
   // Tutorial mode: PostCrisp absorbs the credit + tier cost. Server-validated.
-  let allowBypass = false
+  let bypassGranted = false
   if (tutorialMode) {
     const supabase = await (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'hashtags')
+    if (user) bypassGranted = await shouldGrantTutorialBypass(supabase, user.id, 'hashtags')
+  }
+
+  const decision = decideTutorialCharge({ tutorialModeRequested: !!tutorialMode, bypassGranted })
+
+  // A spent tutorial run must NEVER fall through to a silent charge. The client
+  // shows an explicit "generate anyway for N credits?" prompt and re-requests
+  // without tutorialMode if the user agrees.
+  if (decision === 'refuse') {
+    return NextResponse.json(
+      { error: 'Your free tutorial run for Hashtags has already been used.', code: TUTORIAL_RUN_SPENT_CODE },
+      { status: 409 },
+    )
   }
 
   const auth = await checkAuthAndUsage('hashtags', {
-    bypassCredits: allowBypass,
-    bypassFeatureGate: allowBypass,
+    bypassCredits: decision === 'bypass',
+    bypassFeatureGate: decision === 'bypass',
   })
   if (!auth.ok) return auth.response
 
@@ -102,7 +115,7 @@ Rules:
       user_id: auth.userId,
       feature: 'hashtags',
       platform,
-      input_data: { query, count, mix, tutorialMode: allowBypass },
+      input_data: { query, count, mix, tutorialMode: decision === 'bypass' },
       output_data: { hashtags },
       tokens_used: totalTokens,
     })

@@ -3,6 +3,7 @@ import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from
 import { crispGenerate } from '@/lib/crisp-engine'
 import { parseLooseJson } from '@/lib/safe-json'
 import { shouldGrantTutorialBypass } from '@/lib/tutorial-bypass'
+import { decideTutorialCharge, TUTORIAL_RUN_SPENT_CODE } from '@/lib/tutorial-charge-policy'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { loadCreatorContext } from '@/lib/creator-context-block'
 
@@ -98,16 +99,28 @@ export async function POST(request: Request) {
   } = body
 
   // Tutorial mode: PostCrisp absorbs credit + tier cost. Server-validated.
-  let allowBypass = false
+  let bypassGranted = false
   if (tutorialMode) {
     const supabase = await (await import('@/utils/supabase/server')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) allowBypass = await shouldGrantTutorialBypass(supabase, user.id, 'viral_ideas')
+    if (user) bypassGranted = await shouldGrantTutorialBypass(supabase, user.id, 'viral_ideas')
+  }
+
+  const decision = decideTutorialCharge({ tutorialModeRequested: !!tutorialMode, bypassGranted })
+
+  // A spent tutorial run must NEVER fall through to a silent charge. The client
+  // shows an explicit "generate anyway for N credits?" prompt and re-requests
+  // without tutorialMode if the user agrees.
+  if (decision === 'refuse') {
+    return NextResponse.json(
+      { error: 'Your free tutorial run for Viral Ideas has already been used.', code: TUTORIAL_RUN_SPENT_CODE },
+      { status: 409 },
+    )
   }
 
   const auth = await checkAuthAndUsage('viral-ideas', {
-    bypassCredits: allowBypass,
-    bypassFeatureGate: allowBypass,
+    bypassCredits: decision === 'bypass',
+    bypassFeatureGate: decision === 'bypass',
   })
   if (!auth.ok) return auth.response
 
@@ -203,7 +216,7 @@ Rules:
       user_id: auth.userId,
       feature: 'viral_ideas',
       platform: platforms[0] ?? null,
-      input_data: { niche, platforms, formats, trendSource, audience, count: safeCount, tutorialMode: allowBypass },
+      input_data: { niche, platforms, formats, trendSource, audience, count: safeCount, tutorialMode: decision === 'bypass' },
       output_data: { ideas },
       tokens_used: totalTokens,
     })
