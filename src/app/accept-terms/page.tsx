@@ -68,7 +68,12 @@ function AcceptTermsPageInner() {
         }),
       })
       addToast('Thanks — agreement accepted. Welcome in.', 'success')
-      const next = searchParams?.get('next') || '/dashboard'
+      // Default to /onboarding, not /dashboard: this page is reached from the
+      // onboarding layout's requireAlphaAcceptance gate, so a lost `next`
+      // previously dropped brand-new users straight past the wizard.
+      // /onboarding itself redirects already-completed users onward, so this
+      // stays safe for a returning user who somehow lands here.
+      const next = searchParams?.get('next') || '/onboarding'
       router.replace(next)
     } catch (err) {
       addToast(err instanceof ApiError ? err.message : 'Failed to save acceptance', 'error')

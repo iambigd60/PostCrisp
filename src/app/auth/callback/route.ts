@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { chooseDestination } from '@/lib/post-auth-destination'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -10,11 +11,30 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Honor `next` so password recovery flows land on /auth/reset-password
-      // instead of /dashboard. Only allow relative paths to avoid open-redirect
-      // vulnerabilities — anything starting with // or containing :// is refused.
-      const safeNext = next && next.startsWith('/') && !next.startsWith('//') && !next.includes('://') ? next : '/dashboard'
-      return NextResponse.redirect(`${origin}${safeNext}`)
+      // Decide onboarding-vs-dashboard here rather than defaulting to
+      // /dashboard. Google OAuth passes no `next` from either call site, and
+      // the email-confirmation link doesn't either, so the old default skipped
+      // onboarding for every user arriving by those routes.
+      let tutorialCompleted = false
+      let onboardedAt: string | null = null
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferences')
+          .eq('id', user.id)
+          .maybeSingle()
+        const prefs = (profile?.preferences ?? {}) as {
+          tutorial_progress?: { completed?: boolean }
+          onboarded_at?: string | null
+        }
+        tutorialCompleted = prefs.tutorial_progress?.completed === true
+        onboardedAt = prefs.onboarded_at ?? null
+      }
+
+      const destination = chooseDestination({ explicitNext: next, tutorialCompleted, onboardedAt })
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 
