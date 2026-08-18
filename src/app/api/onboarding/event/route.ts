@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       ? (detail as Record<string, unknown>)
       : {}
 
-  if (JSON.stringify(safeDetail).length > MAX_DETAIL_BYTES) {
+  if (new TextEncoder().encode(JSON.stringify(safeDetail)).length > MAX_DETAIL_BYTES) {
     return NextResponse.json({ error: 'Detail too large' }, { status: 400 })
   }
 
