@@ -27,10 +27,11 @@ describe('isInActiveTutorial', () => {
     expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(false)
   })
 
-  it('grants bypass on any non-completed step — no dependency on the client write landing', async () => {
-    // Regression: goToStep fire-and-forgets the preferences PUT, so the step
-    // recorded server-side lags the UI. Gating on step value raced that write
-    // and silently charged fast users.
+  it('still grants bypass on a step the old gate already allowed (baseline)', async () => {
+    // Baseline, not a regression pin: 'captions' was already a member of the
+    // old TUTORIAL_STEPS allowlist, so this case returned true both before
+    // and after the gate removal. See the 'channels' test below for the case
+    // that actually demonstrates the write-ordering fix.
     const tables = setupTables({
       tutorial_progress: { step: 'captions', completed: false },
     })
@@ -39,6 +40,10 @@ describe('isInActiveTutorial', () => {
   })
 
   it('grants bypass on a pre-generation step (channels), which the old step gate refused', async () => {
+    // Regression: goToStep fire-and-forgets the preferences PUT, so the step
+    // recorded server-side lags the UI. The old step gate denied the bypass
+    // to users who advanced (e.g. to 'channels') faster than that write
+    // landed — this case flips false -> true with the fix.
     const tables = setupTables({
       tutorial_progress: { step: 'channels', completed: false },
     })
