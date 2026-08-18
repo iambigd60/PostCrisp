@@ -5,6 +5,33 @@
 
 ---
 
+## 🟡 Launch gates — verification status (2026-08-18, session 25)
+
+Pre-launch security and billing hardening is **merged and deployed**; what remains is verification of live infrastructure, not code.
+
+**Verified ✅** — production is serving the hardened build. Vercel prod deploy `dpl_k7kUWWZ1eznawkNZKjgrgn4SpaU8` is `READY` at commit `085b190`, and `48fcf33` / `7c15c09` / `bce4865` are all confirmed git ancestors of it.
+
+**Outstanding — 3 gates:**
+
+- ⚠️ **Vercel WAF rules active.** Cannot be confirmed from the connected tooling — WAF denials go to Firewall → Logs, a separate stream from the runtime logs the MCP tools expose. Clean runtime logs are **not** evidence here; an unconfigured project looks identical. Check the dashboard, and confirm the plan first: `docs/rate-limiting.md` notes rate-limit rules need Vercel **Pro/Enterprise**, so on Hobby this gate cannot be closed at all and credits/quota become the only cap.
+- ⏳ **Supabase rate limiting** (Auth → Rate Limits) — needs a live session.
+- ⏳ **Applied migrations match `supabase/migrations/`** — needs a live session. `20260724150000` was applied to prod manually ahead of the PR #7 merge, so drift is plausible.
+
+### Shipped since 2026-05-24 (was missing from this roadmap)
+
+- **PR #4** — pre-launch security hardening: `consume_user_credits` rewritten as a hardened `SECURITY DEFINER` RPC (empty `search_path`, atomic conditional decrement, `service_role`-only EXECUTE); `profiles` UPDATE restricted to cosmetic columns via column grants + `protect_privileged_profile_columns` trigger; dependency advisories cleared.
+- **PR #4** — edge rate limiting migrated from Upstash Redis to **Vercel WAF**. All `UPSTASH_*` env vars removed; absent config can no longer force a 503. Rules documented in `docs/rate-limiting.md`.
+- **PR #5** — `voice-profile/analyze` metered (was an unmetered LLM call behind `getUser()` only); **reserve-before-generate** across all 23 AI routes, closing a concurrency bypass where N parallel requests all passed the balance preflight; `profiles` INSERT lockdown.
+- **PR #6** — access control now fails **closed** on DB read error or missing config row; admin reset-password builds `redirectTo` from `NEXT_PUBLIC_APP_URL` instead of request headers; creator-profile PATCH whitelists editable columns (mass-assignment fix).
+- **PR #7** — non-expiring `profiles.purchased_credits` bucket so paid credit packs survive the allowance reset, matching the billing page's "packs stack and never expire" promise.
+
+### Repo health (session 25)
+
+- `PostCrisp/` — a stale 2026-05-24 clone of this repo with its own `.git` — was silently breaking `npm run typecheck` with 24 phantom errors. Excluded in `tsconfig.json` and gitignored; `tsc --noEmit` now exits 0. Directory left on disk, safe to delete.
+- 105/105 tests green (13 files), typecheck clean, `next lint` clean (4 warnings, no errors).
+
+---
+
 ## ✅ Cost telemetry + hybrid Foundation Analysis evidence shipped 2026-05-24
 
 Public-launch monetization groundwork is now in place:
@@ -16,7 +43,7 @@ Public-launch monetization groundwork is now in place:
 - Foundation Analysis evidence layer is now hybrid: users can add 1-3 top-post URLs plus pasted caption/script evidence. Evidence URLs and channel URL overrides must match the selected platform on both client and API.
 - Saved social Channel URLs now enforce platform-domain matching for Instagram, TikTok, YouTube, X/Twitter, Facebook, Threads, and LinkedIn. Newsletter/blog/other channels are not forced through social-domain rules.
 
-Verification before commit: `npm test` passed (52 tests), `npm run typecheck` passed, `git diff --check` clean except CRLF warnings. `npm run lint` remains blocked by the existing workspace-root ESLint config issue where Next selects `C:\Projects\postcrisp` instead of `PostCrisp`.
+Verification before commit: `npm test` passed (52 tests), `npm run typecheck` passed, `git diff --check` clean except CRLF warnings. ~~`npm run lint` remains blocked by the existing workspace-root ESLint config issue~~ — **resolved 2026-08-18**: the culprit was the nested `PostCrisp/` clone, now excluded. Lint exits 0.
 
 ---
 
@@ -480,7 +507,8 @@ GET route handlers are cached at build time unless they use cookies/auth/headers
 - [ ] Production env vars
 - [ ] Stripe products + webhook pointed at production domain
 - [ ] Stripe Billing Portal configured
-- [ ] **Billing-integrity sprint (2026-07-06, in progress)** — T1 webhook fix ✅ merged (PR #2) + prod trigger installed; T2 Dennis test-mode verification ⏳ (gates T3); subscription-lifecycle fixes designed on `fix/stripe-subscription-lifecycle` (spec: `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md`, awaiting Dennis's final sign-off); T3 service-role credit writes + T4 trigger SQL follow, hard-gated in that order
+- [ ] **Billing-integrity sprint (2026-07-06 — T1/T3/T4 ✅ shipped, T2 still ⏳)** — *updated 2026-08-18:* T3 (service-role credit writes) and T4 (protect-privileged-columns trigger SQL) both landed in PRs #4–#5 and are deployed. T2 (Dennis's Stripe test-mode verification) remains the open item. Original entry below for history.
+- [ ] **Billing-integrity sprint (2026-07-06, original entry)** — T1 webhook fix ✅ merged (PR #2) + prod trigger installed; T2 Dennis test-mode verification ⏳ (gates T3); subscription-lifecycle fixes designed on `fix/stripe-subscription-lifecycle` (spec: `docs/superpowers/specs/2026-07-06-stripe-subscription-lifecycle-design.md`, awaiting Dennis's final sign-off); T3 service-role credit writes + T4 trigger SQL follow, hard-gated in that order
 - [ ] Google OAuth enabled in Supabase
 - [x] ✅ 2026-04-20 — Rotated `captain@postcrisp.com` password via `scripts/rotate-admin-password.mjs`. Future rotations use the same script.
 

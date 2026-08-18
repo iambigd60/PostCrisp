@@ -1,10 +1,49 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-07-07 (session 20 — subscription-lifecycle fixes MERGED via PR #3 and auto-deployed)
-**Build status:** ✅ `main` has Task 1 (PR #2) + prod trigger + the lifecycle fixes ([PR #3](https://github.com/iambigd60/PostCrisp/pull/3), merge `87bd6e6`, 86/86 tests, typecheck clean); Vercel auto-deploys main.
+**Last updated:** 2026-08-18 (session 25 — launch-gate verification + repo housekeeping)
+**Build status:** ✅ `main` @ `085b190` + housekeeping commit. 105/105 tests (13 files), `tsc --noEmit` clean, `next lint` clean (warnings only). Vercel auto-deploys main; production confirmed serving `085b190`.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🟡 Public-launch payment/credit planning in progress; cost measurement instrumentation now available after deploy.
+**Launch status:** 🟡 Pre-launch security + billing hardening merged (PRs #4–#7). 4 production gates outstanding — 1 verified, 1 blocked on dashboard access, 2 need Supabase (see session 25 block).
+
+---
+
+## 🟡 Session 25 — Launch-gate verification + repo housekeeping (2026-08-18)
+
+**No application code changed.** This session verified production state against the launch gates and cleared accumulated working-tree debt. Housekeeping commit on `main`; `085b190` (credits/purchased-bucket, PR #7) remains the last functional change.
+
+### Production gates — status
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Deployed production SHA contains the security work | ✅ **VERIFIED** | Vercel prod deploy `dpl_k7kUWWZ1eznawkNZKjgrgn4SpaU8`, state `READY`, commit `085b190a850`. `48fcf33` (pre-launch hardening), `7c15c09` (Upstash→WAF switch) and `bce4865` (PR #4 merge) all confirmed ancestors via `git merge-base --is-ancestor`. |
+| Vercel WAF rules active | ⚠️ **UNVERIFIED — blocked** | Not checkable from the connected Vercel MCP tools. See caveat below. |
+| Supabase rate limiting / RLS state | ⏳ Not started | Needs a live Supabase session (OAuth). |
+| Applied migrations match `supabase/migrations/` | ⏳ Not started | Needs a live Supabase session (OAuth). |
+
+**WAF caveat (important — do not read the clean logs as a pass).** Vercel enforces rate-limit rules at the edge and writes denials to **Firewall → Logs**, a different stream from runtime logs. The connected MCP toolset exposes runtime logs only — there is no firewall-rules or firewall-logs reader. Production runtime logs for the last 24h are clean (24×200, 10×404, 2×307, 1×304; zero `error`/`fatal`/`warning`; no 429s), but **a project with zero WAF rules configured would produce exactly that same profile.** Close this gate via the dashboard (Project → Firewall → Custom Rules) or the burst test in `docs/rate-limiting.md`.
+
+**Plan risk on that gate:** `docs/rate-limiting.md` notes configurable WAF rate-limit rules require a Vercel **Pro/Enterprise** plan. If the team is on Hobby the rules cannot exist at all, and the credit/quota system is the only cap. Confirm the plan before assuming this gate is closable.
+
+### Housekeeping
+
+- **`PostCrisp/` nested clone — typecheck fixed.** The directory is a stale 2026-05-24 *clone of this repo* with its own `.git`, not a build artifact. `tsc` was pulling it into the program and reporting **24 phantom errors** while `src/` was clean. Added to `tsconfig.json` `exclude` → `tsc --noEmit` now exits 0. Also added to `.gitignore` so it can never be committed as a stray gitlink. **Nothing was deleted** — the directory is still on disk and can be removed whenever convenient.
+- **`next lint` is no longer blocked.** The long-standing ROADMAP note ("Next selects `C:\Projects\postcrisp` instead of `PostCrisp`") is obsolete — that confusion was the nested clone. Lint now exits 0 with warnings only (4: three `react-hooks/exhaustive-deps` in admin pages, one `no-img-element` in `FeatureGate.tsx`).
+- **Committed:** `.aimigos.json` (clarify-gate risk paths for billing/credits/auth/AI/supabase surfaces), `supabase/config.toml` + `supabase/.gitignore` (stock CLI config, all secret slots use `env()` substitution), and two plan docs under `docs/superpowers/plans/`.
+- **Ignored rather than committed:** `PostCrisp/`, `.three-aimigos/` local tool state, three `the-three-aimigos-*.tgz` build tarballs, and `SHA256SUMS.txt`.
+- Repo is **public** — all committed files were secret-scanned before staging and again before push. Clean.
+
+### ⚠️ Tracker gap — sessions 21–24 are not written up
+
+This file jumps from session 20 (2026-07-07) to session 25. **PRs #4–#7 merged in that window and have no PICKUP entry:**
+
+- **PR #4** `bce4865` — pre-launch security hardening (CRITICAL-1/2, HIGH-1/2, MEDIUM-2/6, LOW-1/3): hardened `consume_user_credits` RPC, `profiles` column grants + `protect_privileged_profile_columns` trigger, dependency bumps.
+- **PR #4** `7c15c09` — edge rate limiting moved from Upstash Redis to Vercel WAF; all `UPSTASH_*` env vars removed.
+- **PR #5** `291f5f7` — metered `voice-profile/analyze`; reserve-before-generate across all 23 AI routes; `profiles` INSERT lockdown.
+- **PR #6** `2d59f09` — fail-closed access control, admin reset-password origin, mass-assignment + grant lockdowns.
+- **PR #7** `085b190` — non-expiring `profiles.purchased_credits` bucket so credit packs survive allowance reset. Migration `20260724150000` applied to prod ahead of merge (backfill: all users at 0, no balances moved).
+
+Reconstructed from git history and Vercel deploy metadata, **not** from session notes — treat as an index, not a full record. Anyone with context on those sessions should expand this.
 
 ---
 
@@ -104,7 +143,7 @@ Built and gated by a multi-agent pipeline: TDD implementation → 3-lens review 
 - `npm test` passed: 10 files, 52 tests.
 - `npm run typecheck` passed.
 - `git diff --check` clean except CRLF warnings.
-- `npm run lint` still fails due existing workspace root/config issue: Next selects `C:\Projects\postcrisp` and loads that parent `.eslintrc.json`, which cannot resolve `next/core-web-vitals` for this app.
+- ~~`npm run lint` still fails due existing workspace root/config issue~~ ✅ **Resolved 2026-08-18 (session 25)** — the culprit was the nested `PostCrisp/` clone; with it excluded, `next lint` exits 0 (warnings only).
 
 ---
 
@@ -1061,6 +1100,7 @@ No other DB changes this session.
 - Est. MRR uses list prices, ignores yearly discounts — replaced once Billing admin ships
 - ~~`src/app/login/actions.ts` orphaned~~ deleted in s12 hardening sprint
 - ~~`MOCK_BEST_TIMES` dead code~~ deleted in s12 hardening sprint
+- ~~Nested `PostCrisp/` clone breaks `npm run typecheck` with 24 phantom errors~~ ✅ Fixed 2026-08-18 (s25) via `tsconfig.json` exclude + `.gitignore`. The directory is still on disk (a stale 2026-05-24 clone with its own `.git`) and is safe to delete whenever convenient — nothing in it is unique.
 
 ## Manual setup still pending (for production)
 
@@ -1072,3 +1112,6 @@ No other DB changes this session.
 - Set Anthropic monthly spending cap ($50-100) — defense in depth (5 min, do anytime)
 - Google OAuth in Supabase Auth settings (currently disabled in invite-only flow anyway)
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
+- 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`.
+- 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
+- 🔴 **Verify applied migrations match `supabase/migrations/`** — outstanding launch gate. Note `20260724150000` was applied to prod manually ahead of the PR #7 merge, so drift is plausible.
