@@ -11,6 +11,8 @@ import { GettingStartedCard, type GettingStartedState } from '@/components/Getti
 import { NextToolsCard, type NextToolsState } from '@/components/NextToolsCard'
 import { BrandReadinessCard } from '@/components/BrandReadinessCard'
 import { computeBrandReadiness, type BrsResult } from '@/lib/brand-readiness'
+import { ResumeFirstSessionCard } from '@/components/ResumeFirstSessionCard'
+import { shouldOfferResume, type FirstSessionProgress } from '@/lib/first-session-state'
 
 interface Profile {
   full_name: string | null
@@ -55,6 +57,10 @@ interface DashboardStats {
   nextTools: NextToolsState
   nextToolsDismissed: boolean
   showNextTools: boolean
+  // Whether an unfinished first session (Ask → Pack → Own) should be
+  // surfaced via ResumeFirstSessionCard. Mutually exclusive with
+  // GettingStartedCard — see the render block below.
+  offerResume: boolean
   // Brand Readiness Score — deterministic 0-100 scored across 5 dimensions
   // from the same inputs already loaded above. No additional fetches.
   brs: BrsResult
@@ -569,6 +575,18 @@ export default function DashboardPage() {
         // (onboarded_at set, no tutorial_progress yet) shouldn't be skipped.
         const showNextTools = tutorialDone || !!onboardedAt
 
+        // Dashboard recovery for an unfinished first session — see
+        // src/lib/first-session-state.ts for why accountCreatedAt matters
+        // (it stops long-standing accounts with no first-session record
+        // from being nagged about a session they were never offered).
+        const firstSessionProgress = prefs?.tutorial_progress as FirstSessionProgress | undefined
+        const offerResume = shouldOfferResume(
+          firstSessionProgress,
+          prefs?.onboarded_at ?? null,
+          user.created_at,
+          new Date(),
+        )
+
         // Brand Readiness Score — pure-function compute from the inputs we
         // already loaded. Re-runs on every dashboard load so it always
         // reflects current state.
@@ -604,6 +622,7 @@ export default function DashboardPage() {
           nextTools,
           nextToolsDismissed: Boolean(prefs?.next_tools_dismissed),
           showNextTools,
+          offerResume,
           brs,
           showFoundationCta: Boolean(showFoundationCta),
         })
@@ -729,8 +748,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* An unfinished first session takes precedence over the generic
+          checklist — showing both is how a new user faced 22 checklist items. */}
+      {stats?.offerResume && <ResumeFirstSessionCard />}
+
       {/* Getting Started checklist — hides once fully complete or user dismisses */}
-      {stats && (
+      {stats && !stats.offerResume && (
         <GettingStartedCard
           state={stats.gettingStarted}
           dismissed={stats.gettingStartedDismissed}
