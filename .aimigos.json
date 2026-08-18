@@ -1,0 +1,17 @@
+{
+  "risk_paths": {
+    "add": [
+      "src/lib/stripe*",
+      "src/lib/credits*",
+      "src/lib/auth-usage*",
+      "src/lib/admin-auth*",
+      "src/lib/feature-access*",
+      "src/lib/ai-call-ledger*",
+      "src/lib/rate-limit*",
+      "src/app/api/stripe/**",
+      "src/app/api/generate/**",
+      "src/app/api/voice-profile/**",
+      "supabase/**"
+    ]
+  }
+}

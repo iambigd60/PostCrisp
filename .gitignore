@@ -44,3 +44,11 @@ next-env.d.ts
 # Personal productivity tracker (local only)
 TASKS.md
 dashboard.html
+
+# Nested legacy clone (has its own .git) - local only
+PostCrisp/
+
+# Three AImigos local tool state and packaged builds
+.three-aimigos/
+the-three-aimigos-*.tgz
+SHA256SUMS.txt
