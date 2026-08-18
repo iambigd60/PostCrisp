@@ -27,7 +27,10 @@ describe('isInActiveTutorial', () => {
     expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(false)
   })
 
-  it('grants bypass when user is on a valid tutorial step and not yet completed', async () => {
+  it('grants bypass on any non-completed step — no dependency on the client write landing', async () => {
+    // Regression: goToStep fire-and-forgets the preferences PUT, so the step
+    // recorded server-side lags the UI. Gating on step value raced that write
+    // and silently charged fast users.
     const tables = setupTables({
       tutorial_progress: { step: 'captions', completed: false },
     })
@@ -35,9 +38,28 @@ describe('isInActiveTutorial', () => {
     expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(true)
   })
 
-  it('denies bypass for an unknown step value (defensive against client spoofing)', async () => {
+  it('grants bypass on a pre-generation step (channels), which the old step gate refused', async () => {
+    const tables = setupTables({
+      tutorial_progress: { step: 'channels', completed: false },
+    })
+    const supabase = createFakeSupabase({ tables })
+    expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(true)
+  })
+
+  it('grants bypass for an unrecognised step value as long as the tutorial is not completed', async () => {
+    // Step is now advisory only. Spoofing it buys nothing: the per-feature
+    // lifetime lock in hasUsedTutorialBypass still caps free runs at one each.
     const tables = setupTables({
       tutorial_progress: { step: 'arbitrary-fake-step', completed: false },
+    })
+    const supabase = createFakeSupabase({ tables })
+    expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(true)
+  })
+
+  it('still denies bypass once completed, even on a generation step', async () => {
+    // The completed flag remains the hard stop.
+    const tables = setupTables({
+      tutorial_progress: { step: 'viral', completed: true },
     })
     const supabase = createFakeSupabase({ tables })
     expect(await isInActiveTutorial(supabase as any, 'user-1')).toBe(false)

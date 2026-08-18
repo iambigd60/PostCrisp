@@ -22,13 +22,10 @@ import type { createClient } from '@/utils/supabase/server'
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>
 
-const TUTORIAL_STEPS = new Set(['analyze', 'captions', 'hashtags', 'viral'])
-
 /**
  * Returns true when the user is in an active tutorial run — i.e. they
  * either have no tutorial record yet (first-time onboarding) or their
- * recorded step matches one of the four AI-generation tutorial steps
- * AND the tutorial is not yet marked completed.
+ * tutorial record exists and is not yet marked completed.
  */
 export async function isInActiveTutorial(
   supabase: ServerClient,
@@ -51,9 +48,15 @@ export async function isInActiveTutorial(
   // Already completed — no more free runs
   if (tp.completed) return false
 
-  // Step must be one of the AI-generation tutorial steps (or empty,
-  // meaning user just landed on /onboarding and hasn't transitioned)
-  return !tp.step || TUTORIAL_STEPS.has(tp.step)
+  // Any non-completed record counts as an active tutorial. We deliberately do
+  // NOT gate on tp.step: goToStep fire-and-forgets its preferences write, so
+  // the persisted step lags the UI, and gating on it raced that write — denying
+  // the bypass and (before the charge-policy fix) silently billing the user.
+  //
+  // Step is advisory only. Spoofing it buys nothing — hasUsedTutorialBypass
+  // enforces a per-feature lifetime lock, so total free exposure is unchanged
+  // at one run per feature.
+  return true
 }
 
 /**
