@@ -50,8 +50,15 @@ export function createFakeSupabase(opts: {
   // affected-rows array (and does NOT mutate) — simulating a lost optimistic
   // race where `.eq('credits_balance', current)` matched zero rows.
   conditionalUpdateMisses?: boolean
+  // Optional — for a listed table's head-count query, resolve with
+  // `{ count: null, error: null }` instead of the normal matched count.
+  // PostgREST can hand back a null count with no accompanying error (e.g. an
+  // RLS policy that makes the table invisible rather than erroring), which
+  // is a distinct case from readErrors (count: null WITH an error) — lets
+  // tests pin a fail-closed check that must not rely on `error` alone.
+  nullCountNoError?: Partial<Record<keyof FakeSupabaseTables, boolean>>
 }) {
-  const { tables, rpcs = {}, writeErrors, readErrors, deleteErrors, conditionalUpdateMisses } = opts
+  const { tables, rpcs = {}, writeErrors, readErrors, deleteErrors, conditionalUpdateMisses, nullCountNoError } = opts
 
   const fromBuilder = (table: keyof FakeSupabaseTables) => {
     type Filter = { col: string; val: unknown }
@@ -255,6 +262,7 @@ export function createFakeSupabase(opts: {
         if (table === 'tutorial_redemptions') {
           const injected = readErrors?.[table]
           if (injected) return resolve({ data: null, count: null, error: injected })
+          if (nullCountNoError?.[table]) return resolve({ data: null, count: null, error: null })
           const rows = tables.tutorial_redemptions ?? []
           const matched = rows.filter(matches)
           return resolve({ data: null, count: matched.length, error: null })

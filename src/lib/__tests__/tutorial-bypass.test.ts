@@ -134,4 +134,27 @@ describe('hasUsedTutorialBypass', () => {
 
     consoleError.mockRestore()
   })
+
+  it('FAILS CLOSED — treats the bypass as already used — when the ledger read resolves with count: null and NO error', async () => {
+    // Distinct from the "relation missing" case above: here `error` is null
+    // too, e.g. an RLS policy that makes the table invisible without
+    // erroring. `(null ?? 0) > 0` would have silently evaluated to false
+    // forever, granting the bypass on every request — this pins that the
+    // fail-closed check does not rely on `error` alone.
+    ledgerInstance = createFakeSupabase({
+      tables: emptyTables(),
+      nullCountNoError: { tutorial_redemptions: true },
+    })
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const result = await hasUsedTutorialBypass({} as never, 'user-1', 'captions')
+
+    expect(result).toBe(true)
+    expect(consoleError).toHaveBeenCalledWith(
+      '[tutorial-bypass] tutorial_redemptions read failed — denying the bypass',
+      expect.objectContaining({ userId: 'user-1', feature: 'captions', count: null }),
+    )
+
+    consoleError.mockRestore()
+  })
 })

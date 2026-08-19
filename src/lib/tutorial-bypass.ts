@@ -112,7 +112,7 @@ export async function hasUsedTutorialBypass(
     .eq('user_id', userId)
     .eq('feature', feature)
 
-  if (error) {
+  if (error || count === null) {
     // FAIL CLOSED. `count` is also null on an error response (e.g. the
     // migration that creates tutorial_redemptions hasn't been applied to
     // this environment yet — "relation does not exist"), which is
@@ -126,11 +126,16 @@ export async function hasUsedTutorialBypass(
     // wrong, but bounded to onboarding UX, loud via the log below, and cheap
     // to notice and fix. The alternative is silent and costs real credits.
     // Do NOT soften this to `return false` — that reintroduces the hazard.
-    console.error('[tutorial-bypass] tutorial_redemptions read failed — denying the bypass', { userId, feature, error })
+    // The `count === null` half of this check matters even when `error` is
+    // null: PostgREST can hand back a null count with no accompanying error
+    // (e.g. a `head: true` count against a table an RLS policy silently
+    // makes invisible), and `(null ?? 0) > 0` would have quietly granted the
+    // bypass forever on that path.
+    console.error('[tutorial-bypass] tutorial_redemptions read failed — denying the bypass', { userId, feature, error, count })
     return true
   }
 
-  return (count ?? 0) > 0
+  return count > 0
 }
 
 /**

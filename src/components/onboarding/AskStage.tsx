@@ -51,7 +51,7 @@ export function AskStage({
         </h1>
         <p className="text-zinc-400 mt-3 text-base leading-relaxed max-w-xl">
           One line is enough. We&apos;ll turn it into captions, hashtags and something to film this
-          week — under a minute, on us.
+          week — a minute or two, on us.
         </p>
       </div>
 

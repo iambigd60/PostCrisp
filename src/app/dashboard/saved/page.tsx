@@ -19,6 +19,7 @@ const TYPE_META: Record<string, { filterLabel: string; badge: string; tone: 'bra
   channel_report:      { filterLabel: '🪞 Channel Reports',    badge: '🪞 Channel Report',     tone: 'purple'  },
   thumbnail_analysis:  { filterLabel: '🖼️ Thumbnail Analyses', badge: '🖼️ Thumbnail Analysis', tone: 'amber'   },
   cta_optimization:    { filterLabel: '🎯 CTA Optimizations',  badge: '🎯 CTA Optimization',   tone: 'brand'   },
+  'first-session-pack': { filterLabel: '📦 Starter Packs',     badge: '📦 Starter Pack',       tone: 'emerald' },
 };
 const TONE_CLASS: Record<string, string> = {
   brand:   'bg-brand-500/10 text-brand-300',
