@@ -1,10 +1,63 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-18 (session 25 — launch-gate verification + repo housekeeping)
+**Last updated:** 2026-08-18 (session 26 — onboarding charge-safety + first-session redesign, 32 commits across two stacked branches)
 **Build status:** ✅ `main` @ `085b190` + housekeeping commit. 105/105 tests (13 files), `tsc --noEmit` clean, `next lint` clean (warnings only). Vercel auto-deploys main; production confirmed serving `085b190`.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🟡 Pre-launch security + billing hardening merged (PRs #4–#7). 4 production gates outstanding — 1 verified, 1 blocked on dashboard access, 2 need Supabase (see session 25 block).
+
+---
+
+## 🟡 Session 26 — Onboarding: charge safety, then the first-session redesign (2026-08-18)
+
+**Two stacked branches, 32 commits, both awaiting merge.** `feat/first-session-redesign` (19) sits on `fix/onboarding-charge-safety` (13). 192/192 tests, typecheck clean, lint at the 4 known pre-existing warnings.
+
+### ⚠️ DEPLOY ORDER — read before merging
+
+**Both migrations must be applied to production BEFORE the app code ships.** Verified against the live database this session: `tutorial_redemptions` and `onboarding_events` do **not** exist yet.
+
+| Migration | Purpose |
+|---|---|
+| `20260818120000_tutorial_redemptions.sql` | The credit boundary. Append-only, service-role only. |
+| `20260818121000_onboarding_events.sql` | Funnel telemetry. |
+
+Shipping the code first does not degrade the first session — it **disables it for 100% of new users**: the ledger read errors, fails closed, every `tutorialMode` request 409s, all three artifacts fail, and the retry hits the same 409. Loud and reversible by design, but total. Documented in `supabase/migrations/README.md`; nothing enforces it.
+
+### Branch 1 — `fix/onboarding-charge-safety`
+
+- Four AI routes silently **charged** users whose free tutorial run was already spent (`allowBypass` fell through to `bypassCredits`). Now refused with a 409 carrying a stable code.
+- `ViralIdeasStep` **auto-fired a generation on mount** — a paid call with no click. Removed.
+- A write-ordering race denied free runs to users who advanced faster than the progress write landed. Closed by dropping the step gate.
+- Google OAuth, email confirmation and the alpha-agreement hop each independently skipped onboarding. Centralised in `chooseDestination`.
+- Found and fixed a live **open redirect** at `accept-terms` (unguarded `?next=` into `router.replace`), and hardened the guard against backslash and control-character authority escapes.
+
+**One open item:** its feature-key drift guard is tautological — the "hazard demonstration" test asserts the *broken* outcome, so it cannot fail when drift lands and *would* fail if someone fixed the hazard. ~15 lines to replace with a source-level assertion over the four route files.
+
+### Branch 2 — `feat/first-session-redesign`
+
+Replaces the 8-step tour with **Ask → Pack → Own**: one question, three artifacts generated in parallel, then save. The 860-line wizard is deleted.
+
+- **The credit lock was resettable from a UI button.** `hasUsedTutorialBypass` counted `generations` rows, and users delete their own generations from an ordinary Delete button. Replaced with an append-only `tutorial_redemptions` ledger, `UNIQUE(user_id, feature)`, service-role only. Client DELETE on `generations` deliberately left alone — it is a real feature.
+- **Resume no longer dead-ends.** Re-firing the three calls against spent freebies would have 409'd three times onto a disabled button. `GET /api/onboarding/pack` rehydrates from `generations.output_data`; only gaps regenerate.
+- **Skip means later.** It recorded `completed: true`, which permanently destroyed remaining free runs *and* hid the sidebar link back. Now a 7-day snooze.
+- Channel Analysis left the first session — 5 credits, a 30-60s wait, and output that was three "$19/mo" paywall blocks. The giveaway halves from 10 credits to 5.
+- Dashboard resume card replaces passive discovery of a sidebar link that 10 of 13 users never clicked.
+
+### What the Three AImigos council caught
+
+Rev.1 of the redesign plan was **rejected unanimously** (Auditor `CHANGES_REQUIRED` all four rounds). It would have shipped broken: captions 400ing on every request (missing `tone`), hashtags crashing the page (objects rendered as React children), and the resume path dead-ending. Worth the run.
+
+### Two production findings worth remembering
+
+1. **The resume card would have reached nobody.** It recognised sessions by a new `stage` field; all 13 real records use the old wizard's `step`. Including the user stranded since 2026-04-27. Fixed — now +1 user, exactly the intended one.
+2. **A defect class appeared four times:** supabase-js *resolves* with `{ error }` rather than rejecting, so `await` + `try/catch` silently swallows write failures. **~35 unchecked sites codebase-wide.** Five on the resume path now log; the rest is a follow-up ticket, scoped as "make writes observable", not "make writes fatal".
+
+### Still owed
+
+- Apply both migrations, then merge — in that order.
+- **Product decision:** 10 of 13 users have no session record and pre-launch account dates, so they get no resume card. Reaching them means moving `FIRST_SESSION_LAUNCHED_AT`. Deliberately left as a human call.
+- Manual walkthroughs that could not run headless (browser + live DB).
+- The dependency branch's tautological drift guard.
 
 ---
 

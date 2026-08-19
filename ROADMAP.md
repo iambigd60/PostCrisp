@@ -5,6 +5,39 @@
 
 ---
 
+## 🟡 Onboarding rebuilt — charge safety + first-session redesign (2026-08-18, session 26)
+
+Two stacked branches, 32 commits, **awaiting merge**. 192/192 tests, typecheck clean.
+
+**⚠️ Apply `20260818120000_tutorial_redemptions` and `20260818121000_onboarding_events` BEFORE merging the app code.** Verified absent from production. Shipping first disables the first session for 100% of new users — loud and reversible, but total. See `supabase/migrations/README.md`.
+
+### Charge safety (`fix/onboarding-charge-safety`)
+
+- Four AI routes silently charged users whose free tutorial run was spent — now refused with a 409.
+- A generation auto-fired on mount: a paid call with no click. Removed.
+- A write-ordering race denied free runs to fast users. Closed.
+- Google OAuth, email confirmation and the alpha-agreement hop each skipped onboarding. Centralised.
+- Fixed a live **open redirect** at `accept-terms` and hardened the guard against backslash and control-character authority escapes.
+
+### First-session redesign (`feat/first-session-redesign`)
+
+**Ask → Pack → Own** replaces the 8-step tour; the 860-line wizard is deleted.
+
+- The per-feature credit lock **reset from an ordinary UI Delete button** — it counted `generations` rows. Replaced with an append-only, service-role-only `tutorial_redemptions` ledger.
+- Resume rehydrates already-generated artifacts instead of re-requesting spent freebies, which would have dead-ended on three 409s.
+- Skip records a 7-day snooze instead of permanently destroying remaining free runs.
+- Channel Analysis left the first session (5 credits, 30-60s, output behind three "$19/mo" blocks). Giveaway halves from 10 credits to 5.
+- Dashboard resume card replaces a sidebar link 10 of 13 users never clicked.
+
+### Open
+
+- **Product decision:** 10 of 13 users have no session record and pre-launch account dates, so they get no resume card. Reaching them means moving `FIRST_SESSION_LAUNCHED_AT`.
+- **Follow-up ticket:** ~35 sites codebase-wide `await` a Supabase write without checking `error` (supabase-js resolves rather than rejects). Five on the resume path now log; scope the rest as "make writes observable", not "make writes fatal".
+- The charge-safety branch's feature-key drift guard is tautological (~15 lines to replace).
+- Manual walkthroughs that could not run headless.
+
+---
+
 ## 🟡 Launch gates — verification status (2026-08-18, session 25)
 
 Pre-launch security and billing hardening is **merged and deployed**; what remains is verification of live infrastructure, not code.
