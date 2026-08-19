@@ -47,13 +47,31 @@ The older five migrations are all functionally present too: `consume_user_credit
 
 **Part 4 (server-side funnel entry) was skipped by decision**, because it meant converting `src/app/onboarding/page.tsx` to a server component — the file whose own comments warn that stage restoration and ask/pack state must move in lockstep, and the exact area that produced session 26's "resume card reached nobody" defect. **Consequence to keep in mind: if client JS fails outright, the funnel is still blind.**
 
-### Verify it yourself in seconds
+### ✅ VERIFIED IN PRODUCTION 2026-08-19
 
-Sign in as an admin and `POST /api/admin/onboarding-events`. Expect `{ok:true, wrote:true, readBack:true}`. Anything else names the failure. **This has not been run yet** — it needs an authenticated admin session.
+The probe was run against production and the write path **works**. Confirmed two independent ways:
+
+- `GET /api/admin/onboarding-events` → `{"ok":true,"total":0,"counts":{}}` — proves the deploy is live, the admin gate passes, `SUPABASE_SERVICE_ROLE_KEY` is set in prod, and `service_role` can read the table.
+- `POST` → wrote and read back its nonce; a direct service-role SQL query then found the matching row: `id 1`, `name 'selftest'`, `detail {"selftest":true,"nonce":"2ef8f8b8…"}`, `user_id` resolving to a real `auth.users` row with `profiles.role = 'admin'` (which also proves `user_id` is session-derived, not fabricated).
+
+Re-run any time with: sign in as admin, DevTools console, `await (await fetch('/api/admin/onboarding-events', {method:'POST'})).json()`.
+
+**Still unproven: the funnel itself.** The probe tests the pipe, not the traffic. No user has run a first session since the redesign shipped — the manual walkthrough owed since session 26 remains the last unverified piece of Ask → Pack → Own.
+
+### Codex cross-check — `docs/superpowers/analysis/2026-08-19-codex-onboarding-telemetry-diagnosis.md`
+
+An independent Codex diagnosis (11m 30s, read-only, against pre-fix `fc3d305`) reached the same root cause from a different direction, ranking database-side failure *low* and migration mismatch *very low / ruled out*. Seven of its eighteen silent-failure modes are the ones this session closed.
+
+Two things it contributed that this session had not:
+
+- **A real `GET /onboarding` at 2026-08-19 02:12:43 UTC** — missed here because the log query grouped only the top 25 of 132 distinct paths. Explained as an already-onboarded account hitting the completion gate and being redirected before any entry event fires, consistent with `signed_in_since_deploy = 0` (a persisted session does not refresh `last_sign_in_at`).
+- **Mode 17:** `handleLater`/`handleFinish` emit an unawaited event and navigate on the next line, so a hard navigation or closed tab can drop the two session-ending events. **Fixed** — `keepalive: true` on the shared emitter, which is a one-line change only because emission is now centralised.
+
+Its findings 1/4/5/6 are the strongest argument on record for the deliberately skipped part 4: the completion redirect, the alpha-acceptance layout redirect, auth failure and any hydration error all return *before* the entry events fire, each producing zero telemetry with no signal anywhere.
 
 ### Process note
 
-The Three AImigos full council (Architect `claude-fable-5`, cross-provider Auditor `gpt-5.6-sol`, Visionary `grok-4.6`) produced the design but **wrote zero code** — its session exposed no Write tool, and the run ended `malformed-response` with `verdict: null` after 5 of 6 invocations. Its Auditor pass returned `CHANGES_REQUIRED` against the unmodified repo. Implementation here was done separately, TDD, red verified before every green.
+The Three AImigos full council (Architect `claude-fable-5`, cross-provider Auditor `gpt-5.6-sol`, Visionary `grok-4.6`) produced the design but **wrote zero code** — its session exposed no Write tool, and the run ended `malformed-response` with `verdict: null` after 5 of 6 invocations. Its Auditor pass returned `CHANGES_REQUIRED` against the unmodified repo. Implementation here was done separately, TDD, red verified before every green. Codex, dispatched in parallel, completed normally but never relayed its result — recover a stalled one with `codex-companion.mjs status --all` then `result <job-id>`.
 
 ---
 

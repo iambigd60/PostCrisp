@@ -27,6 +27,12 @@ export function emitOnboardingEvent(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, detail }),
+    // handleLater and handleFinish emit and then navigate on the very next
+    // line. Soft navigation usually lets an in-flight request finish, but a
+    // hard navigation or a closed tab drops it — and those two paths carry the
+    // session-ending events (snooze, completion) the funnel most depends on.
+    // keepalive lets the browser finish the request past the teardown.
+    keepalive: true,
   })
     .then((res) => {
       if (!res.ok) {

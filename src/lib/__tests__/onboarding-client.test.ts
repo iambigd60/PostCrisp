@@ -48,6 +48,23 @@ describe('emitOnboardingEvent', () => {
     )
   })
 
+  it('marks the request keepalive, so an event fired immediately before router.replace survives the navigation', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    // handleLater and handleFinish both emit and then navigate on the next
+    // line. Soft navigation usually lets the request finish, but a hard
+    // navigation or a closed tab drops it — losing exactly the two events
+    // (snooze, completion) that end a session and matter most to the funnel.
+    emitOnboardingEvent('first_session_completed', {})
+    await flush()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/onboarding/event',
+      expect.objectContaining({ keepalive: true }),
+    )
+  })
+
   it('returns immediately without waiting on the request — telemetry must never block a stage transition', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
 

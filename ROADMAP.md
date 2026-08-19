@@ -20,7 +20,9 @@ The real defect was that a working pipeline and a dead one looked identical. Fix
 
 **Deliberately skipped:** server-side funnel entry (would mean converting the onboarding page to a server component, touching the stage/resume lockstep logic that caused session 26's "resume card reached nobody" defect). **Consequence: if client JS fails outright, the funnel is still blind.**
 
-**Not yet run:** the probe itself, which needs an authenticated admin session.
+**✅ Verified in production 2026-08-19.** The probe wrote and read back row `id 1` (`name 'selftest'`), confirmed independently by direct service-role SQL. The `GET` also proved the deploy is live, the admin gate passes and the service-role key is present in prod. **The funnel itself is still unproven** — the probe tests the pipe, not the traffic; the manual walkthrough remains owed.
+
+**Also fixed:** `keepalive: true` on the shared emitter, so the snooze and completion events survive the `router.replace` that follows them (surfaced by an independent Codex diagnosis, filed at `docs/superpowers/analysis/2026-08-19-codex-onboarding-telemetry-diagnosis.md`).
 
 ---
 
