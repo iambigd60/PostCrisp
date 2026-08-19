@@ -180,7 +180,7 @@ Rules:
   let analysisId: string | null = null
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-    const { data: inserted } = await auth.supabase.from('generations').insert({
+    const { data: inserted, error: insertError } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'channel_analysis',
       platform,
@@ -188,6 +188,7 @@ Rules:
       output_data: parsed,
       tokens_used: totalTokens,
     }).select('id').single()
+    if (insertError) console.error('Channel analysis — persistence failed (non-fatal):', insertError)
     analysisId = inserted?.id ?? null
 
     if (tutorialResult.bypassCredits) {
@@ -202,6 +203,10 @@ Rules:
       calls: aiCalls,
     })
   } catch (error) {
+    // supabase-js resolves (rather than rejects) on a PostgREST failure, so
+    // this catch only fires for a thrown error — e.g. recordGenerationAiCalls
+    // or a network-level exception. It does NOT cover the `generations`
+    // insert above; that failure mode is logged via insertError instead.
     console.error('Channel analysis — persistence failed (non-fatal):', error)
   }
 

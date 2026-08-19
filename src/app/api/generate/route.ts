@@ -126,7 +126,7 @@ Return ONLY valid JSON with this structure — no markdown:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    const { error: insertError } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'captions',
       platform,
@@ -134,6 +134,7 @@ Return ONLY valid JSON with this structure — no markdown:
       output_data: { captions },
       tokens_used: totalTokens,
     })
+    if (insertError) console.error('Captions — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {
       await recordTutorialRedemption(auth.userId, 'captions')

@@ -99,7 +99,7 @@ Rules:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    const { error: insertError } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'hashtags',
       platform,
@@ -107,6 +107,7 @@ Rules:
       output_data: { hashtags },
       tokens_used: totalTokens,
     })
+    if (insertError) console.error('Hashtags — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {
       await recordTutorialRedemption(auth.userId, 'hashtags')

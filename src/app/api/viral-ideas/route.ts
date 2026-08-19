@@ -200,7 +200,7 @@ Rules:
 
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-    await auth.supabase.from('generations').insert({
+    const { error: insertError } = await auth.supabase.from('generations').insert({
       user_id: auth.userId,
       feature: 'viral_ideas',
       platform: platforms[0] ?? null,
@@ -208,11 +208,16 @@ Rules:
       output_data: { ideas },
       tokens_used: totalTokens,
     })
+    if (insertError) console.error('Viral ideas — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {
       await recordTutorialRedemption(auth.userId, 'viral_ideas')
     }
   } catch (error) {
+    // supabase-js resolves (rather than rejects) on a PostgREST failure, so
+    // this catch only fires for a thrown error — e.g. recordTutorialRedemption
+    // or a network-level exception. It does NOT cover the `generations`
+    // insert above; that failure mode is logged via insertError instead.
     console.error('Viral ideas — persistence failed (non-fatal):', error)
   }
 

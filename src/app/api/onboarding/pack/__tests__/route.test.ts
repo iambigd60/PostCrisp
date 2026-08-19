@@ -18,6 +18,7 @@ type Row = {
 
 let currentUser: { id: string } | null
 let rows: Row[]
+let injectReadError: { message: string } | null
 
 function fakeSupabase() {
   return {
@@ -46,7 +47,8 @@ function fakeSupabase() {
           orderAscending = opts?.ascending ?? true
           return builder
         },
-        then(resolve: (v: { data: Row[]; error: null }) => unknown) {
+        then(resolve: (v: { data: Row[] | null; error: { message: string } | null }) => unknown) {
+          if (injectReadError) return resolve({ data: null, error: injectReadError })
           let result = rows.filter((row) =>
             eqs.every(([col, val]) => {
               if (col.includes('->>')) {
@@ -88,6 +90,7 @@ vi.mock('@/utils/supabase/server', () => ({
 beforeEach(() => {
   currentUser = { id: 'user-1' }
   rows = []
+  injectReadError = null
 })
 
 describe('GET /api/onboarding/pack', () => {
@@ -233,5 +236,23 @@ describe('GET /api/onboarding/pack', () => {
 
     expect(response.status).toBe(200)
     expect(body).toEqual({ captions: [], hashtags: [], idea: null })
+  })
+
+  it('degrades to the empty pack (not a 500) when the read itself fails, and logs it', async () => {
+    injectReadError = { message: 'connection reset' }
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { GET } = await import('../route')
+
+    const response = await GET()
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ captions: [], hashtags: [], idea: null })
+    expect(consoleError).toHaveBeenCalledWith(
+      'Onboarding pack rehydrate — read failed (non-fatal):',
+      injectReadError,
+    )
+
+    consoleError.mockRestore()
   })
 })

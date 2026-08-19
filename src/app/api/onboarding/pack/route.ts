@@ -21,13 +21,17 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsError } = await supabase
     .from('generations')
     .select('feature, output_data, created_at')
     .eq('user_id', user.id)
     .eq('input_data->>tutorialMode', 'true')
     .in('feature', ['captions', 'hashtags', 'viral_ideas'])
     .order('created_at', { ascending: false })
+  // Best-effort: on failure, degrade to an empty pack rather than error the
+  // resume screen — every value below already falls back to `[]` when rows
+  // is empty or absent.
+  if (rowsError) console.error('Onboarding pack rehydrate — read failed (non-fatal):', rowsError)
 
   const latest = new Map<string, Record<string, unknown>>()
   for (const row of rows ?? []) {
