@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
+import { emitOnboardingEvent } from '@/lib/onboarding-client'
 import type { AskResult } from './AskStage'
 
 /**
@@ -60,15 +61,6 @@ export interface CreatorPack {
 }
 
 type ArtifactState = 'idle' | 'loading' | 'done' | 'failed'
-
-/** Fire-and-forget onboarding telemetry. Never throws, never awaited by callers. */
-function emitOnboardingEvent(name: string, detail: Record<string, unknown>) {
-  void fetch('/api/onboarding/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, detail }),
-  }).catch(() => {})
-}
 
 export function PackStage({
   ask,

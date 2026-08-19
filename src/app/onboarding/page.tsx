@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { apiFetch } from '@/lib/api'
+import { emitOnboardingEvent } from '@/lib/onboarding-client'
 import { AskStage, type AskResult } from '@/components/onboarding/AskStage'
 import { PackStage, type CreatorPack } from '@/components/onboarding/PackStage'
 import { OwnStage } from '@/components/onboarding/OwnStage'
@@ -83,8 +84,8 @@ export default function OnboardingPage() {
       // pack-completion and ask→pack drop-off. `tp` truthy means a
       // tutorial_progress record already existed — a resume, not a fresh
       // start.
-      logEvent(tp ? 'first_session_resumed' : 'first_session_started')
-      logEvent('stage_viewed', { stage: 'ask' })
+      emitOnboardingEvent(tp ? 'first_session_resumed' : 'first_session_started')
+      emitOnboardingEvent('stage_viewed', { stage: 'ask' })
       setReady(true)
     })()
   }, [router])
@@ -104,17 +105,9 @@ export default function OnboardingPage() {
     }
   }
 
-  const logEvent = (name: string, detail: Record<string, unknown> = {}) => {
-    void fetch('/api/onboarding/event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, detail }),
-    }).catch(() => {})
-  }
-
   const handleLater = async () => {
     await persist({ ...saved, stage, completed: false, snoozed_until: snoozeUntil(new Date()) })
-    logEvent('first_session_snoozed', { stage })
+    emitOnboardingEvent('first_session_snoozed', { stage })
     router.replace('/dashboard')
   }
 
@@ -129,14 +122,14 @@ export default function OnboardingPage() {
       platform: result.platform,
       tone: result.tone,
     })
-    logEvent('stage_viewed', { stage: 'pack' })
+    emitOnboardingEvent('stage_viewed', { stage: 'pack' })
   }
 
   const handlePackDone = async (result: CreatorPack) => {
     setPack(result)
     setStage('own')
     await persist({ ...saved, stage: 'own', completed: false })
-    logEvent('stage_viewed', { stage: 'own' })
+    emitOnboardingEvent('stage_viewed', { stage: 'own' })
   }
 
   const handleFinish = async (didSave: boolean) => {
@@ -144,7 +137,7 @@ export default function OnboardingPage() {
       { ...saved, stage: 'own', completed: true, snoozed_until: null, pack_saved: didSave },
       true,
     )
-    logEvent('first_session_completed', { pack_saved: didSave })
+    emitOnboardingEvent('first_session_completed', { pack_saved: didSave })
     router.replace('/dashboard')
   }
 

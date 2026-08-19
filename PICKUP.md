@@ -1,20 +1,69 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-18 (session 26 — onboarding charge-safety + first-session redesign, 32 commits across two stacked branches)
-**Build status:** ✅ `main` @ `085b190` + housekeeping commit. 105/105 tests (13 files), `tsc --noEmit` clean, `next lint` clean (warnings only). Vercel auto-deploys main; production confirmed serving `085b190`.
+**Last updated:** 2026-08-19 (session 27 — production migration verification + onboarding telemetry hardening)
+**Build status:** ✅ `main` @ `fc3d305` + this session's telemetry work. 239/239 tests (26 files), `tsc --noEmit` clean, `next lint` clean (4 pre-existing warnings). Vercel auto-deploys main; production confirmed serving `fc3d305`.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🟡 Pre-launch security + billing hardening merged (PRs #4–#7). 4 production gates outstanding — 1 verified, 1 blocked on dashboard access, 2 need Supabase (see session 25 block).
+**Launch status:** 🟡 Pre-launch security + billing hardening merged (PRs #4–#7). **3** production gates outstanding — the migration-drift gate closed this session; WAF still blocked on dashboard access, Supabase rate limiting still needs a live session.
 
 ---
 
-## 🟡 Session 26 — Onboarding: charge safety, then the first-session redesign (2026-08-18)
+## ✅ Session 27 — Migration state verified against production, then telemetry made provable (2026-08-19)
 
-**Two stacked branches, 32 commits, both awaiting merge.** `feat/first-session-redesign` (19) sits on `fix/onboarding-charge-safety` (13). 192/192 tests, typecheck clean, lint at the 4 known pre-existing warnings.
+### The migration gate is CLOSED — and the ordering held
 
-### ⚠️ DEPLOY ORDER — read before merging
+Verified directly against the production database (`sikabeqzypvllimyostg`), read-only:
 
-**Both migrations must be applied to production BEFORE the app code ships.** Verified against the live database this session: `tutorial_redemptions` and `onboarding_events` do **not** exist yet.
+| Fact | Evidence |
+|---|---|
+| `tutorial_redemptions` applied | 2026-08-19 **01:08:25** UTC |
+| `onboarding_events` applied | 2026-08-19 **01:08:35** UTC |
+| First prod deploy carrying the redesign (`45e93e2`) | 2026-08-19 **01:09:42** UTC |
+
+**A 67-second margin.** The `supabase/migrations/README.md` ordering requirement was honoured; the "disables the first session for 100% of new users" scenario never happened. Both tables match their files exactly — columns, types, defaults, PK, FK `ON DELETE CASCADE`, `UNIQUE(user_id, feature)`, all three indexes, RLS on with zero policies, and **zero grants for `anon`/`authenticated`**. The backfill ran: 5 redemptions across 3 users, dated 2026-04-25 → 04-27.
+
+The older five migrations are all functionally present too: `consume_user_credits` is a single 2-arg `SECURITY DEFINER` overload with `search_path=""` and EXECUTE limited to `postgres`+`service_role` (the vulnerable 4-arg overload is gone), the `protect_privileged_profile_columns` trigger is live, `profiles` UPDATE is column-restricted to the five cosmetic columns with no client INSERT, `purchased_credits` exists, and the seven-table grant lockdown holds.
+
+### Three drift findings worth carrying forward
+
+1. 🔴 **Migration history does not match the filenames — zero overlap.** All 7 local version stamps are absent from the remote history, which records apply-time stamps instead (`20260818120000` → `20260819010825`). Remote also carries a `protect_privileged_profile_columns_v1` entry with no local file (harmless — the function is defined in three other migrations). **Consequence: `supabase migration list` reports every local migration as unapplied, and `supabase db push` would try to re-run all seven against production.** They are mostly idempotent and filename order happens to converge, but that is luck. **Do not run `db push` here without repairing history first.**
+2. 🟡 **The repo's migrations are not the schema of record.** Production has 18 tables in `public`; the 7 migration files create 3 of them. The other 15 exist nowhere in the repo.
+3. 🟡 **Latent leftover grants.** `anon`/`authenticated` still hold `TRUNCATE` (plus `REFERENCES`/`TRIGGER`) on the lockdown tables, because that migration revoked only INSERT/UPDATE/DELETE against Supabase's default `ALL`. Not reachable through PostgREST (no HTTP verb maps to TRUNCATE) — a privilege that shouldn't exist, not an open door. The two new tables are clean because their migration used `REVOKE ALL`.
+
+### `onboarding_events` was never broken — it was never exercised
+
+0 rows had an unambiguous cause once measured: **nobody has signed into PostCrisp since 2026-08-06**, thirteen days before the deploy. No `/onboarding` or `/api/onboarding/event` request appears anywhere in production logs. All 10 client-emitted names match the server enum exactly — no drift. And the service-role key is **proven live**: `consume_user_credits` grants EXECUTE only to `service_role`, `reserveCredits` fails closed at 503 without it, yet `credit_transactions` / `generation_ai_calls` / `generations` all carry successful writes dated 2026-08-15.
+
+**So the defect was never a bug — it was that a working pipeline and a dead one were indistinguishable.** That is what got fixed.
+
+### Telemetry hardening shipped (Three AImigos design, parts 1/2/3/5; part 4 deliberately skipped)
+
+- `logOnboardingEvent` returns `{ok:true} | {ok:false, reason:'env'|'write'|'thrown'}` and still never throws. Non-null env assertions replaced with the null-returning `serviceRoleClient()` pattern, so a missing key is a distinct `env` reason instead of dying anonymously in the catch. First occurrence of each reason goes to Sentry; `console.error` still records every one.
+- `POST /api/onboarding/event` returns **500 + reason** on a failed write instead of an unconditional `{ok:true}`. Invisible to users; visible in Vercel logs, Sentry and the network tab.
+- One shared `src/lib/onboarding-client.ts` emitter replaces three hand-rolled `fetch(...).catch(() => {})` copies. `name` is typed against the union, so a typo is now a **compile error**; it warns on non-ok and on network failure. Enum split into a dependency-free `onboarding-event-names.ts` so the client bundle never pulls in `@supabase/supabase-js`.
+- **`POST /api/admin/onboarding-events`** — the probe that makes the pipeline provable in seconds without organic traffic. Writes a nonce-tagged row through the real write path, then reads it back, distinguishing `env` / `write` / `readback-missing` / `readback-error`. `GET` returns 24h counts by name. Probe rows use `name='selftest'`, deliberately absent from `ONBOARDING_EVENT_NAMES` so the public route rejects it and no client can forge one (pinned by a test). The row is left in place: the migration grants `service_role` only SELECT+INSERT, and widening that for a test would break the append-only property.
+
+**No migration required** — nothing here changes the schema.
+
+**Part 4 (server-side funnel entry) was skipped by decision**, because it meant converting `src/app/onboarding/page.tsx` to a server component — the file whose own comments warn that stage restoration and ask/pack state must move in lockstep, and the exact area that produced session 26's "resume card reached nobody" defect. **Consequence to keep in mind: if client JS fails outright, the funnel is still blind.**
+
+### Verify it yourself in seconds
+
+Sign in as an admin and `POST /api/admin/onboarding-events`. Expect `{ok:true, wrote:true, readBack:true}`. Anything else names the failure. **This has not been run yet** — it needs an authenticated admin session.
+
+### Process note
+
+The Three AImigos full council (Architect `claude-fable-5`, cross-provider Auditor `gpt-5.6-sol`, Visionary `grok-4.6`) produced the design but **wrote zero code** — its session exposed no Write tool, and the run ended `malformed-response` with `verdict: null` after 5 of 6 invocations. Its Auditor pass returned `CHANGES_REQUIRED` against the unmodified repo. Implementation here was done separately, TDD, red verified before every green.
+
+---
+
+## ✅ Session 26 — Onboarding: charge safety, then the first-session redesign (2026-08-18)
+
+**Two stacked branches, 32 commits — both merged and deployed 2026-08-18.** `feat/first-session-redesign` (19) sat on `fix/onboarding-charge-safety` (13). 192/192 tests at the time, typecheck clean, lint at the 4 known pre-existing warnings.
+
+### ✅ DEPLOY ORDER — honoured (confirmed session 27)
+
+**Both migrations had to be applied to production BEFORE the app code shipped.** At the time this block was written they did not exist yet. **Session 27 confirmed against the live database that they were applied at 01:08:25 and 01:08:35 UTC, 67 seconds before the first deploy carrying the code (01:09:42 UTC).** The ordering held; the failure scenario below never occurred.
 
 | Migration | Purpose |
 |---|---|
@@ -54,10 +103,10 @@ Rev.1 of the redesign plan was **rejected unanimously** (Auditor `CHANGES_REQUIR
 
 ### Still owed
 
-- Apply both migrations, then merge — in that order.
+- ~~Apply both migrations, then merge — in that order.~~ ✅ Done and verified (s27).
 - **Product decision:** 10 of 13 users have no session record and pre-launch account dates, so they get no resume card. Reaching them means moving `FIRST_SESSION_LAUNCHED_AT`. Deliberately left as a human call.
 - Manual walkthroughs that could not run headless (browser + live DB).
-- The dependency branch's tautological drift guard.
+- ~~The dependency branch's tautological drift guard.~~ ✅ Replaced with a source-level guard (`5b9bc9d`).
 
 ---
 
@@ -1166,7 +1215,7 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 
 ### Tech debt — ticket-sized
 
-- 🔴 **~30 unchecked Supabase writes across the codebase.** supabase-js *resolves* with `{ error }` rather than rejecting, so `await` + `try/catch` silently swallows failures — and reads fail **open** (`count: null` → `(count ?? 0) > 0` → false). Roughly 30 `generations` inserts across 24 AI routes, the `credit_transactions` inserts in `src/lib/credits.ts`, and `admin_actions` inserts in the admin routes. Five on the onboarding resume path already log. **Scope the sweep as "make writes observable", not "make writes fatal"** — several are correctly best-effort. Note two routes still carry `"persistence failed (non-fatal)"` comments on a `catch` that cannot fire for this failure mode: coverage that reads as real and isn't.
+- 🔴 **~30 unchecked Supabase writes across the codebase.** supabase-js *resolves* with `{ error }` rather than rejecting, so `await` + `try/catch` silently swallows failures — and reads fail **open** (`count: null` → `(count ?? 0) > 0` → false). Roughly 30 `generations` inserts across 24 AI routes, the `credit_transactions` inserts in `src/lib/credits.ts`, and `admin_actions` inserts in the admin routes. Five on the onboarding resume path already log. **Scope the sweep as "make writes observable", not "make writes fatal"** — several are correctly best-effort. **Session 27 closed the onboarding-telemetry instance of this class and it is the template for the rest:** the write returns a typed reason, the caller turns it into a non-2xx, the first occurrence reaches Sentry, and an admin probe proves the path end-to-end — observable without becoming fatal. Note two routes still carry `"persistence failed (non-fatal)"` comments on a `catch` that cannot fire for this failure mode: coverage that reads as real and isn't.
 - ~~🔴 **The feature-key drift guard is tautological**~~ ✅ **Fixed 2026-08-18** (`5b9bc9d`). Replaced with a source-level guard (`src/lib/__tests__/tutorial-feature-keys.test.ts`) that reads the four route files and asserts the three per-route key sites agree — the `resolveTutorialCharge` lookup, the `recordTutorialRedemption` write, and the `generations` feature stamp — plus that the pack and free-runs endpoints filter on keys the routes actually write. Mutation-verified: drifting one route's write to the hyphenated form fails 2 tests naming the file and the mismatch. The old "hazard demonstration" test, which asserted the broken outcome and would have failed if anyone fixed the hazard, is deleted.
 - 🟡 **`onboarded_at` and `tutorial_progress` are client-writable** via the preferences allowlist (`src/app/api/user/preferences/route.ts:18`), so a user can self-declare onboarded and reset `completed`. Harmless for credits since the `tutorial_redemptions` ledger is the boundary — but it means flow-state is not trustworthy for analytics. A server-side completion route is the fix.
 - 🟡 **No re-engagement loop.** No email or notification code exists; the resume card only helps users who come back on their own.

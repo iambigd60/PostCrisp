@@ -5,11 +5,30 @@
 
 ---
 
-## 🟡 Onboarding rebuilt — charge safety + first-session redesign (2026-08-18, session 26)
+## ✅ Onboarding telemetry made provable (2026-08-19, session 27)
 
-Two stacked branches, 32 commits, **awaiting merge**. 192/192 tests, typecheck clean.
+`onboarding_events` sat at 0 rows with no way to tell a dead pipeline from an idle product. **Measured against production: it was never broken — it was never exercised.** Nobody had signed in since 2026-08-06, thirteen days before the deploy, and no `/api/onboarding/event` request appears in any production log. Event names match the server enum exactly, and the service-role key is proven live by successful `credit_transactions` / `generations` writes dated 2026-08-15.
 
-**⚠️ Apply `20260818120000_tutorial_redemptions` and `20260818121000_onboarding_events` BEFORE merging the app code.** Verified absent from production. Shipping first disables the first session for 100% of new users — loud and reversible, but total. See `supabase/migrations/README.md`.
+The real defect was that a working pipeline and a dead one looked identical. Fixed:
+
+- `logOnboardingEvent` returns `{ok:true} | {ok:false, reason:'env'|'write'|'thrown'}`, still never throws; env vars null-checked instead of non-null-asserted; first occurrence of each reason reaches Sentry.
+- The event route returns **500 + reason** on a failed write instead of an unconditional `{ok:true}`.
+- One typed `src/lib/onboarding-client.ts` emitter replaces three hand-rolled `fetch(...).catch(() => {})` copies — a name typo is now a compile error, and rejections warn. A source-scan guard test keeps it centralised.
+- **`POST /api/admin/onboarding-events`** writes a nonce-tagged row through the real path and reads it back — the pipeline is now provable in seconds without organic traffic. `GET` returns 24h counts by name.
+
+239/239 tests (was 192), typecheck clean, lint clean. No migration required.
+
+**Deliberately skipped:** server-side funnel entry (would mean converting the onboarding page to a server component, touching the stage/resume lockstep logic that caused session 26's "resume card reached nobody" defect). **Consequence: if client JS fails outright, the funnel is still blind.**
+
+**Not yet run:** the probe itself, which needs an authenticated admin session.
+
+---
+
+## ✅ Onboarding rebuilt — charge safety + first-session redesign (2026-08-18, session 26)
+
+Two stacked branches, 32 commits, **merged and deployed 2026-08-18**. 192/192 tests, typecheck clean.
+
+**✅ Migration ordering honoured — confirmed session 27.** `20260818120000_tutorial_redemptions` and `20260818121000_onboarding_events` were applied at 01:08:25 and 01:08:35 UTC, **67 seconds before** the first deploy carrying the app code (01:09:42 UTC). Both tables match their files exactly, with zero grants for `anon`/`authenticated`. The "disables the first session for 100% of new users" scenario never occurred.
 
 ### Charge safety (`fix/onboarding-charge-safety`)
 
@@ -44,11 +63,12 @@ Pre-launch security and billing hardening is **merged and deployed**; what remai
 
 **Verified ✅** — production is serving the hardened build. Vercel prod deploy `dpl_k7kUWWZ1eznawkNZKjgrgn4SpaU8` is `READY` at commit `085b190`, and `48fcf33` / `7c15c09` / `bce4865` are all confirmed git ancestors of it.
 
-**Outstanding — 3 gates:**
+**✅ CLOSED 2026-08-19 — Applied migrations match `supabase/migrations/`.** Verified read-only against production: all 7 local migrations are functionally present (both new tables schema-exact; `consume_user_credits` a single hardened 2-arg overload; the protect trigger live; `profiles` column grants restricted; the seven-table lockdown holding). Three caveats recorded rather than fixed: (1) **the migration *history* does not match the filenames — zero overlap**, so `supabase migration list` reports everything as unapplied and **`db push` would try to re-run all seven against prod**; (2) the repo's migrations are not the schema of record — 18 tables in `public`, only 3 created by migrations; (3) `anon`/`authenticated` retain latent `TRUNCATE` on the lockdown tables (not reachable via PostgREST).
+
+**Outstanding — 2 gates:**
 
 - ⚠️ **Vercel WAF rules active.** Cannot be confirmed from the connected tooling — WAF denials go to Firewall → Logs, a separate stream from the runtime logs the MCP tools expose. Clean runtime logs are **not** evidence here; an unconfigured project looks identical. Check the dashboard, and confirm the plan first: `docs/rate-limiting.md` notes rate-limit rules need Vercel **Pro/Enterprise**, so on Hobby this gate cannot be closed at all and credits/quota become the only cap.
 - ⏳ **Supabase rate limiting** (Auth → Rate Limits) — needs a live session.
-- ⏳ **Applied migrations match `supabase/migrations/`** — needs a live session. `20260724150000` was applied to prod manually ahead of the PR #7 merge, so drift is plausible.
 
 ### Shipped since 2026-05-24 (was missing from this roadmap)
 

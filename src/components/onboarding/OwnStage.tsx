@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { apiFetch } from '@/lib/api'
+import { emitOnboardingEvent } from '@/lib/onboarding-client'
 import type { CreatorPack } from './PackStage'
 import type { AskResult } from './AskStage'
 
@@ -57,11 +58,7 @@ export function OwnStage({
       })
       setSaved(true)
       addToast('Saved to your library.', 'success')
-      void fetch('/api/onboarding/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'artifact_saved', detail: { type: 'first-session-pack' } }),
-      }).catch(() => {})
+      emitOnboardingEvent('artifact_saved', { type: 'first-session-pack' })
     } catch {
       addToast('Could not save just yet — your pack is still on screen.', 'error')
     } finally {

@@ -41,6 +41,16 @@ export async function POST(request: Request) {
   }
 
   // user.id, never a client-supplied id.
-  await logOnboardingEvent(user.id, name, safeDetail)
+  const result = await logOnboardingEvent(user.id, name, safeDetail)
+
+  if (!result.ok) {
+    // Deliberately a 500. No user ever sees it — the client emitter is
+    // fire-and-forget and swallows the body — but it is the difference between
+    // a dead pipeline that looks healthy and one that shows up as 5xx in the
+    // Vercel logs, in Sentry, and in the network tab of the manual walkthrough.
+    // `reason` separates "never configured" from "the write itself failed".
+    return NextResponse.json({ ok: false, reason: result.reason }, { status: 500 })
+  }
+
   return NextResponse.json({ ok: true })
 }
