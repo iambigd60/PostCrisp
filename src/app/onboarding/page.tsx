@@ -78,6 +78,13 @@ export default function OnboardingPage() {
       }
 
       if (tp) setSaved(tp)
+      // Funnel entry point: everyone who reaches Ask fires exactly one of
+      // these, so first_session_started/_resumed become the denominator for
+      // pack-completion and ask→pack drop-off. `tp` truthy means a
+      // tutorial_progress record already existed — a resume, not a fresh
+      // start.
+      logEvent(tp ? 'first_session_resumed' : 'first_session_started')
+      logEvent('stage_viewed', { stage: 'ask' })
       setReady(true)
     })()
   }, [router])
