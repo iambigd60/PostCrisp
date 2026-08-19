@@ -90,7 +90,6 @@ function buildLedger(tutorialRedemptions: Record<string, unknown>[] = []) {
 // derive both call sites from one shared constant is beyond this fix
 // (resolveTutorialCharge's signature and the resolver file are the scope
 // here), so this test drives the guard off the same four literals instead.
-const FEATURE_KEYS = ['captions', 'hashtags', 'viral_ideas', 'channel_analysis'] as const
 
 beforeEach(() => {
   currentUser = { id: 'user-1' }
@@ -164,26 +163,17 @@ describe('resolveTutorialCharge', () => {
   })
 
   describe('feature-key guard', () => {
-    it.each(FEATURE_KEYS)(
-      'detects a prior tutorial run recorded under the exact "%s" key and refuses a repeat',
-      async (feature) => {
-        const tables = setupTables({
-          profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
-        })
-        supabaseInstance = buildSupabase(tables)
-        ledgerInstance = buildLedger([{ user_id: 'user-1', feature }])
-        const { resolveTutorialCharge } = await import('@/lib/tutorial-charge-resolver')
-
-        const result = await resolveTutorialCharge(feature, true, 'already used')
-
-        expect(result.ok).toBe(false)
-      },
-    )
-
-    it('demonstrates the hazard: a hyphenated key that does not match the stored feature grants an infinite repeat bypass', async () => {
-      // The prior redemption is recorded under the correct underscore key,
-      // exactly as channel-analysis/route.ts passes it to
-      // recordTutorialRedemption (and writes it into generations.feature).
+    it('refuses a repeat when a prior redemption exists for that feature', async () => {
+      // Behavioural wiring check: the resolver consults the ledger and turns a
+      // recorded redemption into a refusal.
+      //
+      // This deliberately does NOT claim to guard feature-key drift. It cannot:
+      // the key here is a local constant used on both sides, so it would hold
+      // for any string. Drift between what a route reads and what it writes is
+      // guarded at source level in tutorial-feature-keys.test.ts, which reads
+      // the four route files. An earlier version of this file asserted the
+      // drifted, broken outcome as expected — pinning the bug rather than
+      // catching it, and it would have failed if anyone fixed the hazard.
       const tables = setupTables({
         profiles: new Map([['user-1', { id: 'user-1', preferences: {} }]]),
       })
@@ -191,16 +181,9 @@ describe('resolveTutorialCharge', () => {
       ledgerInstance = buildLedger([{ user_id: 'user-1', feature: 'channel_analysis' }])
       const { resolveTutorialCharge } = await import('@/lib/tutorial-charge-resolver')
 
-      // If a route ever passed the hyphenated 'channel-analysis' instead,
-      // hasUsedTutorialBypass's .eq('feature', ...) would never match the
-      // row above, and the "already spent" freebie would incorrectly grant
-      // again. This pins that failure mode so it shows up here — not as a
-      // silently infinite freebie in production.
-      const result = await resolveTutorialCharge('channel-analysis', true, 'already used')
+      const result = await resolveTutorialCharge('channel_analysis', true, 'already used')
 
-      expect(result.ok).toBe(true)
-      if (!result.ok) throw new Error('expected ok (this is the hazard, not the desired behavior)')
-      expect(result.bypassCredits).toBe(true)
+      expect(result.ok).toBe(false)
     })
   })
 })
