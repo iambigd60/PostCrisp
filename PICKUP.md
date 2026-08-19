@@ -1155,6 +1155,34 @@ No other DB changes this session.
 - ~~`MOCK_BEST_TIMES` dead code~~ deleted in s12 hardening sprint
 - ~~Nested `PostCrisp/` clone breaks `npm run typecheck` with 24 phantom errors~~ ✅ Fixed 2026-08-18 (s25) via `tsconfig.json` exclude + `.gitignore`. The directory is still on disk (a stale 2026-05-24 clone with its own `.git`) and is safe to delete whenever convenient — nothing in it is unique.
 
+## Onboarding follow-ups (session 26 — deferred, not lost)
+
+The first-session redesign shipped complete (all 8 plan tasks merged and deployed 2026-08-18). These are the items deliberately left out of it, each with why.
+
+### Product decisions — need a human, not a fix
+
+- 🟡 **Do we reach the 10 users with no first-session record?** The resume card only offers to accounts created on/after `FIRST_SESSION_LAUNCHED_AT` (`src/lib/first-session-state.ts`). 10 of 13 production users predate it and have no `tutorial_progress` at all, so they get nothing. Reaching them means moving that constant earlier — a choice about nudging dormant accounts, not a bug. The 3 users *with* a record (including the one stranded since 2026-04-27) are already covered.
+- 🟡 **Where does Channel Analysis reappear?** Removed from the first session (5 credits, 30-60s wait, output behind three "$19/mo" blocks). Intended as a day-2 conversion moment; where exactly is unresolved.
+
+### Tech debt — ticket-sized
+
+- 🔴 **~30 unchecked Supabase writes across the codebase.** supabase-js *resolves* with `{ error }` rather than rejecting, so `await` + `try/catch` silently swallows failures — and reads fail **open** (`count: null` → `(count ?? 0) > 0` → false). Roughly 30 `generations` inserts across 24 AI routes, the `credit_transactions` inserts in `src/lib/credits.ts`, and `admin_actions` inserts in the admin routes. Five on the onboarding resume path already log. **Scope the sweep as "make writes observable", not "make writes fatal"** — several are correctly best-effort. Note two routes still carry `"persistence failed (non-fatal)"` comments on a `catch` that cannot fire for this failure mode: coverage that reads as real and isn't.
+- 🔴 **The feature-key drift guard is tautological** (`src/lib/__tests__/tutorial-charge-resolver.test.ts`). Its `it.each` asserts the loop variable on both sides, so it holds for any string; worse, the "hazard demonstration" test asserts the *broken* outcome, so it cannot fail when drift lands and *would* fail if someone fixed the hazard. ~15 lines to replace with a source-level assertion reading the four route files. A hyphen/underscore typo in a feature key would otherwise make that freebie infinitely repeatable with nothing catching it.
+- 🟡 **`onboarded_at` and `tutorial_progress` are client-writable** via the preferences allowlist (`src/app/api/user/preferences/route.ts:18`), so a user can self-declare onboarded and reset `completed`. Harmless for credits since the `tutorial_redemptions` ledger is the boundary — but it means flow-state is not trustworthy for analytics. A server-side completion route is the fix.
+- 🟡 **No re-engagement loop.** No email or notification code exists; the resume card only helps users who come back on their own.
+
+### Security — separate review
+
+- 🔴 **Google-on-login may mint accounts outside the invite gate.** `src/app/auth/callback/route.ts` never checks `signup_mode` or invite validity, and the Google button on `/login` is not hidden in invite mode. Access-control work, tracked from the pre-launch audit.
+
+### Verification still owed
+
+- 🔴 **Manual walkthroughs that could not run headless** (need a browser + live DB): a new email signup landing on `/onboarding`; the password-reset link still reaching `/auth/reset-password` rather than being hijacked; the viral step rendering its generate control for a carried niche; the four dashboard states (new-unfinished, snoozed, completed, long-standing-with-no-record); and "Finish later" preserving free runs.
+- 🔴 **Confirm the production email-confirmation setting** (Supabase → Authentication). Evidence to date is timing inference from `auth.users`, not a read of the config.
+- 🟡 Admins now see a 409 "already used" on a repeat tutorial run. Accepted, but it will look like a bug during the walkthrough.
+
+---
+
 ## Manual setup still pending (for production)
 
 - ~~Custom domain `postcrisp.com` → Vercel~~ ✅ Done 2026-04-27
