@@ -70,6 +70,19 @@ describe('shouldOfferResume', () => {
     expect(shouldOfferResume(undefined, null, AFTER_LAUNCH, NOW)).toBe(true)
   })
 
+  it('offers to a legacy-wizard step record even on an account created before launch — the stranded-user case', () => {
+    // This is the production case the redesign exists to rescue: an account
+    // created before FIRST_SESSION_LAUNCHED_AT, stranded mid-wizard with only
+    // the OLD `step` field set (never `stage`) and no onboarded_at. Every
+    // real unfinished record in production looks like this, not like
+    // `{ stage }`. If this regresses, the resume card is inert again.
+    expect(shouldOfferResume({ step: 'captions' }, null, BEFORE_LAUNCH, NOW)).toBe(true)
+  })
+
+  it('offers to a stage-only record too — the new session leaves its own trail', () => {
+    expect(shouldOfferResume({ stage: 'pack' }, null, AFTER_LAUNCH, NOW)).toBe(true)
+  })
+
   it('does NOT offer to a long-standing account that never had a first session', () => {
     // Rev.1 regression: shouldOfferResume(undefined, null) was true for every
     // pre-existing user, so accounts months old would suddenly be told to
@@ -77,8 +90,16 @@ describe('shouldOfferResume', () => {
     expect(shouldOfferResume(undefined, null, BEFORE_LAUNCH, NOW)).toBe(false)
   })
 
+  it('does NOT offer to a long-standing account with neither stage nor step — falls through to the age gate', () => {
+    expect(shouldOfferResume({ completed: false }, null, BEFORE_LAUNCH, NOW)).toBe(false)
+  })
+
   it('does NOT offer once completed', () => {
     expect(shouldOfferResume({ stage: 'own', completed: true }, null, AFTER_LAUNCH, NOW)).toBe(false)
+  })
+
+  it('does NOT offer a completed legacy-wizard record either — recognising `step` does not widen past the completed gate', () => {
+    expect(shouldOfferResume({ step: 'save', completed: true }, null, BEFORE_LAUNCH, NOW)).toBe(false)
   })
 
   it('does NOT offer to a pre-tutorial tester who already has onboarded_at', () => {

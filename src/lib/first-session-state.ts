@@ -28,6 +28,13 @@ export const FIRST_SESSION_LAUNCHED_AT = '2026-08-18T00:00:00.000Z'
  */
 export interface FirstSessionProgress {
   stage?: FirstSessionStage
+  /**
+   * The OLD wizard's field, not written by this redesign. Retained so
+   * pre-redesign records — which never got a `stage` — are still recognised
+   * as a started session instead of silently falling through as if nothing
+   * were there.
+   */
+  step?: string
   completed?: boolean
   snoozed_until?: string | null
   niche?: string | null
@@ -79,7 +86,10 @@ export function shouldOfferResume(
   // Skip means later. Stay quiet until later arrives.
   if (isSnoozed(progress, now)) return false
   // Someone who has a first-session record is mid-session regardless of age.
-  if (progress?.stage) return true
+  // `step` is the OLD wizard's field — every real pre-redesign record uses
+  // it, not `stage`, so it must count here too or the resume card never
+  // reaches the users it exists to rescue.
+  if (progress?.stage || progress?.step) return true
   // No record at all: only nag accounts that were offered a first session.
   const created = new Date(accountCreatedAt).getTime()
   const launched = new Date(FIRST_SESSION_LAUNCHED_AT).getTime()
