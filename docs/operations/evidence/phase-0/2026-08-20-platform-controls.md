@@ -1,6 +1,6 @@
 # Phase 0 platform-control evidence
 
-**Status:** **BLOCKED on restore, platform-access, and council gates — do not merge or start Phase 1.**
+**Status:** **BLOCKED on restore, platform-access, and council gates for Phase 0 exit and Phase 1; repository integration was explicitly approved on 2026-08-20.**
 
 **Observed:** 2026-08-20; current database/Auth checkpoint through 2026-08-20T22:52Z
 
@@ -45,7 +45,7 @@ These tables intentionally deny client CRUD through RLS today. They remain recor
 4. Obtain provider-owner read-only evidence for Anthropic/OpenAI spend and rate limits; do not inspect runtime keys.
 5. Obtain a valid independent Three AImigos council/Auditor verdict. Access to one model is not a verdict, and an adapter that always reports unknown does not satisfy doctor readiness.
 
-Until all five gates close, Phase 0 remains fail-closed **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1.
+Until all five gates close, Phase 0 remains fail-closed **BLOCKED** and Phase 1 must not begin. The user's 2026-08-20 approval authorizes repository push and merge only; it does not close or waive these operational gates.
 
 ## Historical evidence note
 

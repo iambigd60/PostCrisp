@@ -4,7 +4,7 @@
 **Build status:** `codex/phase-0-containment`; the correction candidate passes a fresh ten-migration reset, both database probes, 69/69 focused tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings. It adds bounded restore-aggregate tooling, strengthens type parity, and refreshes operator guidance without changing production or migration SQL.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🔴 **Phase 0 BLOCKED. Do not push, merge this branch, change `main`, or begin Phase 1.** Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
+**Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; branch integration was explicitly approved on 2026-08-20.** Push and merge are authorized, but do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
 
 ---
 
@@ -18,8 +18,9 @@ Verified current state:
 - exactly 154 grant removals (128 current table, 12 current sequence, 14 `postgres` defaults) and no non-grant drift; fresh forbidden current grants and `postgres` defaults are zero;
 - HIBP leaked-password protection is enabled; security advisor has exactly 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`;
 - linked restore preflight is clean and Auth capture has the reviewed exact 10-key shape with PostgreSQL 17 membership options; no raw identities retained.
+- exact-head whole-branch re-review of correction commit `f53485c` returned `APPROVED` with no Critical, Important, or Minor findings; Phase 0 remains blocked only on the three external gates below.
 
-Required before merge:
+Required before Phase 0 exit and Phase 1:
 
 1. Complete the isolated restore drill. No target exists: Dashboard/browser clone-specific cost confirmation is unavailable, and the tool requires explicit organization confirmation before cost/resource creation. The read-only bounded estimate is USD 0.0762, below USD 8, but does not close this gate.
 2. Obtain read-only Vercel firewall/environment and provider spend/rate-limit evidence.

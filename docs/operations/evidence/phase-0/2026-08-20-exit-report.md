@@ -1,6 +1,6 @@
 # Phase 0 exit report
 
-**Gate result:** **BLOCKED — do not push, merge, change `main`, or start Phase 1.**
+**Gate result:** **BLOCKED for Phase 0 exit and Phase 1; repository integration was explicitly approved on 2026-08-20.**
 
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
@@ -34,6 +34,8 @@ Greybeard review of `0664934` found three Important repository defects and one M
 - restored this tracked command/exit ledger.
 
 The correction wave changed no migration SQL and made no production mutation. It used only fresh local rebuilds and read-only linked inventory/lineage/dry-run queries.
+
+Exact-head whole-branch re-review of correction commit `f53485cb38bf9a85799928f1326e60f55e5b992a` returned `APPROVED`: no Critical, Important, or Minor findings. The reviewer independently verified all four corrections and retained the three external blockers below.
 
 ## Exact candidate verification
 
@@ -103,4 +105,4 @@ Earlier evidence on 2026-08-20 recorded eight paired migrations, then a ninth lo
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**. Do not merge this branch or begin Phase 1 until all three open blockers above are closed with fresh evidence and a valid independent exit verdict.
+Phase 0 remains **BLOCKED**, and Phase 1 must not begin until all three open blockers above are closed with fresh evidence and a valid independent exit verdict. The user's 2026-08-20 approval authorizes push and merge of the reviewed repository changes but does not close or waive those operational gates.

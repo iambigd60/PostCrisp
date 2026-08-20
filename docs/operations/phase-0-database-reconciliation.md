@@ -34,7 +34,7 @@ Until Phase 0 has passed its exit gate:
 - Do not restore over production.
 - Do not mutate firewall rules or provider limits.
 - Do not create a paid project, branch, add-on, or other paid resource without explicit authorization.
-- Do not push, merge, or modify `main`.
+- Repository push and merge were explicitly authorized by the user on 2026-08-20; that integration approval does not authorize paid resources or close the remaining Phase 0 exit gates.
 - Never record credentials, connection strings, tokens, row data, or local stack credentials in evidence.
 
 Every reset in this phase must explicitly use `--local` or target a separately authorized disposable environment. The Task 1 experiments were confined to the ignored directory `.superpowers/sdd/2026-08-20-phase-0-containment/lab/` and did not edit tracked migrations.
@@ -101,7 +101,7 @@ The timestamped [platform-control evidence](evidence/phase-0/2026-08-20-platform
 - The Vercel connector reconfirmed the project and READY production deployment, but still exposes neither project-specific firewall state nor production environment-variable names. A 30-day `crisp-engine` log query exceeded the billing limit, a 24-hour query timed out, and a deployment-scoped one-hour query returned no matches; that empty result is not proof of no provider calls. Firewall, environment inventory, and runtime linkage remain `BLOCKED BY ACCESS`.
 - Anthropic and OpenAI are the two real provider adapters configured in code. Their current spend enforcement, alerts, and rate limits remain `BLOCKED BY ACCESS`; no runtime key or secret was inspected or reused.
 
-Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and the still-missing council/Auditor verdict is obtained. Independent scoped reviews approved both forward migrations; the whole-branch correction wave remains subject to final re-review.
+Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and the still-missing council/Auditor verdict is obtained. Independent scoped reviews approved both forward migrations, and exact-head whole-branch re-review of the correction wave returned `APPROVED` with no Critical, Important, or Minor findings.
 
 ## Task 5 exit gate
 
