@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Task 2 migration lineage reconstructed; Task 3 deterministic schema parity remains pending.
+**Status:** Task 3 deterministic schema parity established; later Phase 0 platform and recovery gates remain pending.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -61,4 +61,17 @@ Task 2 implemented the selected representation in tracked migrations:
 - `supabase migration list --linked` paired the same eight versions locally and remotely.
 - `supabase db push --dry-run --linked` reported `upToDate: true` with no migrations, seeds, or roles pending.
 
-These checks reconcile the repository migration lineage without changing production. They do not establish full object-level schema parity; that remains Task 3.
+These checks reconcile the repository migration lineage without changing production. At the end of Task 2 they did not yet establish full object-level schema parity; Task 3 supplies that evidence below.
+
+## Task 3 deterministic schema parity
+
+Task 3 added a catalog-only inventory and dependency-free comparator. Production was queried read-only, and local inventory was captured only after a fresh `supabase db reset --local`.
+
+The first comparison exposed 21 column-order differences and 163 missing legacy Data API grants. Both were clean-room reconstruction defects:
+
+- the composite baseline now preserves production order for `profiles` and the hoisted `saved_content` prerequisite, while `purchased_credits` remains added by its exact production-timestamp migration; and
+- local resets explicitly reproduce production's existing legacy auto-exposure/default-grant behavior with `api.auto_expose_new_tables = true`.
+
+The final inventories match exactly across 18 tables, 147 columns, 58 constraints, 2 sequences, 42 indexes, 39 policies, 4 functions/procedures, 5 triggers, and 443 object/default grants. See [the schema parity evidence](evidence/phase-0/2026-08-20-schema-parity.md).
+
+The production advisors still report leaked-password protection disabled, three informational policyless-RLS findings on service-role-only tables, and 89 performance notices. Task 3 records those results without expanding into production mutation or performance remediation.

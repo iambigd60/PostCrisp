@@ -13,8 +13,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email                      TEXT NOT NULL,
   full_name                  TEXT,
   avatar_url                 TEXT,
-  role                       TEXT NOT NULL DEFAULT 'user'
-                               CHECK (role IN ('user', 'admin')),
   subscription_tier          TEXT NOT NULL DEFAULT 'free'
                                CHECK (subscription_tier IN ('free', 'creator', 'elite')),
   stripe_customer_id         TEXT UNIQUE,
@@ -22,11 +20,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   preferences                JSONB NOT NULL DEFAULT '{}'::jsonb,
   daily_generations_used     INTEGER NOT NULL DEFAULT 0,
   daily_generations_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  credits_balance            INTEGER NOT NULL DEFAULT 10,  -- starter default (spendable total)
-  purchased_credits          INTEGER NOT NULL DEFAULT 0,   -- non-expiring portion (credit packs); survives allowance reset
-  credits_reset_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  role                       TEXT NOT NULL DEFAULT 'user'
+                               CHECK (role IN ('user', 'admin')),
+  credits_balance            INTEGER NOT NULL DEFAULT 10,  -- starter default (spendable total)
+  credits_reset_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Bootstrap ordering prerequisites. These definitions are repeated later by
@@ -47,13 +46,13 @@ CREATE TABLE IF NOT EXISTS public.saved_content (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   generation_id UUID REFERENCES public.generations(id) ON DELETE SET NULL,
+  label         TEXT,
+  folder        TEXT NOT NULL DEFAULT 'default',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   type          TEXT NOT NULL DEFAULT 'caption',
   content       TEXT NOT NULL DEFAULT '',
   platform      TEXT,
-  topic         TEXT,
-  label         TEXT,
-  folder        TEXT NOT NULL DEFAULT 'default',
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  topic         TEXT
 );
 
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
