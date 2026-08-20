@@ -1,9 +1,7 @@
 -- Phase 0 Auth restore validation.
+-- One read-only statement for the Supabase CLI prepared-statement path.
 -- Returns only stable auth-schema metadata fingerprints and a bounded aggregate.
 -- It never returns identities, rows, column values, passwords, tokens, or secrets.
-
-begin read only;
-set local statement_timeout = '30s';
 
 with metadata_items as (
   select format(
@@ -208,5 +206,3 @@ select jsonb_build_object(
   'bounded_user_count_cap', 100001,
   'bounded_user_count_capped', coalesce((select bounded_count = 100001 from bounded_users), false)
 ) as auth_restore_signature;
-
-commit;

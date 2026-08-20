@@ -146,18 +146,20 @@ The executable query `scripts/phase0/auth-restore-signature.sql` returns only:
 - a transient user aggregate capped at 100,001; and
 - capture timestamp/cap metadata.
 
-Raw owner/ACL/policy-role names and routine definitions are incorporated only into canonical metadata items and are never emitted; the query returns only the aggregate signature. OIDs are excluded because they are restore-unstable. Global role memberships and settings outside the `auth` schema are also excluded; a drift confined to those external surfaces will not be detected by this Auth signature and must be covered by separate schema/role evidence. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, or routine bodies. Its SHA-256 at this review is `76DCD5229E671396F5C822CCF0DA839BE83FF9183785DE682A64FCF5DD649CCE`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
+Raw owner/ACL/policy-role names and routine definitions are incorporated only into canonical metadata items and are never emitted; the query returns only the aggregate signature. OIDs are excluded because they are restore-unstable. Global role memberships and settings outside the `auth` schema are also excluded; a drift confined to those external surfaces will not be detected by this Auth signature and must be covered by separate schema/role evidence. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, or routine bodies. The SQL is one prepared-statement-compatible read-only command with no transaction or session-setting commands. Its SHA-256 at this review is `F9CCD7C12E905BC142FC8250EA0209CB113E04CB85CD57F45518C9BE5E130338`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
 
 The comparator requires a positive `metadata_item_count` and the reviewed query's exact `bounded_user_count_cap` of `100001` in every signature capture. All signature-capture caps must also match one another. The four-point ordering result is emitted as `checks.backup_and_capture_chronology_valid`, covering the selected backup timestamp plus source-before-authorization, source-before-clone, and clone captures.
 
 Metadata behavior follows the current PostgreSQL catalog and information-function references for [`pg_policy`](https://www.postgresql.org/docs/current/catalog-pg-policy.html), [`pg_proc`](https://www.postgresql.org/docs/current/catalog-pg-proc.html), and [`pg_get_functiondef`](https://www.postgresql.org/docs/current/functions-info.html).
 
-Execute it in read-only mode against the source before authorization, again immediately before clone, and against the healthy clone. Store raw outputs only in the encrypted transient workspace:
+Execute it against the source before authorization, again immediately before clone, and against the healthy clone. The credential-free launcher uses the authenticated [Supabase CLI query surface](https://supabase.com/docs/reference/cli/supabase-db-query), pins CLI `2.115.0`, and applies Node's documented 45,000 ms child-process [`timeout`](https://nodejs.org/api/child_process.html#child_processspawncommand-args-options). On Windows it follows Node's documented `cmd.exe` launch pattern for `.cmd` shims. It accepts only `--linked`, `--local`, or a 20-lowercase-letter `--project-ref`. On success stdout is exactly one JSON object containing `auth_restore_signature`; CLI status and transaction lines are not included. Store raw outputs only in the encrypted transient workspace:
 
 ```text
-supabase db query --linked --file scripts/phase0/auth-restore-signature.sql --output-format json
-supabase db query --project-ref <clone-ref> --file scripts/phase0/auth-restore-signature.sql --output-format json
+node scripts/phase0/capture-auth-restore-signature.mjs --linked
+node scripts/phase0/capture-auth-restore-signature.mjs --project-ref <clone-ref>
 ```
+
+For a fresh local clone stand-in, use `node scripts/phase0/capture-auth-restore-signature.mjs --local`. Exit 0 means the single read-only query completed and stdout parsed to the required object. Exit 1 means invalid arguments, timeout/cancellation, CLI failure, non-JSON output, or a missing signature object; do not use a partial capture.
 
 Compare the three transient outputs and bind them to the selected backup timestamp:
 
