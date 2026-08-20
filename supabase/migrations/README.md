@@ -1,10 +1,11 @@
 # Migration ordering requirement
 
-`20260818120000_tutorial_redemptions.sql` and `20260818121000_onboarding_events.sql`
-must both be applied to production **before** the `feat/first-session-redesign`
-application code ships. Application code and migrations can be deployed by
-different pipelines on different schedules — nothing enforces this ordering
-automatically, so it has to be honoured by whoever sequences the release.
+> **Status:** Satisfied in production on 2026-08-19 and reconciled by Phase 0 on 2026-08-20. The versions below already pair with remote history; do not manually reapply or repair them. Use [the Phase 0 database reconciliation runbook](../../docs/operations/phase-0-database-reconciliation.md) for current operator guidance.
+
+`20260819010825_tutorial_redemptions.sql` and `20260819010835_onboarding_events.sql`
+had to be applied to production **before** the `feat/first-session-redesign`
+application code shipped. Application code and migrations used different
+pipelines, so the deployment sequence required an explicit operator check.
 
 ## What breaks if the app ships first
 
@@ -20,8 +21,8 @@ automatically, so it has to be honoured by whoever sequences the release.
   best-effort and non-fatal) but silently blinds the funnel metrics this
   release exists to produce.
 
-## Required order
+## Historical required order (satisfied)
 
-1. Apply `20260818120000_tutorial_redemptions.sql`
-2. Apply `20260818121000_onboarding_events.sql`
-3. Only then deploy the `feat/first-session-redesign` application code
+1. Production applied `20260819010825_tutorial_redemptions.sql`.
+2. Production applied `20260819010835_onboarding_events.sql`.
+3. The `feat/first-session-redesign` application code deployed afterwards.

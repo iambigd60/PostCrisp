@@ -1,5 +1,7 @@
 # First-Session Redesign Implementation Plan (rev. 2 — post-council)
 
+> **Historical implementation plan:** Migration filenames and commands below record the pre-Phase-0 implementation and are non-actionable. Use [the Phase 0 database reconciliation runbook](../../operations/phase-0-database-reconciliation.md) for current filenames and operator steps.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace PostCrisp's 8-step onboarding tour with a three-stage first session that hands a brand-new user 3-5 usable artifacts in under three minutes, survives being abandoned and resumed, and rests on a credit lock a user cannot reset.

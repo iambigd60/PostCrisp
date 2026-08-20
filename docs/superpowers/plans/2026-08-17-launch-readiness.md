@@ -1,5 +1,7 @@
 # PostCrisp — Public Paid Launch Readiness Plan
 
+> **Historical plan:** Migration filenames below reflect the repository as of 2026-08-17 and are non-actionable. Use [the Phase 0 database reconciliation runbook](../../operations/phase-0-database-reconciliation.md) for the current migration lineage.
+
 **Date:** 2026-08-17
 **Review inputs:** Greybeard codebase audit (Claude) + independent Codex review (local Codex CLI, read-only sandbox)
 **Missing input:** Grok / Visionary. The Three AImigos full-council run failed — see [Appendix B](#appendix-b--three-aimigos-failure-record). No alternatives-generation pass was performed.

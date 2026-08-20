@@ -221,7 +221,7 @@ However, the pipeline is fragile: the client ignores every telemetry HTTP result
 
 14. **RLS/grant configuration blocks every non-service-role insert.**
 
-    The migration intentionally enables RLS with no policies and revokes client roles at [`20260818121000_onboarding_events.sql` lines 26-30](/C:/Projects/postcrisp/supabase/migrations/20260818121000_onboarding_events.sql:26):
+    The migration intentionally enables RLS with no policies and revokes client roles at [`20260819010835_onboarding_events.sql` lines 14-18](/C:/Projects/postcrisp/supabase/migrations/20260819010835_onboarding_events.sql:14):
 
     ```sql
     ALTER TABLE ... ENABLE ROW LEVEL SECURITY;
@@ -236,15 +236,15 @@ However, the pipeline is fragile: the client ignores every telemetry HTTP result
 
 15. **Missing or drifted migration/schema failures are deliberately non-fatal.**
 
-    The repo explicitly warns that a missing table “silently blinds” the funnel at [`supabase/migrations/README.md` lines 19-21](/C:/Projects/postcrisp/supabase/migrations/README.md:19).
+    The repo explicitly warns that a missing table “silently blinds” the funnel at [`supabase/migrations/README.md` lines 20-22](/C:/Projects/postcrisp/supabase/migrations/README.md:20).
 
-    Table creation is `CREATE TABLE IF NOT EXISTS` at [`20260818121000_onboarding_events.sql` lines 13-19](/C:/Projects/postcrisp/supabase/migrations/20260818121000_onboarding_events.sql:13). Missing table, missing column, stale PostgREST schema cache, or incompatible pre-existing table would return an insert error that is absorbed as above.
+    Table creation is `CREATE TABLE IF NOT EXISTS` at [`20260819010835_onboarding_events.sql` lines 1-7](/C:/Projects/postcrisp/supabase/migrations/20260819010835_onboarding_events.sql:1). Missing table, missing column, stale PostgREST schema cache, or incompatible pre-existing table would return an insert error that is absorbed as above.
 
     This is ruled out for current production: the migration is recorded and live columns are exactly `id`, `user_id`, `name`, `detail`, and `created_at`.
 
 16. **Foreign-key and database-runtime failures are hidden from the caller.**
 
-    The live/migrated `user_id` references `auth.users(id)` at [`migration` line 15](/C:/Projects/postcrisp/supabase/migrations/20260818121000_onboarding_events.sql:15). A user deleted between `getUser()` and insert, database exhaustion, quota limits, PostgREST outage, timeout, or transient network error can reject the write.
+    The live/migrated `user_id` references `auth.users(id)` at [`migration` line 3](/C:/Projects/postcrisp/supabase/migrations/20260819010835_onboarding_events.sql:3). A user deleted between `getUser()` and insert, database exhaustion, quota limits, PostgREST outage, timeout, or transient network error can reject the write.
 
     Silence mechanism: resolved errors or thrown exceptions both terminate inside `logOnboardingEvent`; the API still responds 200.
 

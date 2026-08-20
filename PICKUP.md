@@ -10,17 +10,17 @@
 
 ## 🎯 OPEN WORKLIST — start here (compiled 2026-08-19, end of session 27)
 
-Everything established this session that is still open, in priority order. Items already on session 26's punchlist are listed separately at the bottom so this stays honest about what is new.
+Open items established this session, in priority order. The resolved migration-lineage note remains in place only to supersede the old unsafe operator guidance. Items already on session 26's punchlist are listed separately at the bottom so this stays honest about what is new.
 
 ### 🔴 High
 
-1. **`supabase db push` would try to re-run all seven migrations against production.** Zero of the 7 local version stamps appear in the remote history — the remote records apply-time stamps (`20260818120000` locally vs `20260819010825` remotely), so `supabase migration list` reports everything as unapplied. Remote also carries `protect_privileged_profile_columns_v1`, which has no local file. They are mostly idempotent and filename order happens to converge, but that is luck. **Fix:** `supabase migration repair --status applied <version>` for each, so the two sides agree before anyone reaches for `db push`. **Do this first — it is the only open item that could damage production.**
+1. ~~**Migration histories had zero overlap.**~~ **RESOLVED by Phase 0 on 2026-08-20.** Local and remote now pair the same eight versions: `20260707062202`, `20260707062213`, `20260724124907`, `20260724134848`, `20260724163923`, `20260724215224`, `20260819010825`, and `20260819010835`. The linked dry run is empty (`upToDate: true`; no migrations, seeds, or roles). The old repair instruction is superseded and non-actionable; no migration-history repair is required or authorized. See [the Phase 0 database reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
 2. **The onboarding funnel is blind to four entry paths.** No server-side emission exists, so the completion redirect, the alpha-acceptance redirect, an auth failure, and any hydration error all return *before* the entry events fire — zero telemetry, no signal. This is the skipped part 4. **Cheaper route than the one we rejected:** emit from `src/app/onboarding/layout.tsx` via `after()` from `next/server`, which never touches `page.tsx` and so avoids the stage/resume lockstep risk entirely. Verify `after()` is exported in the installed Next version first (claimed 15.5.x, unverified).
 3. **The first session has never been run by a real user in production.** Ask → Pack → Own shipped 2026-08-19; nobody has signed in since 2026-08-06. The probe proves the telemetry pipe, not the flow. This is the manual walkthrough owed since session 26 and the largest unverified surface in the product.
 
 ### 🟡 Medium
 
-4. **The repo's migrations are not the schema of record.** 18 tables in `public`; the 7 migration files create 3. The other 15 exist nowhere in the repo, so the schema cannot be rebuilt from source and drift in those 15 is undetectable.
+4. **Object-level schema parity remains unverified.** The new composite baseline rebuilds all tracked schema objects from a blank local database, but Task 3 still must compare that result deterministically with production before the repository can be called the schema of record. See [the Phase 0 database reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
 5. **`tutorial_redemptions` is append-only by convention, not by grant.** `service_role` holds UPDATE/DELETE/TRUNCATE via Supabase defaults; the migration's `GRANT SELECT, INSERT` only added to that. The ceiling is enforced by app code plus the UNIQUE constraint. The security-critical half is correct — clients have zero grants.
 6. **Leaked-password protection is disabled** in Supabase Auth (security advisor WARN). One dashboard toggle; checks against HaveIBeenPwned.
 7. **Server-side auth errors are swallowed at two points.** The onboarding page ignores the `error` from `getUser()` before redirecting to `/login`, and the event route's 401 path never inspects or logs its auth error. Both make a session problem look like ordinary behaviour.
@@ -63,10 +63,10 @@ Verified directly against the production database (`sikabeqzypvllimyostg`), read
 
 The older five migrations are all functionally present too: `consume_user_credits` is a single 2-arg `SECURITY DEFINER` overload with `search_path=""` and EXECUTE limited to `postgres`+`service_role` (the vulnerable 4-arg overload is gone), the `protect_privileged_profile_columns` trigger is live, `profiles` UPDATE is column-restricted to the five cosmetic columns with no client INSERT, `purchased_credits` exists, and the seven-table grant lockdown holds.
 
-### Three drift findings worth carrying forward
+### Historical drift findings and current disposition
 
-1. 🔴 **Migration history does not match the filenames — zero overlap.** All 7 local version stamps are absent from the remote history, which records apply-time stamps instead (`20260818120000` → `20260819010825`). Remote also carries a `protect_privileged_profile_columns_v1` entry with no local file (harmless — the function is defined in three other migrations). **Consequence: `supabase migration list` reports every local migration as unapplied, and `supabase db push` would try to re-run all seven against production.** They are mostly idempotent and filename order happens to converge, but that is luck. **Do not run `db push` here without repairing history first.**
-2. 🟡 **The repo's migrations are not the schema of record.** Production has 18 tables in `public`; the 7 migration files create 3 of them. The other 15 exist nowhere in the repo.
+1. ✅ **RESOLVED / SUPERSEDED by Phase 0 (2026-08-20).** The zero-overlap statement below described the 2026-08-19 repository and is retained only as historical context; it is not current operator guidance. Local and remote now pair all eight production versions (`20260707062202`, `20260707062213`, `20260724124907`, `20260724134848`, `20260724163923`, `20260724215224`, `20260819010825`, `20260819010835`), and the linked dry run is empty. No history repair is required. See [the reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
+2. 🟡 **SUPERSEDED as written; object parity remains pending.** The composite baseline now reconstructs the tracked schema on a blank local database. Task 3 must still prove object-level parity with production before the repository becomes the schema of record.
 3. 🟡 **Latent leftover grants.** `anon`/`authenticated` still hold `TRUNCATE` (plus `REFERENCES`/`TRIGGER`) on the lockdown tables, because that migration revoked only INSERT/UPDATE/DELETE against Supabase's default `ALL`. Not reachable through PostgREST (no HTTP verb maps to TRUNCATE) — a privilege that shouldn't exist, not an open door. The two new tables are clean because their migration used `REVOKE ALL`.
 
 ### `onboarding_events` was never broken — it was never exercised
@@ -124,8 +124,8 @@ The Three AImigos full council (Architect `claude-fable-5`, cross-provider Audit
 
 | Migration | Purpose |
 |---|---|
-| `20260818120000_tutorial_redemptions.sql` | The credit boundary. Append-only, service-role only. |
-| `20260818121000_onboarding_events.sql` | Funnel telemetry. |
+| `20260819010825_tutorial_redemptions.sql` | The credit boundary. Append-only, service-role only. |
+| `20260819010835_onboarding_events.sql` | Funnel telemetry. |
 
 Shipping the code first does not degrade the first session — it **disables it for 100% of new users**: the ledger read errors, fails closed, every `tutorialMode` request 409s, all three artifacts fail, and the retry hits the same 409. Loud and reversible by design, but total. Documented in `supabase/migrations/README.md`; nothing enforces it.
 
@@ -237,7 +237,7 @@ The sprint handoff assumed a `protect_privileged_profile_columns` trigger was al
 ### What changed
 
 - **Elite provisioning bug fixed** — the webhook hardcoded `subscription_tier: 'creator'` for every subscriber, so Elite buyers ($79/mo) were provisioned as Creator. A shared resolver now reads the tier from checkout metadata (validated `creator`/`elite`), falls back to price-ID mapping (legacy `STRIPE_PRO_*` env names still honored), and defaults to `creator` + Sentry alert if unmappable — it never throws, so no poison-event retry loops. Checkout sessions now also carry session-level `metadata: { tier, cycle }`; pre-deploy sessions use a `subscriptions.retrieve` fallback.
-- **Webhook idempotency** — new `processed_stripe_events` dedupe table (`supabase/migrations/20260706093000_processed_stripe_events.sql`, mirrored in `src/lib/supabase-schema.sql`). Event ids are recorded insert-first; duplicate deliveries return 200 no-op, so credit packs can no longer double-grant on Stripe retries. If processing fails, the ledger row is released so Stripe's retry (or a dashboard Resend) can reprocess. If the table is missing (migration lag), the webhook fails open and alarms via Sentry instead of going down.
+- **Webhook idempotency** — new `processed_stripe_events` dedupe table (`supabase/migrations/20260707062213_processed_stripe_events.sql`, mirrored in `src/lib/supabase-schema.sql`). Event ids are recorded insert-first; duplicate deliveries return 200 no-op, so credit packs can no longer double-grant on Stripe retries. If processing fails, the ledger row is released so Stripe's retry (or a dashboard Resend) can reprocess. If the table is missing (migration lag), the webhook fails open and alarms via Sentry instead of going down.
 - **`invoice.payment_failed` implemented** — looks up the customer via the service-role client and sends a plain-text Resend email (same fetch pattern as the feedback route; non-fatal; no new dependency) linking to `/dashboard/billing`. Notify-only: no tier downgrade (`// TODO: dunning grace period`).
 - **Every DB read/write in the handler is error-gated with retry-safe asymmetry** — idempotent writes throw on failure (→ ledger release → 500 → Stripe retries); the audit insert after a successful credit grant never throws (a retry would double-grant) and alarms via Sentry instead.
 - **Event handling extracted** to `src/lib/stripe-webhook.ts` with injected `{ supabase, stripe }` deps; the route is a thin signature-verification shell. 22 new tests (74 total) green; strict typecheck clean.
@@ -1301,4 +1301,4 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
 - 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`.
 - 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
-- 🔴 **Verify applied migrations match `supabase/migrations/`** — outstanding launch gate. Note `20260724150000` was applied to prod manually ahead of the PR #7 merge, so drift is plausible.
+- ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20.** The eight exact local/remote versions pair and the linked dry run is empty; the earlier manual-apply concern is historical and non-actionable. Object-level parity remains a separate Task 3 gate. See [the reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).

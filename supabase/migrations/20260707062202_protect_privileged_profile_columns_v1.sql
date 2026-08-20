@@ -662,7 +662,7 @@ ALTER TABLE public.processed_stripe_events ENABLE ROW LEVEL SECURITY;
 -- SECURITY HARDENING (pre-launch) — audit CRITICAL-1/2, MEDIUM-6.
 -- Kept at the bottom so column grants run after every profiles column
 -- (incl. the foundation columns above) exists. Mirrors migration
--- supabase/migrations/20260723120000_prelaunch_security_hardening.sql so
+-- supabase/migrations/20260724124907_prelaunch_security_hardening.sql so
 -- environments provisioned from this file match production.
 -- ============================================================
 
