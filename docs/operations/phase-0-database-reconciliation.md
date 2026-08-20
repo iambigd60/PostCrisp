@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Task 1 architecture selected; tracked migration reconstruction is deferred to Task 2.
+**Status:** Task 2 migration lineage reconstructed; Task 3 deterministic schema parity remains pending.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -50,6 +50,15 @@ Use the composite-baseline architecture established in [the reconciliation ADR](
 
 The disposable composite lab rebuilt a blank local database and its linked dry run reported no pending migrations. The latest-version squashed alternative was therefore not tested or selected.
 
-## Task 2 handoff
+## Task 2 reconstruction result
 
-Task 2 may implement the selected representation in tracked migrations. It must preserve the exact production v1 statement after the bootstrap portion and use the captured exact production bodies for the other seven versions. Only two current local files hash-match production; four differ in comments/formatting, and the service-role grant file has a material feedback-revocation difference. Task 2 must keep that difference explicit, reset the blank local database twice, and repeat the linked version/dry-run checks before claiming reconciliation complete.
+Task 2 implemented the selected representation in tracked migrations:
+
+- `20260707062202_protect_privileged_profile_columns_v1.sql` is explicitly labeled as a composite clean-room bootstrap rather than a byte-for-byte historical migration. Its final SQL body matches the exact captured production v1 statement under the documented single-terminal-LF comparison rule.
+- The other seven files use the production timestamps and exact normalized production statement bodies. Their normalized SHA-256 values match the evidence artifact.
+- The production `service_role_table_grant_lockdown` body was preserved exactly, including its narrower `feedback` revocation. The previously local-only `UPDATE`/`DELETE` revocations were not folded into historical SQL.
+- Two consecutive `supabase db reset --local` runs rebuilt a blank database and applied all eight migrations.
+- `supabase migration list --linked` paired the same eight versions locally and remotely.
+- `supabase db push --dry-run --linked` reported `upToDate: true` with no migrations, seeds, or roles pending.
+
+These checks reconcile the repository migration lineage without changing production. They do not establish full object-level schema parity; that remains Task 3.

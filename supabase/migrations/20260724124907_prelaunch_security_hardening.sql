@@ -3,25 +3,10 @@
 -- Addresses audit findings CRITICAL-1, CRITICAL-2, and MEDIUM-6.
 --
 -- DB-only. Idempotent — safe to run more than once.
---
--- IMPORTANT: deploy this migration TOGETHER WITH the matching application
--- code in this PR. The app moves all server-controlled credit/quota writes
--- to the service-role client / SECURITY DEFINER RPC (which bypass the
--- column grants and trigger below). Applying this migration without that
--- code, OR shipping that code without this migration, is safe in either
--- order because both the RPC and the direct writes now run as service_role.
 -- ============================================================
 
 -- ------------------------------------------------------------
 -- CRITICAL-2 + MEDIUM-6: consume_user_credits
---   * empty search_path (no object-resolution hijack)
---   * reject non-positive amounts (no credit minting via negatives)
---   * EXECUTE restricted to service_role (no anon/authenticated caller can
---     target an arbitrary user)
--- The application calls this with exactly (p_user_id, p_amount); the audit's
--- 4-arg overload (uuid, integer, text, text) is the vulnerable one and is
--- dropped so no permissive overload lingers and so RPC resolution stays
--- unambiguous.
 -- ------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.consume_user_credits(uuid, integer, text, text);
 
@@ -75,9 +60,7 @@ END;
 $$;
 
 -- handle_new_user — keep SECURITY DEFINER (it must insert into profiles on
--- signup) but pin search_path and revoke direct client EXECUTE. Trigger
--- invocation on auth.users INSERT does not require EXECUTE on the function,
--- so revoking it does not break signup.
+-- signup) but pin search_path and revoke direct client EXECUTE.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -100,13 +83,6 @@ REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authentic
 
 -- ------------------------------------------------------------
 -- CRITICAL-1: lock down authenticated writes to profiles
---   * add WITH CHECK so a user cannot repoint their own row id
---   * column-level UPDATE grants: authenticated may edit ONLY the cosmetic /
---     preference columns; server-controlled quota, credit, billing and
---     identity columns are writable only by trusted paths (service_role
---     client / SECURITY DEFINER RPC), which bypass column grants.
---   * defense-in-depth trigger that rejects client-role edits of those
---     privileged columns even if a future GRANT is mis-applied.
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
@@ -119,19 +95,13 @@ GRANT  UPDATE (full_name, avatar_url, preferences,
                use_foundation_in_generations, foundation_cta_dismissed_at)
   ON public.profiles TO authenticated;
 
--- protect_privileged_profile_columns — SECURITY INVOKER (default) so
--- current_user reflects the role that issued the UPDATE. Trusted server
--- writes run as service_role (or the SECURITY DEFINER RPC owner) and pass
--- through untouched.
+-- protect_privileged_profile_columns — SECURITY INVOKER (default).
 CREATE OR REPLACE FUNCTION public.protect_privileged_profile_columns()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = ''
 AS $$
 BEGIN
-  -- Only the client roles are constrained. Anything else (service_role,
-  -- the table owner used by SECURITY DEFINER functions, migrations) is
-  -- trusted and may set these columns.
   IF current_user NOT IN ('anon', 'authenticated') THEN
     RETURN NEW;
   END IF;

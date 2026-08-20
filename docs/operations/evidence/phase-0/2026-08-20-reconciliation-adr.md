@@ -1,7 +1,7 @@
 # ADR: Phase 0 migration reconciliation architecture
 
 **Decision date:** 2026-08-20
-**Status:** Accepted for Task 2 implementation
+**Status:** Accepted and implemented for Task 2
 **Scope:** repository representation only; production remained read-only
 
 ## Context
@@ -86,3 +86,11 @@ Commands are shown exactly as invoked from `C:\Projects\postcrisp-phase-0-contai
 - Task 2 must use those captured bodies for the seven production-timestamp files. Four current differences are comments/formatting; the service-role grant difference is material DDL and must remain visible until deterministic schema parity resolves current state.
 - The final schema still needs Task 3's deterministic local-versus-production object comparison; a successful reset and an empty migration dry run prove lineage mechanics, not full schema parity.
 - Production migration history was not repaired, hidden, or otherwise mutated.
+
+## Task 2 implementation evidence
+
+The tracked implementation promoted the reviewed exact-statement composite candidate without reconstructing SQL from memory. The earliest migration is labeled as a composite clean-room representation, and its final production v1 body remains verifiable under the artifact's documented single-terminal-LF rule. Each of the other seven tracked production-timestamp files normalized to the captured production SHA-256.
+
+Two consecutive blank `supabase db reset --local` runs applied all eight migrations successfully. The linked migration list then showed eight exact local/remote version pairs, and `supabase db push --dry-run --linked` returned `upToDate: true` with no pending migrations, seeds, or roles. No production migration, schema, or history state was mutated.
+
+The exact stored service-role grant statement intentionally replaces the previous local-only form, so the narrower production `feedback` revocation stays visible for Task 3's deterministic schema-parity comparison rather than being hidden in reconstructed history.

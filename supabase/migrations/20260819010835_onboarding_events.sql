@@ -1,15 +1,3 @@
--- ============================================================
--- Onboarding funnel telemetry.
---
--- Why: tutorial_progress.stage records only where a user currently IS. It
--- cannot say where they dropped, how long the first artifact took, or which
--- artifact failed — the questions this redesign has to be measured against.
---
--- Service-role write, no client grants, RLS on with no permissive policy.
--- Rows arrive through POST /api/onboarding/event, which authenticates the
--- caller and validates the name against a fixed enum.
--- ============================================================
-
 CREATE TABLE IF NOT EXISTS public.onboarding_events (
   id          BIGSERIAL PRIMARY KEY,
   user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
