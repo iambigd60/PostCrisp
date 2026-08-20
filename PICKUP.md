@@ -1,39 +1,60 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-19 (session 27 — production migration verification + onboarding telemetry hardening)
-**Build status:** ✅ `main` @ `fc3d305` + this session's telemetry work. 239/239 tests (26 files), `tsc --noEmit` clean, `next lint` clean (4 pre-existing warnings). Vercel auto-deploys main; production confirmed serving `fc3d305`.
+**Last updated:** 2026-08-20 (Phase 0 containment evidence refresh)
+**Build status:** `codex/phase-0-containment`; the prior implementation gate passed 240/240 app tests, typecheck, and lint with four baseline warnings. This evidence-only refresh changes no migration, script, or application code.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🟡 Pre-launch security + billing hardening merged (PRs #4–#7). **3** production gates outstanding — the migration-drift gate closed this session; WAF still blocked on dashboard access, Supabase rate limiting still needs a live session.
+**Launch status:** 🔴 **Phase 0 BLOCKED. Do not push, merge this branch, change `main`, or begin Phase 1.** Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
 
 ---
 
-## 🎯 OPEN WORKLIST — start here (compiled 2026-08-19, end of session 27)
+## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-20T22:52Z)
+
+Verified current state:
+
+- exactly 10 production/local migration pairs through `20260820220303`; linked `--skip-vault` dry run exits `0` and is empty;
+- applied `pg_graphql` removal and applied reviewed grant-hardening migration;
+- reviewed post-hardening production/local source captures each contain 325 grants and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`; tracked prior-key-order copies are comparator-clean;
+- exactly 154 grant removals (128 current table, 12 current sequence, 14 `postgres` defaults) and no non-grant drift; fresh forbidden current grants and `postgres` defaults are zero;
+- HIBP leaked-password protection is enabled; security advisor has exactly 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`;
+- linked restore preflight is clean and Auth capture has the reviewed exact 10-key shape with PostgreSQL 17 membership options; no raw identities retained.
+
+Required before merge:
+
+1. Complete the isolated restore drill. No target exists: Dashboard/browser clone-specific cost confirmation is unavailable, and the tool requires explicit organization confirmation before cost/resource creation. The read-only bounded estimate is USD 0.0762, below USD 8, but does not close this gate.
+2. Obtain read-only Vercel firewall/environment and provider spend/rate-limit evidence.
+3. Obtain a valid Three AImigos verdict. Beta.16 Grok 4.6 malformed twice, Grok 4.3 failed access, and Gemini 3.5 access is verified but doctor remains `Unknown` because adapter `detect()` always returns unknown auth.
+
+See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
+
+Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
+
+## Historical session-27 worklist — superseded where noted
 
 Open items established this session, in priority order. The resolved migration-lineage note remains in place only to supersede the old unsafe operator guidance. Items already on session 26's punchlist are listed separately at the bottom so this stays honest about what is new.
 
 ### 🔴 High
 
-1. ~~**Migration histories had zero overlap.**~~ **RESOLVED by Phase 0 on 2026-08-20.** Local and remote now pair the same eight versions: `20260707062202`, `20260707062213`, `20260724124907`, `20260724134848`, `20260724163923`, `20260724215224`, `20260819010825`, and `20260819010835`. The linked dry run is empty (`upToDate: true`; no migrations, seeds, or roles). The old repair instruction is superseded and non-actionable; no migration-history repair is required or authorized. See [the Phase 0 database reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
+1. ~~**Migration histories had zero overlap.**~~ **RESOLVED and refreshed by Phase 0 on 2026-08-20.** Local and remote pair exactly 10 versions through `20260820220303`; the linked `--skip-vault` dry run is empty. The old repair instruction and eight-version wording are superseded and non-actionable.
 2. **The onboarding funnel is blind to four entry paths.** No server-side emission exists, so the completion redirect, the alpha-acceptance redirect, an auth failure, and any hydration error all return *before* the entry events fire — zero telemetry, no signal. This is the skipped part 4. **Cheaper route than the one we rejected:** emit from `src/app/onboarding/layout.tsx` via `after()` from `next/server`, which never touches `page.tsx` and so avoids the stage/resume lockstep risk entirely. Verify `after()` is exported in the installed Next version first (claimed 15.5.x, unverified).
 3. **The first session has never been run by a real user in production.** Ask → Pack → Own shipped 2026-08-19; nobody has signed in since 2026-08-06. The probe proves the telemetry pipe, not the flow. This is the manual walkthrough owed since session 26 and the largest unverified surface in the product.
 
 ### 🟡 Medium
 
-4. **Object-level schema parity remains unverified.** The new composite baseline rebuilds all tracked schema objects from a blank local database, but Task 3 still must compare that result deterministically with production before the repository can be called the schema of record. See [the Phase 0 database reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
+4. ~~**Object-level schema parity remains unverified.**~~ **RESOLVED.** Reviewed post-hardening production and fresh-reset local contract-v2 source captures are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE` with 325 grants; tracked prior-key-order copies are comparator-clean.
 5. **`tutorial_redemptions` is append-only by convention, not by grant.** `service_role` holds UPDATE/DELETE/TRUNCATE via Supabase defaults; the migration's `GRANT SELECT, INSERT` only added to that. The ceiling is enforced by app code plus the UNIQUE constraint. The security-critical half is correct — clients have zero grants.
-6. **Leaked-password protection is disabled** in Supabase Auth (security advisor WARN). One dashboard toggle; checks against HaveIBeenPwned.
+6. ~~**Leaked-password protection is disabled.**~~ **RESOLVED.** HIBP protection is enabled; the fresh advisor has only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`.
 7. **Server-side auth errors are swallowed at two points.** The onboarding page ignores the `error` from `getUser()` before redirecting to `/login`, and the event route's 401 path never inspects or logs its auth error. Both make a session problem look like ordinary behaviour.
 
 ### 🟢 Low
 
-8. **Latent `TRUNCATE` grants** for `anon`/`authenticated` on the seven lockdown tables — that migration revoked only INSERT/UPDATE/DELETE against Supabase's default `ALL`. Not reachable through PostgREST, so a privilege that shouldn't exist rather than an open door.
+8. ~~**Latent high-blast-radius client grants.**~~ **RESOLVED for current objects and `postgres` defaults.** The reviewed applied migration removed exactly 154 grants with no non-grant drift. The reserved `supabase_admin` 8-table-default/6-sequence-default residual is independently accepted as Informational and non-blocking, subject to the reopen conditions above.
 9. **Probe rows accumulate.** Every `POST /api/admin/onboarding-events` leaves a `selftest` row and there is no DELETE grant. Tagged and filterable — housekeeping, not a defect, but unbounded.
 10. **No integration test** spans browser producer → authenticated route → service-role client → real database. The new suites cover each link; nothing covers the chain.
 
 ### ⚙️ Process / tooling
 
-11. **Three AImigos runs are repo-read-only** while reporting write access; this run also ended `malformed-response` with `verdict: null`. Check `git status` before believing any "implemented" claim.
+11. **Three AImigos has no valid Phase 0 verdict.** Beta.16 Grok 4.6 returned malformed output twice, Grok 4.3 failed access, and Gemini 3.5 access is verified but doctor stays `Unknown` because the installed adapter `detect()` always returns unknown auth. Check repository state independently and keep the gate blocked.
 12. **Codex completes but does not relay.** Recover with `codex-companion.mjs status --all`, then `result <job-id>`.
 13. **The `/save` skill's co-author trailer says Opus 4.7** — stale.
 
@@ -65,9 +86,9 @@ The older five migrations are all functionally present too: `consume_user_credit
 
 ### Historical drift findings and current disposition
 
-1. ✅ **RESOLVED / SUPERSEDED by Phase 0 (2026-08-20).** The zero-overlap statement below described the 2026-08-19 repository and is retained only as historical context; it is not current operator guidance. Local and remote now pair all eight production versions (`20260707062202`, `20260707062213`, `20260724124907`, `20260724134848`, `20260724163923`, `20260724215224`, `20260819010825`, `20260819010835`), and the linked dry run is empty. No history repair is required. See [the reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
-2. 🟡 **SUPERSEDED as written; object parity remains pending.** The composite baseline now reconstructs the tracked schema on a blank local database. Task 3 must still prove object-level parity with production before the repository becomes the schema of record.
-3. 🟡 **Latent leftover grants.** `anon`/`authenticated` still hold `TRUNCATE` (plus `REFERENCES`/`TRIGGER`) on the lockdown tables, because that migration revoked only INSERT/UPDATE/DELETE against Supabase's default `ALL`. Not reachable through PostgREST (no HTTP verb maps to TRUNCATE) — a privilege that shouldn't exist, not an open door. The two new tables are clean because their migration used `REVOKE ALL`.
+1. ✅ **RESOLVED / SUPERSEDED by Phase 0 (current 2026-08-20 checkpoint).** Local and remote now pair exactly ten versions through `20260820220303`, and the linked `--skip-vault` dry run is empty. The eight-version snapshot below is historical only.
+2. ✅ **RESOLVED.** Reviewed post-hardening production and fresh-reset local inventory-v2 artifacts are byte-identical with 325 grants.
+3. ✅ **RESOLVED for current objects and `postgres` defaults.** Applied hardening removed exactly 154 grants with no non-grant drift. Reserved `supabase_admin` defaults remain exactly 8 table + 6 sequence rows and are an accepted Informational conditional residual, not a blocker.
 
 ### `onboarding_events` was never broken — it was never exercised
 
@@ -1301,4 +1322,4 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
 - 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`.
 - 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
-- ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20.** The eight exact local/remote versions pair and the linked dry run is empty; the earlier manual-apply concern is historical and non-actionable. Object-level parity remains a separate Task 3 gate. See [the reconciliation runbook](docs/operations/phase-0-database-reconciliation.md).
+- ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20.** Exactly ten local/remote versions pair through `20260820220303`, the linked `--skip-vault` dry run is empty, and post-hardening object parity is byte-identical. Earlier eight-version/manual-apply/object-unverified wording is historical and non-actionable.

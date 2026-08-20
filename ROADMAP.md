@@ -1,5 +1,27 @@
 # PostCrisp — Pre-Launch Roadmap
 
+## 🔴 Phase 0 containment — BLOCKED (current 2026-08-20 checkpoint)
+
+Do **not** push, merge this branch, change `main`, or begin Phase 1 until every remaining gate below closes with fresh evidence.
+
+Completed and verified:
+
+- exactly 10 production/local migration pairs through `20260820220303`; linked `--skip-vault` dry run is empty;
+- `pg_graphql` removal migration applied; production/local inventories contain no `pg_graphql`;
+- grant-hardening migration applied with exactly 154 reviewed removals and zero non-grant drift; current forbidden client table/sequence grants and `postgres` defaults are zero;
+- reviewed post-hardening production/local source captures contain 325 grants and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`; tracked prior-key-order copies are comparator-clean;
+- HIBP leaked-password protection enabled; security advisor now reports only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`.
+
+Blocking exit:
+
+- restore preflight is clean and the bounded cost model is USD 0.0762, but the drill has not run because Dashboard/browser clone-specific cost and explicit organization confirmation remain unavailable;
+- Vercel firewall/environment evidence and provider spend/rate-limit consoles remain inaccessible;
+- Three AImigos beta.16 produced no valid verdict (Grok 4.6 malformed twice, Grok 4.3 access failure, Gemini 3.5 access verified but doctor remains `Unknown` because adapter `detect()` always reports unknown auth).
+
+See [the current Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
+
+Informational accepted residual: `supabase_admin` retains 8 table-default + 6 sequence-default rows. The role is platform-owned, cannot authenticate through the Data API, and customer `postgres` cannot assume/alter it; current forbidden objects and `postgres` defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
+
 **Scope:** 32-feature launch = Phases 1-4 of PRD + Analytics Dashboard.
 **Deferred to post-launch:** Image Generator, Logo Creator, Video Generator, Whiteboard Creator (require paid external APIs + cost controls — handled in a separate follow-up phase).
 
@@ -59,15 +81,15 @@ Two stacked branches, 32 commits, **merged and deployed 2026-08-18**. 192/192 te
 
 ---
 
-## 🟡 Launch gates — verification status (2026-08-18, session 25)
+## Historical launch-gate snapshot — superseded (2026-08-18, session 25)
 
-Pre-launch security and billing hardening is **merged and deployed**; what remains is verification of live infrastructure, not code.
+This section preserves the session-25 snapshot only. Its seven-migration, zero-overlap, unapplied, and two-gate language is superseded by the current Phase 0 checkpoint at the top of this file and is not current operator guidance.
 
 **Verified ✅** — production is serving the hardened build. Vercel prod deploy `dpl_k7kUWWZ1eznawkNZKjgrgn4SpaU8` is `READY` at commit `085b190`, and `48fcf33` / `7c15c09` / `bce4865` are all confirmed git ancestors of it.
 
 **✅ CLOSED 2026-08-19 — Applied migrations match `supabase/migrations/`.** Verified read-only against production: all 7 local migrations are functionally present (both new tables schema-exact; `consume_user_credits` a single hardened 2-arg overload; the protect trigger live; `profiles` column grants restricted; the seven-table lockdown holding). Three caveats recorded rather than fixed: (1) **the migration *history* does not match the filenames — zero overlap**, so `supabase migration list` reports everything as unapplied and **`db push` would try to re-run all seven against prod**; (2) the repo's migrations are not the schema of record — 18 tables in `public`, only 3 created by migrations; (3) `anon`/`authenticated` retain latent `TRUNCATE` on the lockdown tables (not reachable via PostgREST).
 
-**Outstanding — 2 gates:**
+**Historical outstanding gates at that checkpoint:**
 
 - ⚠️ **Vercel WAF rules active.** Cannot be confirmed from the connected tooling — WAF denials go to Firewall → Logs, a separate stream from the runtime logs the MCP tools expose. Clean runtime logs are **not** evidence here; an unconfigured project looks identical. Check the dashboard, and confirm the plan first: `docs/rate-limiting.md` notes rate-limit rules need Vercel **Pro/Enterprise**, so on Hobby this gate cannot be closed at all and credits/quota become the only cap.
 - ⏳ **Supabase rate limiting** (Auth → Rate Limits) — needs a live session.

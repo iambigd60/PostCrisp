@@ -38,9 +38,15 @@
                            "version":  "1.1"
                        }
                    ],
-    "views":  [],
-    "foreign_tables":  [],
-    "types":  [],
+    "views":  [
+
+              ],
+    "foreign_tables":  [
+
+                       ],
+    "types":  [
+
+              ],
     "columns":  [
                     {
                         "collation":  null,
@@ -2531,7 +2537,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2553,7 +2559,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -2586,7 +2592,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -2608,29 +2614,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2652,29 +2636,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -2696,29 +2658,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -2773,7 +2713,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -2795,7 +2735,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -2807,17 +2747,6 @@
                    {
                        "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "service_role",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -2828,6 +2757,17 @@
                    },
                    {
                        "column":  null,
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
+                       "grantable":  false,
+                       "grantee":  "service_role",
+                       "identity_arguments":  null,
+                       "object":  "future objects",
+                       "object_type":  "DEFAULT SEQUENCE",
+                       "privilege":  "USAGE",
+                       "schema":  "public"
+                   },
+                   {
+                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
                        "grantable":  false,
                        "grantee":  "anon",
@@ -2839,7 +2779,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2861,7 +2801,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2883,29 +2823,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2927,7 +2845,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2949,29 +2867,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -2993,7 +2889,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "anon",
                        "identity_arguments":  null,
@@ -3015,7 +2911,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3037,7 +2933,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3059,29 +2955,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3103,7 +2977,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3125,29 +2999,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
                        "creator_acl_fingerprint":  "39445513c48fa1c1bc551a8dc8c5b51d",
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "future objects",
-                       "object_type":  "DEFAULT TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3169,7 +3021,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "authenticated",
                        "identity_arguments":  null,
@@ -3279,7 +3131,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3301,7 +3153,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3323,7 +3175,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3345,7 +3197,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3367,7 +3219,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3389,7 +3241,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3411,7 +3263,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3433,7 +3285,7 @@
                    },
                    {
                        "column":  null,
-                       "creator_acl_fingerprint":  "42f51dd5616587b561d142cfecc01800",
+                       "creator_acl_fingerprint":  "456b186ea6d1b40790b062cda42fe501",
                        "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
@@ -3611,72 +3463,6 @@
                        "column":  null,
                        "creator_acl_fingerprint":  null,
                        "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
                        "grantee":  "service_role",
                        "identity_arguments":  null,
                        "object":  "onboarding_events_id_seq",
@@ -3702,72 +3488,6 @@
                        "grantee":  "service_role",
                        "identity_arguments":  null,
                        "object":  "onboarding_events_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "USAGE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
-                       "object_type":  "SEQUENCE",
-                       "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "tutorial_redemptions_id_seq",
                        "object_type":  "SEQUENCE",
                        "privilege":  "USAGE",
                        "schema":  "public"
@@ -3813,83 +3533,6 @@
                        "identity_arguments":  null,
                        "object":  "admin_actions",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -3901,18 +3544,7 @@
                        "identity_arguments":  null,
                        "object":  "admin_actions",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "admin_actions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -4033,51 +3665,7 @@
                        "identity_arguments":  null,
                        "object":  "ai_config_overrides",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4121,51 +3709,7 @@
                        "identity_arguments":  null,
                        "object":  "ai_config_overrides",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "ai_config_overrides",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4297,51 +3841,7 @@
                        "identity_arguments":  null,
                        "object":  "channels",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4385,51 +3885,7 @@
                        "identity_arguments":  null,
                        "object":  "channels",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "channels",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4561,51 +4017,7 @@
                        "identity_arguments":  null,
                        "object":  "creator_profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4649,51 +4061,7 @@
                        "identity_arguments":  null,
                        "object":  "creator_profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "creator_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -4803,83 +4171,6 @@
                        "identity_arguments":  null,
                        "object":  "credit_transactions",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -4891,18 +4182,7 @@
                        "identity_arguments":  null,
                        "object":  "credit_transactions",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "credit_transactions",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -5023,51 +4303,7 @@
                        "identity_arguments":  null,
                        "object":  "feature_access",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -5111,51 +4347,7 @@
                        "identity_arguments":  null,
                        "object":  "feature_access",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feature_access",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -5265,83 +4457,6 @@
                        "identity_arguments":  null,
                        "object":  "feedback",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -5353,18 +4468,7 @@
                        "identity_arguments":  null,
                        "object":  "feedback",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "feedback",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -5463,83 +4567,6 @@
                        "identity_arguments":  null,
                        "object":  "generation_ai_calls",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -5551,18 +4578,7 @@
                        "identity_arguments":  null,
                        "object":  "generation_ai_calls",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generation_ai_calls",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -5683,51 +4699,7 @@
                        "identity_arguments":  null,
                        "object":  "generations",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -5771,51 +4743,7 @@
                        "identity_arguments":  null,
                        "object":  "generations",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "generations",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -5925,83 +4853,6 @@
                        "identity_arguments":  null,
                        "object":  "invite_codes",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -6013,18 +4864,7 @@
                        "identity_arguments":  null,
                        "object":  "invite_codes",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "invite_codes",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -6211,83 +5051,6 @@
                        "identity_arguments":  null,
                        "object":  "platform_settings",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
                        "schema":  "public"
                    },
@@ -6299,18 +5062,7 @@
                        "identity_arguments":  null,
                        "object":  "platform_settings",
                        "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "platform_settings",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
+                       "privilege":  "SELECT",
                        "schema":  "public"
                    },
                    {
@@ -6399,94 +5151,6 @@
                        "object":  "platform_settings",
                        "object_type":  "TABLE",
                        "privilege":  "UPDATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "processed_stripe_events",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -6596,51 +5260,7 @@
                        "identity_arguments":  null,
                        "object":  "profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -6662,51 +5282,7 @@
                        "identity_arguments":  null,
                        "object":  "profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -6827,51 +5403,7 @@
                        "identity_arguments":  null,
                        "object":  "saved_content",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -6915,51 +5447,7 @@
                        "identity_arguments":  null,
                        "object":  "saved_content",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "saved_content",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -7179,51 +5667,7 @@
                        "identity_arguments":  null,
                        "object":  "usage_stats",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -7267,51 +5711,7 @@
                        "identity_arguments":  null,
                        "object":  "usage_stats",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "usage_stats",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -7443,51 +5843,7 @@
                        "identity_arguments":  null,
                        "object":  "voice_profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "anon",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {
@@ -7531,51 +5887,7 @@
                        "identity_arguments":  null,
                        "object":  "voice_profiles",
                        "object_type":  "TABLE",
-                       "privilege":  "MAINTAIN",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "REFERENCES",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
                        "privilege":  "SELECT",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRIGGER",
-                       "schema":  "public"
-                   },
-                   {
-                       "column":  null,
-                       "creator_acl_fingerprint":  null,
-                       "grantable":  false,
-                       "grantee":  "authenticated",
-                       "identity_arguments":  null,
-                       "object":  "voice_profiles",
-                       "object_type":  "TABLE",
-                       "privilege":  "TRUNCATE",
                        "schema":  "public"
                    },
                    {

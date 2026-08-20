@@ -2,37 +2,26 @@
 
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
+**Current checkpoint:** 2026-08-20T22:52Z
+
 **Production project:** `sikabeqzypvllimyostg`
 
-**Production access:** read-only catalog query through `supabase db query --linked`
+**Verdict:** **VERIFIED — reviewed post-hardening production and fresh-reset local inventory-v2 captures are byte-identical. Phase 0 remains BLOCKED on separate restore, platform-access, and council gates.**
 
-**Local source:** a fresh `supabase db reset --local` using Supabase CLI `2.115.0`
+## Current authoritative result
 
-**Verdict:** **VERIFIED — a fresh local inventory-v2 capture exactly matches the committed production-v2 artifact under the reviewed comparator. Phase 0 remains blocked on separate production-security, platform-control, restore, and independent-review gates.**
+The tracked artifacts now preserve the reviewed post-hardening captures:
 
-## Scope and exclusions
+- [production inventory](2026-08-20-production-schema-inventory.json), refreshed from ignored capture `.superpowers/sdd/2026-08-20-phase-0-containment/post-hardening-production-inventory.json`;
+- [local inventory](2026-08-20-local-schema-inventory.json), refreshed from ignored capture `.superpowers/sdd/2026-08-20-phase-0-containment/grant-hardening-fix-local-inventory.json`.
 
-Inventory contract v2 in the committed [catalog query](../../../../scripts/phase0/schema-inventory.sql) records stable metadata for:
-
-- the `public` application-schema record and installed extension name/version/schema/relocatability state;
-- public tables, views, materialized views, foreign tables, and their relevant definition/state metadata;
-- columns across those relations, constraints, sequences (including `OWNED BY` targets), indexes, and public enum/domain/range/composite/base type definitions;
-- RLS policies, public-schema functions/procedures, and user-defined triggers on public tables or invoking public application functions;
-- schema, table, column, sequence, function, procedure, and public-schema default grants.
-
-The query reads only PostgreSQL catalogs. It excludes table rows, sequence current values, secrets, OIDs, owners/grantors, capture timestamps, raw connection information, and foreign table/server option values. For foreign tables it records only whether table/column options exist; any positive option-presence flag is a separate transient-review blocker because retaining option values could expose secrets. Default grants retain creator-to-ACL correlation through deterministic ACL-set fingerprints without exposing creator identities. Duplicate identities remain separate entries, and the comparator checks their multiplicity.
-
-## Capture and comparison
-
-The production file remains the read-only inventory-v2 capture. The local file was replaced with a fresh inventory-v2 capture after `supabase db reset --local` replayed all nine local migrations, including the pending `disable_unused_pg_graphql` migration:
-
-- [production inventory](2026-08-20-production-schema-inventory.json)
-- [local inventory](2026-08-20-local-schema-inventory.json)
-
-Both v2 artifacts have contract version `2`: one `public` application schema, five installed extensions, zero public views/materialized views, zero public foreign tables, and zero public application types. Every foreign-option-presence flag is false because there are no foreign tables. The comparator also matched these previously covered classes:
+The two reviewed source captures are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`. To minimize the tracked diff, both committed copies preserve the prior top-level key order; those two reordered files are byte-identical at SHA-256 `16386F28EE7F40EF2CC69FF8F83497FC246D6DB61FB5C0CF9877DDDA878E0D8F` and semantically identical to the reviewed captures. The dependency-free comparator exits `0` with `Schema inventories match.` Their shared contract-v2 counts are:
 
 | Category | Count |
 | --- | ---: |
+| Application schemas | 1 |
+| Installed extensions | 5 |
+| Public views/materialized views/foreign tables/application types | 0 each |
 | Tables | 18 |
 | Columns | 147 |
 | Constraints | 58 |
@@ -41,72 +30,42 @@ Both v2 artifacts have contract version `2`: one `public` application schema, fi
 | Policies | 39 |
 | Functions/procedures | 4 |
 | Triggers | 6 |
-| Grants, including creator-correlated default grants | 479 |
+| Grants, including creator-correlated default grants | 325 |
 
-The dependency-free Node comparator canonicalizes object-key/array order, line endings, and explicitly ignored capture noise (`captured_at`, `generated_at`, `oid`, and `owner`). It now requires contract version `2` and every required section before comparison. An old or partial snapshot exits `2` instead of producing a false match; missing, extra, or changed objects in valid v2 inventories exit `1` with exact fields.
+At approximately `2026-08-20T22:52Z`, the linked migration list returned exactly ten paired local/remote versions through `20260820220303`, and the linked `--skip-vault` dry run exited `0` with the remote database up to date. There is no pending migration, seed, or role work.
 
-Default-grant behavior is verified separately from the fast Node suite because it requires a running fresh local stack:
+## Grant-hardening result
 
-```text
-supabase db query --local --file scripts/phase0/probe-default-grants.sql --output-format json
-```
+The authorized `20260820220303_harden_client_role_grants.sql` apply removed exactly 154 semantic grant rows relative to the reviewed pre-hardening capture:
 
-The probe is one atomic `DO` statement. It creates controlled `postgres` and no-default-creator objects, compares actual ACLs with the captured defaults, raises on any mismatch, and removes every probe object and role on success. A raised assertion rolls the statement back and returns a nonzero CLI exit.
+- 128 current-table grants;
+- 12 current-sequence grants;
+- 14 `postgres` public-schema default grants.
 
-Current command and result:
+No non-grant inventory section drifted. Fresh metadata-only production verification reports zero forbidden current table grants, zero forbidden current sequence grants, and zero forbidden `postgres` table/sequence defaults for `anon` and `authenticated`. The exact client-role probe separately preserves and checks intended table CRUD, column ACL, schema/function identity, and `service_role` tuples while rejecting missing or extra tuples.
 
-```text
-node scripts/phase0/compare-schema-inventory.mjs docs/operations/evidence/phase-0/2026-08-20-production-schema-inventory.json docs/operations/evidence/phase-0/2026-08-20-local-schema-inventory.json
-Schema inventories match.
-EXIT 0
-```
+The remaining reserved-role default ACLs are not hidden by the aggregate inventory result: `supabase_admin` still contributes exactly 8 table-default rows and 6 sequence-default rows for the two client roles. The connected SQL session is non-superuser `postgres` and has neither `USAGE` nor `SET` authorization on `supabase_admin`. Independent review accepts this as an Informational platform-owned conditional residual, not a blocker: official guidance treats the reserved role as internal automation/upgrade infrastructure, it cannot authenticate through the Data API, current forbidden objects and customer-owned `postgres` defaults are zero, and documented customer remediation is `postgres`-only. Reopen if a reserved-role-created public table/sequence appears or official customer remediation emerges.
 
-This closes the local inventory-v2 parity blocker. It does not authorize the pending migration for production or resolve the independent Phase 0 blockers below.
+## Security-advisor state
 
-## Differences found and reconciled locally
+HIBP leaked-password protection is enabled. A fresh Supabase security-advisor refresh reports exactly three `INFO` findings and no `WARN` or `ERROR` findings:
 
-Fresh-reset comparisons exposed three concrete reconstruction defects:
+- `rls_enabled_no_policy` on `public.onboarding_events`;
+- `rls_enabled_no_policy` on `public.processed_stripe_events`;
+- `rls_enabled_no_policy` on `public.tutorial_redemptions`.
 
-1. Twenty-one column ordinal differences: 14 in `public.profiles` and 7 in `public.saved_content`. The composite baseline's clean-room definitions used the repository's convenient declaration order instead of the order present in production.
-2. One hundred sixty-three missing explicit object grants across `anon`, `authenticated`, and `service_role`. The local stack used the new non-auto-exposed default while production retains the legacy Data API grant behavior.
-3. The pinned local PostgreSQL 17 image installed `graphql.pg_graphql`, while the linked production inventory had no `pg_graphql` extension. The repository has no GraphQL client or `graphql.resolve` usage.
+These policyless-RLS items are recorded follow-up observations, not production/local parity differences.
 
-The clean-room representation was corrected without changing production:
+## Inventory contract and safety
 
-- The composite baseline now declares `profiles` and its hoisted `saved_content` prerequisite in production column order. `purchased_credits` is again added by its exact production-timestamp migration, placing it at ordinal 18.
-- The composite bootstrap explicitly reproduces the captured `postgres` default ACLs before application DDL; the deprecated global `api.auto_expose_new_tables` compatibility toggle is not enabled. Supabase seeds the reserved `supabase_admin` creator defaults before migrations, and the inventory correlates that second creator by its normalized ACL-set fingerprint because the non-superuser migration role cannot safely impersonate or alter it.
-- `20260820210852_disable_unused_pg_graphql.sql` contains only `drop extension if exists pg_graphql;`. A pre-migration fresh reset reproduced the single extra-extension mismatch; a post-migration fresh reset removed it without `CASCADE`, and the v2 comparator then matched.
+The committed [catalog query](../../../../scripts/phase0/schema-inventory.sql) reads PostgreSQL catalogs only. Contract v2 records stable metadata for public relations, columns, constraints, sequences, indexes, policies, routines, triggers, types, extensions, and schema/object/default grants. It excludes application rows, sequence values, secrets, OIDs, owners/grantors, raw connection information, and foreign option values. Creator identities are represented only through normalized ACL-set fingerprints.
 
-After the post-migration fresh reset, all 479 captured grants and every inventory-v2 section matched. The default-grant probe exited `0`, proving that `postgres`-created tables, sequences, and functions receive the captured defaults while a newly created role with no captured defaults receives no legacy Data API grants. The reserved `supabase_admin` creator correlation remains represented through matching normalized creator ACL-set fingerprints. The seven non-composite historical migration files still hash-match their exact production statements, and the composite migration still ends with the exact production v1 statement.
+The comparator canonicalizes object-key/array order, line endings, and explicitly ignored capture noise. It requires contract version `2` and every required section; invalid/partial snapshots exit `2`, and valid inventories with missing, extra, or changed objects exit `1` with exact fields.
 
-## Production security blocker: client-role blast radius
+No linked reset, remote DDL, restore, or production mutation was performed while refreshing this documentation. The two production mutations described here occurred earlier at separately authorized checkpoints and were independently verified.
 
-The captured production grants are a Phase 0 security blocker, not a benign parity note. `anon` and `authenticated` retain `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` on 16 current public tables and through captured default table ACLs. Both client roles also retain `USAGE`, `SELECT`, and `UPDATE` on the two application sequences; those sequence privileges should be service-only. RLS does not neutralize all of these privileges or their blast radius.
+## Historical reconstruction notes (superseded)
 
-Historical fidelity is preserved in the eight production-applied migration bodies. The new local-only `disable_unused_pg_graphql` migration does not alter these client-role grants. Separately authorized forward-hardening work must add and deploy another production migration that revokes those high-blast-radius table/default privileges from `anon`/`authenticated`, revokes their application-sequence/default-sequence privileges while retaining required `service_role` access, validates application behavior, and captures fresh production advisors/grants. Phase 0 must remain blocked until that production change is authorized, executed, and evidenced.
+Before the two forward migrations were applied, the clean-room work reconstructed the original eight production migrations, fixed column ordinals and legacy Data API grants, and exposed one remaining local-only `pg_graphql` difference. A CLI-generated ninth migration dropped unused `pg_graphql` without `CASCADE`, first locally and then at an authorized production checkpoint. A tenth migration later hardened client-role grants.
 
-## Production advisors
-
-Supabase security and performance advisors were run read-only after parity was established. No advisor finding was changed in Task 3 because doing so would expand scope and require a production schema or platform change.
-
-Security advisor: 4 findings.
-
-- `WARN`: leaked-password protection is disabled. This is a platform-control blocker for a later authorized task. [Remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)
-- `INFO` x3: RLS is enabled with no policies on `public.onboarding_events`, `public.processed_stripe_events`, and `public.tutorial_redemptions`. Client CRUD is denied on these tables in the current design; the finding is recorded, not waived from schema comparison. [Advisor description](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
-
-Performance advisor: 89 findings.
-
-- `WARN` x39: `auth_rls_initplan` across 15 public tables.
-- `WARN` x30: multiple permissive policies across `ai_config_overrides`, `creator_profiles`, `credit_transactions`, `feature_access`, and `generations`.
-- `INFO` x10: unindexed foreign keys across 8 public tables.
-- `INFO` x9: unused indexes across 8 public tables.
-- `INFO` x1: Auth uses an absolute rather than percentage-based database connection allocation.
-
-These findings remain follow-up work. They do not create a production/local parity difference because both inventories capture the current production definitions exactly.
-
-## Safety record
-
-- Production received only read-only catalog, migration-list, advisor, and migration dry-run queries during these verification waves.
-- No non-dry-run database push, migration repair, linked reset, remote DDL, restore, firewall mutation, push, or merge was performed.
-- The committed JSON contains catalog metadata only; it contains no rows, credentials, tokens, connection strings, or local stack state.
-- The read-only linked migration list shows `20260820210852` local-only, and the current dry run lists exactly that migration with empty seed and role lists. Production authorization is still required before apply and post-apply verification.
+The earlier 479-grant, eight-versus-nine-migration, local-only migration, leaked-password-disabled, Docker-unavailable, and object-parity-unverified statements described intermediate checkpoints. They are superseded by the current 325-grant, ten-pair, byte-identical evidence above and must not be used as current operator guidance.

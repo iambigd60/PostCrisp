@@ -1,8 +1,11 @@
 # Production migration-history evidence
 
-**Captured:** 2026-08-20
+**Initial capture:** 2026-08-20
+**Current checkpoint:** 2026-08-20T22:52Z
 **Project:** `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`)
-**Method:** authenticated read-only migration listing plus the read-only query below against `supabase_migrations.schema_migrations`. No application rows were queried or recorded.
+**Current status:** **VERIFIED — all ten local/production versions pair through `20260820220303`, and the linked `--skip-vault` dry run reports the remote database up to date with no pending migration, seed, or role work.**
+
+The first eight normalized bodies below are the historical clean-room capture that established lineage. The two later forward migrations were CLI-generated, independently reviewed, authorized, applied, and post-verified. No application rows were queried or recorded for this evidence.
 
 ## Exact extraction and reproduction method
 
@@ -38,7 +41,7 @@ The complete normalized bodies are preserved in [the exact statement artifact](2
 
 For comparison with editor-created local files, normalize CRLF/CR to LF and remove at most one terminal LF before hashing; do not otherwise trim whitespace. That terminal-LF rule avoids treating an editor-added end-of-file newline as a SQL-body difference while retaining every other byte.
 
-## Recorded production versions and hashes
+## Initial eight production versions and hashes (historical lineage capture)
 
 | Order | Production version | Production name | UTF-8 bytes | Normalized SHA-256 |
 | ---: | --- | --- | ---: | --- |
@@ -51,9 +54,11 @@ For comparison with editor-created local files, normalize CRLF/CR to LF and remo
 | 7 | `20260819010825` | `tutorial_redemptions` | 1,019 | `80a8b9b7c491a3afa269830cd441f8119f939ea1aa16e514bb4e52ff67695078` |
 | 8 | `20260819010835` | `onboarding_events` | 810 | `922a3aa9b08e07f0136d96b33d64718f75554c33110914cad843d36772381c5d` |
 
-## Pending local migration: unused GraphQL extension
+## Applied forward migrations
 
-The read-only linked migration list at `2026-08-20T21:12Z` still showed the eight production versions above and local version `20260820210852` with no remote version. A current linked `db push --dry-run` then exited `0` with `upToDate=false`, `dryRun=true`, exactly `20260820210852_disable_unused_pg_graphql.sql`, and empty seed and role lists. No migration was applied; no repair or remote DDL was run.
+The earlier eight-versus-nine state is superseded. Authorized production checkpoints applied both reviewed forward migrations, and the fresh `2026-08-20T22:52Z` read-only refresh returned exactly ten paired versions plus an empty linked dry run.
+
+### `20260820210852_disable_unused_pg_graphql.sql`
 
 `supabase migration new disable_unused_pg_graphql` created `20260820210852_disable_unused_pg_graphql.sql`. Its complete body is:
 
@@ -63,19 +68,29 @@ drop extension if exists pg_graphql;
 
 The file SHA-256 is `096E40E05B747EB141D1EECA8324C6BA5A7A0300AD728B943671B6ECD1E02D89`. It is idempotent and intentionally omits `CASCADE`. A fresh local reset before the migration reproduced exactly one inventory-v2 difference, `extra in local: extensions graphql.pg_graphql`; the post-migration reset and fresh local capture compared equal to the committed production-v2 inventory.
 
-The production inventory already has no `pg_graphql`, so the DDL is expected to be a no-op there; production migration history is still a write and remains unauthorized. The required read-only pre-apply dry run is now recorded. At the remaining production checkpoint, an authorized operator must run these commands separately and stop on any unexpected result:
+The authorized apply exited `0`. Post-apply evidence showed nine paired versions, an empty linked dry run, five installed extensions with no `pg_graphql`, and exact production/local inventory-v2 parity.
 
-```text
-supabase db push --linked
-supabase migration list --linked
-supabase db push --dry-run --linked
-```
+### `20260820220303_harden_client_role_grants.sql`
 
-Only after explicit authorization may the apply command run. After apply, require all nine versions paired, the post-apply dry run up to date, a fresh read-only production inventory-v2 capture still at five extensions with no `pg_graphql`, and an exact production/local comparator pass. If the branch or linked state changes before authorization, rerun the dry run and require the same one-migration, empty-seed, empty-role plan. Do not combine this checkpoint with the separate client-role grant hardening.
+The independently reviewed migration contains only the four scoped current/default table/sequence revocations. Its SHA-256 is `E85FA2BA48C722B6B6E53CF83442AF6F6671E5853634C7396907459409972EED`.
 
-## Local-to-production timestamp map
+The authorized linked dry run named only this migration with empty seed and role lists; the apply exited `0`. Post-apply evidence proved:
 
-The seven SQL-bearing local files map to production by migration name, but their version timestamps do not match production history. Normalized hashing proves that only two local bodies match their production statement. Five differ and must not be represented as byte-for-byte historical files.
+- zero forbidden `anon`/`authenticated` grants on current application tables and sequences;
+- zero forbidden client grants in `postgres` public-schema table/sequence defaults;
+- exact preservation of intended table CRUD, column ACL, function/schema, and `service_role` grants;
+- exactly 154 semantic grant removals: 128 current-table, 12 current-sequence, and 14 `postgres` default grants;
+- zero non-grant inventory drift.
+
+The reserved `supabase_admin` creator remains outside the migration role's authority and still has 8 table-default plus 6 sequence-default rows for the two client roles. Connected SQL runs as non-superuser `postgres`, which has neither `USAGE` nor `SET` authorization on `supabase_admin`. Independent review accepts this as an Informational platform-owned conditional residual, not a pending migration or blocker: the reserved role cannot authenticate through the Data API, current forbidden objects and customer-owned `postgres` defaults are zero, and documented customer remediation is `postgres`-only. Reopen if platform automation actually creates a public table/sequence as `supabase_admin` or an official customer remediation path emerges.
+
+### Current linked state
+
+At approximately `2026-08-20T22:52Z`, `supabase migration list --linked` returned exactly ten paired local/remote versions through `20260820220303`. `supabase db push --dry-run --linked --skip-vault --output json` exited `0` and reported the remote database up to date. No apply occurred during that refresh.
+
+## Historical pre-reconciliation local-to-production timestamp map (superseded)
+
+The table below records the pre-Phase-0 repository state. Those filenames and mismatched versions were replaced during reconciliation; they are retained only to explain why the clean-room lineage work was necessary. They are not current operator guidance.
 
 | Current local version | Production version | Migration name | Local normalized SHA-256 | Exact match |
 | --- | --- | --- | --- | --- |
@@ -87,9 +102,9 @@ The seven SQL-bearing local files map to production by migration name, but their
 | `20260818120000` | `20260819010825` | `tutorial_redemptions` | `02265005ec34810df2e5076f7211991fe972315be11c4fab3dc7c7be9acf1e02` | No |
 | `20260818121000` | `20260819010835` | `onboarding_events` | `81c85be05d392bfff3b0cefbf6852d50c56bcdb7480ce893144a0264787ad0a8` | No |
 
-The prelaunch, profiles-insert, tutorial-redemptions, and onboarding-events differences are comments/formatting only. The service-role grant file has a material DDL difference: the current local file revokes `INSERT, UPDATE, DELETE` on `public.feedback`, while the exact production statement revokes only `INSERT` there. This is a production-parity risk to preserve and resolve explicitly; it must not be hidden by a timestamp-only rename.
+Historically, the prelaunch, profiles-insert, tutorial-redemptions, and onboarding-events differences were comments/formatting only. The service-role grant file had a material DDL difference. Phase 0 resolved these differences by preserving the exact production bodies under their production versions and isolating later hardening in forward migrations.
 
-There is no current local file for production version `20260707062202`.
+At the time of this historical capture there was no local file for production version `20260707062202`. The current composite clean-room file now occupies that exact version.
 
 ## Exact production SQL: `20260707062202_protect_privileged_profile_columns_v1`
 
