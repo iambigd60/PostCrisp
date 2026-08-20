@@ -8,6 +8,45 @@
 
 ---
 
+## 🎯 OPEN WORKLIST — start here (compiled 2026-08-19, end of session 27)
+
+Everything established this session that is still open, in priority order. Items already on session 26's punchlist are listed separately at the bottom so this stays honest about what is new.
+
+### 🔴 High
+
+1. **`supabase db push` would try to re-run all seven migrations against production.** Zero of the 7 local version stamps appear in the remote history — the remote records apply-time stamps (`20260818120000` locally vs `20260819010825` remotely), so `supabase migration list` reports everything as unapplied. Remote also carries `protect_privileged_profile_columns_v1`, which has no local file. They are mostly idempotent and filename order happens to converge, but that is luck. **Fix:** `supabase migration repair --status applied <version>` for each, so the two sides agree before anyone reaches for `db push`. **Do this first — it is the only open item that could damage production.**
+2. **The onboarding funnel is blind to four entry paths.** No server-side emission exists, so the completion redirect, the alpha-acceptance redirect, an auth failure, and any hydration error all return *before* the entry events fire — zero telemetry, no signal. This is the skipped part 4. **Cheaper route than the one we rejected:** emit from `src/app/onboarding/layout.tsx` via `after()` from `next/server`, which never touches `page.tsx` and so avoids the stage/resume lockstep risk entirely. Verify `after()` is exported in the installed Next version first (claimed 15.5.x, unverified).
+3. **The first session has never been run by a real user in production.** Ask → Pack → Own shipped 2026-08-19; nobody has signed in since 2026-08-06. The probe proves the telemetry pipe, not the flow. This is the manual walkthrough owed since session 26 and the largest unverified surface in the product.
+
+### 🟡 Medium
+
+4. **The repo's migrations are not the schema of record.** 18 tables in `public`; the 7 migration files create 3. The other 15 exist nowhere in the repo, so the schema cannot be rebuilt from source and drift in those 15 is undetectable.
+5. **`tutorial_redemptions` is append-only by convention, not by grant.** `service_role` holds UPDATE/DELETE/TRUNCATE via Supabase defaults; the migration's `GRANT SELECT, INSERT` only added to that. The ceiling is enforced by app code plus the UNIQUE constraint. The security-critical half is correct — clients have zero grants.
+6. **Leaked-password protection is disabled** in Supabase Auth (security advisor WARN). One dashboard toggle; checks against HaveIBeenPwned.
+7. **Server-side auth errors are swallowed at two points.** The onboarding page ignores the `error` from `getUser()` before redirecting to `/login`, and the event route's 401 path never inspects or logs its auth error. Both make a session problem look like ordinary behaviour.
+
+### 🟢 Low
+
+8. **Latent `TRUNCATE` grants** for `anon`/`authenticated` on the seven lockdown tables — that migration revoked only INSERT/UPDATE/DELETE against Supabase's default `ALL`. Not reachable through PostgREST, so a privilege that shouldn't exist rather than an open door.
+9. **Probe rows accumulate.** Every `POST /api/admin/onboarding-events` leaves a `selftest` row and there is no DELETE grant. Tagged and filterable — housekeeping, not a defect, but unbounded.
+10. **No integration test** spans browser producer → authenticated route → service-role client → real database. The new suites cover each link; nothing covers the chain.
+
+### ⚙️ Process / tooling
+
+11. **Three AImigos runs are repo-read-only** while reporting write access; this run also ended `malformed-response` with `verdict: null`. Check `git status` before believing any "implemented" claim.
+12. **Codex completes but does not relay.** Recover with `codex-companion.mjs status --all`, then `result <job-id>`.
+13. **The `/save` skill's co-author trailer says Opus 4.7** — stale.
+
+### Already tracked (session 26 punchlist, further down this file)
+
+~30 unchecked Supabase writes · Google-on-login possibly bypassing the invite gate · `onboarded_at`/`tutorial_progress` client-writable · no re-engagement loop · production email-confirmation setting unconfirmed · admins see a 409 on repeat tutorial runs. Plus two launch gates (Vercel WAF — check the plan tier first; Supabase rate limiting) and two product decisions that are calls to make, not bugs.
+
+### Closed this session
+
+Migration ordering question · seven of Codex's eighteen silent-failure modes · the `keepalive` gap · the tautological feature-key drift guard.
+
+---
+
 ## ✅ Session 27 — Migration state verified against production, then telemetry made provable (2026-08-19)
 
 ### The migration gate is CLOSED — and the ordering held
