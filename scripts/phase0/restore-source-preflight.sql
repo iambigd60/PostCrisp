@@ -42,6 +42,24 @@ net_counts as (
       ))[1]::text)::bigint
     end as queued_request_count
 ),
+subscription_counts as (
+  select
+    count(*)::bigint as total_count,
+    count(*) filter (where subenabled)::bigint as enabled_count,
+    count(*) filter (where not subenabled)::bigint as disabled_count,
+    count(*)::bigint as non_platform_or_unclassified_count
+  from pg_catalog.pg_subscription
+),
+replication_slot_counts as (
+  select
+    count(*)::bigint as total_count,
+    count(*) filter (where active)::bigint as active_count,
+    count(*) filter (where not active)::bigint as inactive_count,
+    count(*) filter (where slot_type = 'logical')::bigint as logical_count,
+    count(*) filter (where slot_type = 'physical')::bigint as physical_count,
+    count(*)::bigint as non_platform_or_unclassified_count
+  from pg_catalog.pg_replication_slots
+),
 vault_counts as (
   select
     pg_catalog.to_regnamespace('vault') is not null as schema_present,
@@ -94,6 +112,8 @@ select jsonb_build_object(
   ),
   'cron', (select to_jsonb(cron_counts) from cron_counts),
   'pg_net', (select to_jsonb(net_counts) from net_counts),
+  'subscriptions', (select to_jsonb(subscription_counts) from subscription_counts),
+  'replication_slots', (select to_jsonb(replication_slot_counts) from replication_slot_counts),
   'vault', (select to_jsonb(vault_counts) from vault_counts),
   'foreign_access', (select to_jsonb(foreign_access) from foreign_access),
   'outbound_reference_function_count',

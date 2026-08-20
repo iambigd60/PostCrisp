@@ -7,15 +7,57 @@ set local statement_timeout = '30s';
 
 with metadata_items as (
   select format(
-    'relation|%s|%s|%s|%s|%s',
+    'schema|%s|owner=%s',
+    n.nspname,
+    pg_catalog.pg_get_userbyid(n.nspowner)
+  ) as item
+  from pg_catalog.pg_namespace n
+  where n.nspname = 'auth'
+
+  union all
+
+  select format(
+    'schema_acl|%s|grantor=%s|grantee=%s|privilege=%s|grantable=%s',
+    n.nspname,
+    pg_catalog.pg_get_userbyid(acl.grantor),
+    case when acl.grantee = 0 then 'public' else pg_catalog.pg_get_userbyid(acl.grantee) end,
+    acl.privilege_type,
+    acl.is_grantable
+  )
+  from pg_catalog.pg_namespace n
+  cross join lateral pg_catalog.aclexplode(n.nspacl) acl
+  where n.nspname = 'auth'
+
+  union all
+
+  select format(
+    'relation|%s|%s|%s|%s|%s|owner=%s',
     n.nspname,
     c.relname,
     c.relkind,
     c.relrowsecurity,
-    c.relforcerowsecurity
+    c.relforcerowsecurity,
+    pg_catalog.pg_get_userbyid(c.relowner)
   ) as item
   from pg_catalog.pg_class c
   join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'auth'
+    and c.relkind in ('r', 'p', 'v', 'm', 'S')
+
+  union all
+
+  select format(
+    'relation_acl|%s|%s|grantor=%s|grantee=%s|privilege=%s|grantable=%s',
+    n.nspname,
+    c.relname,
+    pg_catalog.pg_get_userbyid(acl.grantor),
+    case when acl.grantee = 0 then 'public' else pg_catalog.pg_get_userbyid(acl.grantee) end,
+    acl.privilege_type,
+    acl.is_grantable
+  )
+  from pg_catalog.pg_class c
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+  cross join lateral pg_catalog.aclexplode(c.relacl) acl
   where n.nspname = 'auth'
     and c.relkind in ('r', 'p', 'v', 'm', 'S')
 
@@ -77,11 +119,22 @@ with metadata_items as (
   union all
 
   select format(
-    'policy|%s|%s|%s|%s|%s|%s',
+    'policy|%s|%s|%s|%s|roles=%s|%s|%s',
     c.relname,
     pol.polname,
     pol.polcmd,
     pol.polpermissive,
+    coalesce(
+      (
+        select string_agg(
+          case when role_oid = 0 then 'public' else pg_catalog.pg_get_userbyid(role_oid) end,
+          ','
+          order by case when role_oid = 0 then 'public' else pg_catalog.pg_get_userbyid(role_oid) end
+        )
+        from unnest(pol.polroles) as roles(role_oid)
+      ),
+      ''
+    ),
     coalesce(pg_catalog.pg_get_expr(pol.polqual, pol.polrelid), ''),
     coalesce(pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid), '')
   )
@@ -93,18 +146,37 @@ with metadata_items as (
   union all
 
   select format(
-    'function|%s|%s|%s|%s|%s|%s|%s',
+    'function|%s|%s|%s|%s|%s|%s|%s|owner=%s|definition_md5=%s',
     p.proname,
     pg_catalog.pg_get_function_identity_arguments(p.oid),
     pg_catalog.pg_get_function_result(p.oid),
     p.provolatile,
     p.prosecdef,
     p.prokind,
-    l.lanname
+    l.lanname,
+    pg_catalog.pg_get_userbyid(p.proowner),
+    md5(replace(replace(pg_catalog.pg_get_functiondef(p.oid), E'\r\n', E'\n'), E'\r', E'\n'))
   )
   from pg_catalog.pg_proc p
   join pg_catalog.pg_namespace n on n.oid = p.pronamespace
   join pg_catalog.pg_language l on l.oid = p.prolang
+  where n.nspname = 'auth'
+
+  union all
+
+  select format(
+    'function_acl|%s|%s|%s|grantor=%s|grantee=%s|privilege=%s|grantable=%s',
+    n.nspname,
+    p.proname,
+    pg_catalog.pg_get_function_identity_arguments(p.oid),
+    pg_catalog.pg_get_userbyid(acl.grantor),
+    case when acl.grantee = 0 then 'public' else pg_catalog.pg_get_userbyid(acl.grantee) end,
+    acl.privilege_type,
+    acl.is_grantable
+  )
+  from pg_catalog.pg_proc p
+  join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+  cross join lateral pg_catalog.aclexplode(p.proacl) acl
   where n.nspname = 'auth'
 ),
 metadata_signature as (

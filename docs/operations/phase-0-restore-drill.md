@@ -26,21 +26,25 @@ Run the committed metadata-only query twice: once before requesting authorizatio
 supabase db query --linked --file scripts/phase0/restore-source-preflight.sql --output-format json
 ```
 
-The query returns enabled outbound-relevant extension names; `pg_cron` catalog/job/active-job counts when installed; `pg_net` request-queue presence/count when installed; foreign-wrapper/server/user-mapping counts; metadata-only function identities that reference outbound facilities; and Vault schema/relation/count. It never returns job commands, URLs, Vault payloads, foreign options, secrets, or application rows.
+The query returns enabled outbound-relevant extension names; `pg_cron` catalog/job/active-job counts when installed; `pg_net` request-queue presence/count when installed; total/enabled/disabled subscription counts; total/active/inactive/logical/physical replication-slot counts; conservative non-platform/unclassified counts; foreign-wrapper/server/user-mapping counts; metadata-only function identities that reference outbound facilities; and Vault schema/relation/count. It never returns subscription connection information, slot names, job commands, URLs, Vault payloads, foreign options, secrets, or application rows.
 
-The latest read-only production execution at `2026-08-20T18:12:00.868733Z` found:
+Catalog semantics are taken from the current PostgreSQL references for [`pg_subscription`](https://www.postgresql.org/docs/current/catalog-pg-subscription.html) and [`pg_replication_slots`](https://www.postgresql.org/docs/current/view-pg-replication-slots.html).
+
+The latest read-only production execution at `2026-08-20T18:35:32.507518Z` found:
 
 - no `pg_cron` catalog or jobs;
 - no `pg_net` request queue;
 - no foreign servers, user mappings, or wrapper names;
+- zero subscriptions: zero enabled, disabled, and non-platform/unclassified;
+- zero replication slots: zero active, inactive, logical, physical, and non-platform/unclassified;
 - `supabase_vault` and `vault.secrets` present with zero secrets;
 - one vendor helper identity, `extensions.grant_pg_net_access()`, while `pg_net` itself was absent.
 
 That is point-in-time evidence only. It is not a permanent assumption and must not be copied forward without a fresh execution.
 
-Abort before creating a target if the second execution differs unexpectedly or if any job, queue, foreign server/mapping, wrapper, webhook/network extension, outbound-reference function, or Vault/root-key-dependent integration could create an external side effect before target-only neutralization. Because a clone may copy and activate database mechanisms before the operator can connect, "disable it after restore" is not an acceptable pre-clone control. Resume only after Supabase provides a vendor-supported inert-start mechanism or a separately reviewed/authorized source-side neutralization plan. Do not mutate production under this runbook.
+Abort before creating a target if the second execution differs unexpectedly or if any job, queue, foreign server/mapping, wrapper, webhook/network extension, outbound-reference function, or Vault/root-key-dependent integration could create an external side effect before target-only neutralization. Always abort on any enabled subscription. The query deliberately classifies every slot as non-platform/unclassified and uses no slot-name or prefix allowlist. A separate authoritative source-specific evidence record must verify each harmless platform slot; abort while any slot remains unclassified. Because a clone may copy and activate database mechanisms before the operator can connect, "disable it after restore" is not an acceptable pre-clone control. Resume only after Supabase provides a vendor-supported inert-start mechanism or a separately reviewed/authorized source-side neutralization plan. Do not mutate production under this runbook.
 
-Regardless of Vault's current count, the clone copies the database and enabled extensions. Conservatively assume any Vault data and root-key material needed to decrypt it may be present. Treat the target, its Vault/root-key material, connection material, and all database contents as production-sensitive from creation through deletion.
+Regardless of Vault's current count, current official [clone documentation](https://supabase.com/docs/guides/platform/clone-project) states that the clone copies the encryption root key along with database data and enabled extensions. Treat the target, its Vault/root-key material, connection material, and all database contents as production-sensitive from creation through deletion.
 
 ## Cost estimate and authorization checkpoint
 
@@ -135,11 +139,16 @@ Pass requires exit 0 and `Schema inventories match.` Any unexplained difference 
 The executable query `scripts/phase0/auth-restore-signature.sql` returns only:
 
 - an Auth schema metadata item count and MD5 signature;
+- canonical schema/relation/routine ownership and explicit ACL privilege metadata;
+- policy definitions with deterministically sorted policy-role metadata;
+- routine metadata plus MD5 hashes of definitions normalized only for CRLF/CR line endings;
 - presence booleans for the `auth` schema and `auth.users` relation;
 - a transient user aggregate capped at 100,001; and
 - capture timestamp/cap metadata.
 
-It returns no identities, rows, email addresses, phone numbers, passwords, tokens, or secrets. Its SHA-256 at this review is `3CE8DDB6F19823E0EDA6D76620BAAB47E844E4634BA43C3F1306E35AD7F6A61F`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
+Raw owner/ACL/policy-role names and routine definitions are incorporated only into canonical metadata items and are never emitted; the query returns only the aggregate signature. OIDs are excluded because they are restore-unstable. Global role memberships and settings outside the `auth` schema are also excluded; a drift confined to those external surfaces will not be detected by this Auth signature and must be covered by separate schema/role evidence. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, or routine bodies. Its SHA-256 at this review is `76DCD5229E671396F5C822CCF0DA839BE83FF9183785DE682A64FCF5DD649CCE`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
+
+Metadata behavior follows the current PostgreSQL catalog and information-function references for [`pg_policy`](https://www.postgresql.org/docs/current/catalog-pg-policy.html), [`pg_proc`](https://www.postgresql.org/docs/current/catalog-pg-proc.html), and [`pg_get_functiondef`](https://www.postgresql.org/docs/current/functions-info.html).
 
 Execute it in read-only mode against the source before authorization, again immediately before clone, and against the healthy clone. Store raw outputs only in the encrypted transient workspace:
 
@@ -162,7 +171,7 @@ node scripts/phase0/compare-auth-restore-signature.mjs \
 Comparison results:
 
 - `PASS_BOUNDED` / exit 0: Auth schema/users relation present, backup timestamp precedes captures, metadata signatures match, counts are uncapped, and all three bounded counts match.
-- `FAIL` / exit 1: missing Auth structure, backup/capture ordering error, malformed evidence, or metadata-signature mismatch.
+- `FAIL` / exit 1: missing Auth structure, malformed or wrongly typed evidence, invalid hash/count/cap semantics, any violation of `backup <= source-before-authorization <= source-before-clone <= clone`, or metadata-signature mismatch.
 - `INDETERMINATE` / exit 2: a count reaches the cap or differs. The drill cannot pass without independently authorized backup-time aggregate evidence or a newer backup/retry.
 
 Only the comparator's secrets-free output may be retained: query hash, selected backup/capture timestamps, metadata signature, equality booleans, status, and limitation. Delete raw aggregates after review.
