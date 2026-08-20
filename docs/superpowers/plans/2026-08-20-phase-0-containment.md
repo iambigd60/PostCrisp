@@ -59,7 +59,7 @@ The ADR must include the exact commands and exit codes actually observed.
 
 1. Implement the Task 1 ADR. The default approved candidate is a clearly marked clean-room baseline folded into the earliest already-applied production version; if Task 1 disproves it, stop and revise this plan before changing tracked migrations.
 2. Keep the exact missing v1 production statement intact after the baseline portion and explain at the file header why the version is a composite bootstrap representation rather than a byte-for-byte historical file.
-3. Rename the seven existing migrations without changing their SQL except where Task 1 produced an evidenced replay failure that requires an idempotency fix. Any such SQL change must be isolated, explained in the ADR, and reviewed as a production-parity risk.
+3. Create each of the seven production-timestamp files from the exact production statement body captured by Task 1, using Task 1's documented LF/UTF-8 normalization where production stored statement arrays. Do not treat the current files as byte-identical: four differ from production in comments/formatting, and `service_role_table_grant_lockdown` has a material DDL difference in the feedback revocations. Keep the composite baseline only in `20260707062202`; any desired post-production hardening beyond the exact captured statements must be isolated, explained in the ADR, and reviewed as a production-parity risk.
 4. Run a blank local reset twice. The second reset guards against hidden state in the first run.
 5. Confirm the linked migration list has identical local and remote version sets and the linked dry run reports no pending migration.
 6. Inspect the migration diff and scan it for credentials or data.

@@ -45,11 +45,11 @@ Use the composite-baseline architecture established in [the reconciliation ADR](
 
 1. Preserve all eight production migration versions locally.
 2. Represent version `20260707062202` as a documented clean-room bootstrap: the current repository baseline, three hoisted bootstrap prerequisites required by that baseline's existing forward references, and then the exact production v1 statement.
-3. Replay the remaining seven migration files unchanged under their production timestamps.
-4. Keep the literal production v1 SQL separately in [the production migration-history evidence](evidence/phase-0/2026-08-20-production-migration-history.md).
+3. Replay the remaining seven production-timestamp files from the exact captured production bodies, not from assumed timestamp-only renames of the current local files.
+4. Keep all eight normalized production bodies and stable hashes in [the exact statement artifact](evidence/phase-0/2026-08-20-production-migration-statements.json), with the query and comparison evidence in [the production migration history](evidence/phase-0/2026-08-20-production-migration-history.md).
 
 The disposable composite lab rebuilt a blank local database and its linked dry run reported no pending migrations. The latest-version squashed alternative was therefore not tested or selected.
 
 ## Task 2 handoff
 
-Task 2 may implement the selected representation in tracked migrations. It must preserve the exact production v1 statement after the bootstrap portion, carry the seven timestamp-only renames without unrelated SQL changes, reset the blank local database twice, and repeat the linked version/dry-run checks before claiming reconciliation complete.
+Task 2 may implement the selected representation in tracked migrations. It must preserve the exact production v1 statement after the bootstrap portion and use the captured exact production bodies for the other seven versions. Only two current local files hash-match production; four differ in comments/formatting, and the service-role grant file has a material feedback-revocation difference. Task 2 must keep that difference explicit, reset the blank local database twice, and repeat the linked version/dry-run checks before claiming reconciliation complete.

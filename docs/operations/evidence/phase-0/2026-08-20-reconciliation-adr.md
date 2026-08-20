@@ -18,7 +18,7 @@ Select a **composite baseline at the earliest production version**:
 - It contains the current baseline schema.
 - Immediately after `profiles`, it hoists idempotent definitions for `generations`, `saved_content`, and `handle_updated_at` so the baseline's existing forward references can run on a blank database. Their later `IF NOT EXISTS` / `OR REPLACE` definitions remain in the baseline.
 - It appends the exact production `protect_privileged_profile_columns_v1` statement verbatim after the baseline portion.
-- The other seven migrations retain their SQL and use the production timestamps recorded in the migration-history evidence.
+- The other seven production-timestamp files use the exact normalized production statement bodies preserved in the migration-history artifact. They are not assumed to match the current local files.
 
 This representation preserves all eight production version identifiers and keeps the literal remote SQL reviewable, while honestly distinguishing local clean-room bootstrap structure from literal historical execution.
 
@@ -32,13 +32,15 @@ All experiment files were disposable and ignored under `.superpowers/sdd/2026-08
 
 The lab used the exact missing v1 SQL followed by the seven existing migrations under production timestamps. Against a blank local database it failed at the earliest migration because `public.profiles` did not exist. This is the expected proof that timestamp alignment alone is not a bootstrap.
 
-### Composite baseline
+### Exact-statement comparison and corrected composite baseline
 
-The composite lab started successfully, applied all eight production-version files, then completed an explicit blank local reset. Its linked migration list paired every local version with the same remote version, and the linked dry run returned `upToDate: true` with no migrations, seeds, or roles pending.
+Review of the first experiment found that its seven mapped files came from the repository rather than the exact production bodies. A normalized SHA-256 comparison then proved that only `processed_stripe_events` and `purchased_credits_bucket` match. The prelaunch, profiles-insert, tutorial-redemptions, and onboarding-events differences are comments/formatting only; `service_role_table_grant_lockdown` also has a material DDL difference because the local file revokes feedback `UPDATE` and `DELETE` while the stored production statement does not.
+
+The ignored lab was rebuilt from the exact production artifact. The earliest composite file retained the baseline/hoisted-prerequisite architecture and ended with the exact v1 body. Each of the remaining seven lab files hash-matched its captured production statement. This corrected composite started successfully, applied all eight production-version files, and completed an explicit blank local reset. Its linked migration list paired every local version with the same remote version, and the linked dry run returned `upToDate: true` with no migrations, seeds, or roles pending.
 
 Supabase startup printed local development credentials. They were transient local defaults and are intentionally omitted from this evidence.
 
-The required secret-pattern scan returned matches because the pattern includes the non-secret database role name. Before this scan record was added, the three new operational documents matched only the two occurrences of the exact migration identifier `service_role_table_grant_lockdown`; this paragraph and the command record are additional self-referential matches. The broader scan also found pre-existing documentation references and the scan command embedded in the approved plan. Manual review found no credential value, token, or connection string in the staged files.
+The required secret-pattern scan returned matches because the pattern includes the non-secret database role name. Changed-file matches are migration identifiers, role-name descriptions, or the scan command itself; the broader scan also finds pre-existing variable-name-only documentation. Manual review found no credential value, token, or connection string in the staged files.
 
 ## Exact command record
 
@@ -68,11 +70,19 @@ Commands are shown exactly as invoked from `C:\Projects\postcrisp-phase-0-contai
 | `git diff --check` | 0 | No unstaged whitespace errors |
 | `git diff --cached --check` | 0 | No staged whitespace errors after correction |
 | `rg -n --hidden "(service_role\|SUPABASE_SERVICE_ROLE_KEY\|postgres(ql)?://\|sbp_[A-Za-z0-9]\|sk_(live\|test)_)" docs/operations docs/superpowers` | 0 | Matches reviewed; no secret value found in staged files |
+| `& '.superpowers\sdd\2026-08-20-phase-0-containment\lab\rebuild-exact-history.ps1'` | 1 | Initial ignored helper used unavailable `Convert.ToHexString`; no production or tracked migration state changed |
+| `& '.superpowers\sdd\2026-08-20-phase-0-containment\lab\rebuild-exact-history.ps1'` | 0 | Five local mismatches reproduced; all seven exact-statement lab files hash-matched production and the composite v1 suffix matched |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" start` | 0 | Corrected exact-statement composite applied all eight files |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" db reset --local` | 0 | Corrected exact-statement composite rebuilt a blank database |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" migration list --linked` | 0 | Corrected lab showed eight exact local/remote version pairs |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" db push --dry-run --linked` | 0 | Corrected lab was up to date with no pending migration |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" stop --no-backup` | 0 | Corrected disposable composite stack stopped without backup |
 
 ## Consequences and follow-up
 
 - Task 2 must clearly label the earliest tracked migration as a composite clean-room representation.
 - The hoisted prerequisites are a bootstrap-only ordering accommodation and must be reviewed as part of the earliest migration.
-- The exact v1 statement remains independently preserved in migration-history evidence.
+- All eight exact normalized production statements remain independently preserved in the migration-history artifact with stable hashes.
+- Task 2 must use those captured bodies for the seven production-timestamp files. Four current differences are comments/formatting; the service-role grant difference is material DDL and must remain visible until deterministic schema parity resolves current state.
 - The final schema still needs Task 3's deterministic local-versus-production object comparison; a successful reset and an empty migration dry run prove lineage mechanics, not full schema parity.
 - Production migration history was not repaired, hidden, or otherwise mutated.
