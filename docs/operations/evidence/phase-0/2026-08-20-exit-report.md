@@ -5,19 +5,19 @@
 **Final-review fix-wave base:** `03137e8`
 **Verification state:** working tree on `codex/phase-0-containment`; commit recorded after this evidence update
 
-The membership-option unblock extends the Auth global-role fingerprint to PostgreSQL 17's security-bearing `inherit_option` and `set_option`. It does not make Phase 0 complete. Docker was available for the narrow isolated PostgreSQL 17 regression, but the required full local Supabase reset/inventory-v2 proof was not rerun; current production grants expose high-blast-radius privileges to client roles, and the live-control/restore/final-independent-review gates remain unresolved.
+The optional-extension unblock makes local PostgreSQL 17 extension state reproducible: a CLI-generated migration explicitly drops unused `pg_graphql`, and a fresh local inventory-v2 capture now matches production-v2 exactly. It does not make Phase 0 complete. The migration is still local-only, current production grants expose high-blast-radius privileges to client roles, and the platform-control/restore/final-independent-review gates remain unresolved.
 
 ## Safety boundary
 
-Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no non-dry-run database push, repair, linked reset, remote DDL, browser launch, push, merge, or Phase 1 work occurred. One unexposed disposable local PostgreSQL 17 container exercised membership catalog mutations and was then removed. Raw linked query output was held only in process memory long enough to validate its reviewed shape/counts and was not persisted.
+Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no database push or dry-run, repair, linked reset, remote DDL, browser launch, push, merge, or Phase 1 work occurred. Two explicit `supabase db reset --local` runs erased the prior manual local experiment and replayed the repository before and after the new migration. Raw launcher output was held only in process memory long enough to validate reviewed shapes/counts and was not persisted.
 
-All eight applied migration versions and captured statement bodies remain unchanged from `03137e8`. No pending hardening migration was created.
+All eight production-applied migration versions and captured statement bodies remain unchanged from `03137e8`. `20260820210852_disable_unused_pg_graphql.sql` is a new local-only pending migration; its single statement is not client-role hardening and must not be pushed without the explicit production checkpoint.
 
 ## Production security blocker: client-role grants
 
 Exact historical parity preserves unsafe current production state. The captured grant inventory gives both `anon` and `authenticated` `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` on 16 public tables plus captured default table ACLs. Both roles also have `USAGE`, `SELECT`, and `UPDATE` on `onboarding_events_id_seq` and `tutorial_redemptions_id_seq`; those application-sequence privileges should be service-only.
 
-This is a Phase 0 production security blocker. Separately authorized forward-hardening work must add and deploy a new production migration that revokes the client-role table/default/sequence blast radius, retains required `service_role` access, verifies application behavior, and refreshes production grant/advisor evidence. This branch intentionally does not add an unapplied migration because the linked no-pending invariant and historical fidelity are binding.
+This is a Phase 0 production security blocker. Separately authorized forward-hardening work must add and deploy another production migration that revokes the client-role table/default/sequence blast radius, retains required `service_role` access, verifies application behavior, and refreshes production grant/advisor evidence. The pending `pg_graphql` migration does not address these grants.
 
 ## Fresh verification evidence
 
@@ -25,6 +25,18 @@ All timestamps below are UTC on 2026-08-20.
 
 | Start | Command | Exit | Result |
 | --- | --- | ---: | --- |
+| `21:07Z` | pre-migration `supabase db reset --local` | 0 | Recreated the local database and replayed only the eight committed migrations, erasing the prior manual local extension drop. |
+| `21:08Z` | fresh local inventory-v2 capture and comparator before the migration | 1 | Authentic RED: the only difference was `extra in local: extensions graphql.pg_graphql`. |
+| `21:08Z` | `supabase migration new disable_unused_pg_graphql` | 0 | CLI created `20260820210852_disable_unused_pg_graphql.sql`; its final body contains only `drop extension if exists pg_graphql;` and no `CASCADE`. |
+| `21:09Z` | post-migration `supabase db reset --local` | 0 | Recreated the local database and applied all nine local migrations, including the non-`CASCADE` extension drop. |
+| `21:09Z` | fresh local inventory-v2 capture and comparator | 0 | GREEN: contract `2`, five extensions, no `pg_graphql`, every foreign-option-presence flag false, and `Schema inventories match.` The tracked stale local-v1 artifact was replaced with this v2 capture. |
+| `21:10Z` | local Auth launcher, source-preflight launcher, and default-grant probe | 0 each | Auth returned exactly 10 keys with 1,149 metadata and 74 global-role items. Preflight returned exactly 10 reviewed keys but recorded one active unclassified local replication slot; the probe passed. Raw outputs were discarded. |
+| `21:10Z` | `node --test scripts/phase0/compare-schema-inventory.test.mjs` | 0 | All 13 tests passed, including the three database-backed inventory checks. |
+| `21:11Z` | all seven Phase 0 Node test files | 0 | 62 tests: 61 passed and the optional standalone PostgreSQL membership-container test skipped; no failure. |
+| `21:11Z` | local migration list and local advisors | 0 each | All nine local migrations were applied. Advisors completed with 64 existing WARN-level findings; no production advisor or setting was changed. |
+| `21:11Z` | app tests, typecheck, and lint, run sequentially | 0 each | 26 files/240 app tests passed; typecheck passed; lint retained the four baseline warnings and existing tool deprecations. |
+| `21:12Z` | `supabase migration list --linked` | 0 | Read-only listing paired the original eight versions and showed `20260820210852` local-only. No `db push` or dry-run followed. |
+| `21:16Z` | final migration/body, inventory, secret, scope, and whitespace checks | 0 | The migration remained the exact one-statement non-`CASCADE` drop; both inventories parsed as contract v2 and compared exactly; the high-confidence credential-value scan found no matches (`rg` exit 1); `git diff --check` passed; only the seven reviewed tracked paths were in scope. |
 | `20:54Z` | `node --test scripts/phase0/auth-restore-signature-query.test.mjs` before the SQL change | 1 | Authentic RED: 3 passed, 1 failed, 1 skipped. The failure was `membership fingerprint omits inherit_option`, the expected omitted-option reason. |
 | `20:57Z` | the same query test with `PHASE0_PG17_CONTAINER` against isolated PostgreSQL `17.6` before the SQL change | 1 | Database-backed RED: 3 passed and 2 failed. With the membership item count unchanged, changing `inherit_option` left the global-role signature unchanged. No raw catalog row, role identity, or hash is retained here. |
 | `20:57Z` | the same PostgreSQL 17-backed query test after the minimal SQL change | 0 | GREEN: all 5 passed. Omitting either named option is rejected, and independently changing `inherit_option` or `set_option` changes the global-role signature without changing the item count. |
@@ -58,14 +70,14 @@ The four baseline lint warnings are distinct from a clean lint result:
 - `src/app/admin/feature-access/page.tsx:44`: missing `load` dependency.
 - `src/components/ui/FeatureGate.tsx:113`: `@next/next/no-img-element`.
 
-## Contract changes and remaining local blocker
+## Contract changes and local proof
 
 - `restore-source-preflight.sql` is now one read-only prepared statement. Its launcher pins Supabase CLI `2.115.0`, applies the existing 45-second deadline/process-tree termination contract, accepts only linked/local/validated project-ref targets, validates the exact metadata-only shape, and suppresses partial output.
-- Schema inventory contract v2 adds application-schema state, installed extensions, public views/materialized views, foreign tables, and public types. The production v2 snapshot is committed. The local snapshot remains v1, so the comparator exits `2` until a fresh full local v2 capture succeeds.
+- Schema inventory contract v2 covers application-schema state, installed extensions, public views/materialized views, foreign tables, and public types. The fresh local-v2 snapshot now matches the committed production-v2 snapshot exactly after the pending migration removes unused `pg_graphql`.
 - The Auth fingerprint now includes view definitions, column ACLs, enum labels, trigger enabled state, and a password-free aggregate fingerprint of global roles, memberships, and all-database/current-database settings. Each PostgreSQL 17 membership item names and deterministically renders `admin_option`, `inherit_option`, and `set_option`. `PASS_BOUNDED` requires this evidence and stable hashes across captures.
 - Auth launcher normalization reconstructs only the exact 10-key reviewed contract; extra identity/secret-like keys such as `email` and `token` are dropped.
 
-Docker is currently available, but this membership-only unblock did not run the fresh full Supabase reset, three database-backed inventory tests, local Auth/preflight launchers, local inventory-v2 capture, default-grant probe, or production-v2/local-v2 comparator. Those are later gates; no fresh local parity result is claimed.
+Docker is currently available, and the full local reset, database-backed inventory tests, local Auth/preflight launchers, local inventory-v2 capture, default-grant probe, and production-v2/local-v2 comparator all ran. The local preflight's one active unclassified replication slot is expected local-stack evidence, not a clean production outbound-safety result. Production still requires the separately authorized migration checkpoint and all live restore/control gates.
 
 ## Live-control gate
 
@@ -85,4 +97,4 @@ The Greybeard final review produced the four Important and one Minor findings ad
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Complete the fresh inventory-v2 local proof as a later gate; authorize, deploy, and evidence the client-role grant hardening separately; satisfy the exact live-control/restore checkpoints; and obtain independent post-fix approval before reconsidering the gate.
+Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Explicitly authorize and complete the pending migration dry-run/apply/recapture checkpoint; authorize, deploy, and evidence the separate client-role grant hardening; satisfy the exact live-control/restore checkpoints; and obtain independent post-fix approval before reconsidering the gate.

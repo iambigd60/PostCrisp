@@ -8,7 +8,7 @@
 
 **Local source:** a fresh `supabase db reset --local` using Supabase CLI `2.115.0`
 
-**Verdict:** **BLOCKED — the historical v1 captured scope matched, but inventory contract v2 has no fresh local capture. Docker is now available for an isolated PostgreSQL 17 regression; the full local Supabase reset/capture was not rerun in that membership-only task.**
+**Verdict:** **VERIFIED — a fresh local inventory-v2 capture exactly matches the committed production-v2 artifact under the reviewed comparator. Phase 0 remains blocked on separate production-security, platform-control, restore, and independent-review gates.**
 
 ## Scope and exclusions
 
@@ -24,12 +24,12 @@ The query reads only PostgreSQL catalogs. It excludes table rows, sequence curre
 
 ## Capture and comparison
 
-The production file was refreshed read-only from inventory contract v2. The local file remains the earlier v1 capture. Docker Desktop's Linux engine was unavailable during the prior Task 5 attempt; it was available later for an isolated PostgreSQL 17 membership-fingerprint regression, but that narrow task did not rerun the full local Supabase reset/capture:
+The production file remains the read-only inventory-v2 capture. The local file was replaced with a fresh inventory-v2 capture after `supabase db reset --local` replayed all nine local migrations, including the pending `disable_unused_pg_graphql` migration:
 
 - [production inventory](2026-08-20-production-schema-inventory.json)
 - [local inventory](2026-08-20-local-schema-inventory.json)
 
-The v2 production capture completed on 2026-08-20 with contract version `2`: one `public` application schema, five installed extensions, zero public views/materialized views, zero public foreign tables, and zero public application types. The historical v1 production/local captures had matching counts for the previously covered classes:
+Both v2 artifacts have contract version `2`: one `public` application schema, five installed extensions, zero public views/materialized views, zero public foreign tables, and zero public application types. Every foreign-option-presence flag is false because there are no foreign tables. The comparator also matched these previously covered classes:
 
 | Category | Count |
 | --- | ---: |
@@ -57,31 +57,33 @@ Current command and result:
 
 ```text
 node scripts/phase0/compare-schema-inventory.mjs docs/operations/evidence/phase-0/2026-08-20-production-schema-inventory.json docs/operations/evidence/phase-0/2026-08-20-local-schema-inventory.json
-Schema inventory contract invalid: local inventory_contract_version must equal 2
-EXIT 2
+Schema inventories match.
+EXIT 0
 ```
 
-This is a Phase 0 exit blocker. With Docker available, run `supabase db reset --local` as its own later gate, capture inventory v2 with the committed query, require every foreign-option-presence flag to be false or complete a separately authorized secrets-safe transient review, and rerun the comparator. Do not describe the isolated PostgreSQL 17 regression or historical v1 match as current exact schema parity.
+This closes the local inventory-v2 parity blocker. It does not authorize the pending migration for production or resolve the independent Phase 0 blockers below.
 
 ## Differences found and reconciled locally
 
-The first fresh-reset comparison failed with two concrete reconstruction defects:
+Fresh-reset comparisons exposed three concrete reconstruction defects:
 
 1. Twenty-one column ordinal differences: 14 in `public.profiles` and 7 in `public.saved_content`. The composite baseline's clean-room definitions used the repository's convenient declaration order instead of the order present in production.
 2. One hundred sixty-three missing explicit object grants across `anon`, `authenticated`, and `service_role`. The local stack used the new non-auto-exposed default while production retains the legacy Data API grant behavior.
+3. The pinned local PostgreSQL 17 image installed `graphql.pg_graphql`, while the linked production inventory had no `pg_graphql` extension. The repository has no GraphQL client or `graphql.resolve` usage.
 
 The clean-room representation was corrected without changing production:
 
 - The composite baseline now declares `profiles` and its hoisted `saved_content` prerequisite in production column order. `purchased_credits` is again added by its exact production-timestamp migration, placing it at ordinal 18.
 - The composite bootstrap explicitly reproduces the captured `postgres` default ACLs before application DDL; the deprecated global `api.auto_expose_new_tables` compatibility toggle is not enabled. Supabase seeds the reserved `supabase_admin` creator defaults before migrations, and the inventory correlates that second creator by its normalized ACL-set fingerprint because the non-superuser migration role cannot safely impersonate or alter it.
+- `20260820210852_disable_unused_pg_graphql.sql` contains only `drop extension if exists pg_graphql;`. A pre-migration fresh reset reproduced the single extra-extension mismatch; a post-migration fresh reset removed it without `CASCADE`, and the v2 comparator then matched.
 
-Historically, after a fresh `supabase db reset --local`, all 479 captured grants and every other v1-captured object matched byte-for-byte at SHA-256 `138c91b56e1d7e21101bc232f09c071459c4e52603ff6147f15a09f2221c6d8b`. A local future-object probe proved that `postgres`-created tables, sequences, and functions receive exactly its captured default ACL set, while a newly created role with no captured defaults receives no legacy Data API grants. The reserved `supabase_admin` creator could not be safely impersonated, so its production/local correlation was proved through matching creator ACL fingerprints instead. That historical result remains useful evidence but is not v2 completion proof. The seven non-composite migration files still hash-match their exact production statements, and the composite migration still ends with the exact production v1 statement.
+After the post-migration fresh reset, all 479 captured grants and every inventory-v2 section matched. The default-grant probe exited `0`, proving that `postgres`-created tables, sequences, and functions receive the captured defaults while a newly created role with no captured defaults receives no legacy Data API grants. The reserved `supabase_admin` creator correlation remains represented through matching normalized creator ACL-set fingerprints. The seven non-composite historical migration files still hash-match their exact production statements, and the composite migration still ends with the exact production v1 statement.
 
 ## Production security blocker: client-role blast radius
 
 The captured production grants are a Phase 0 security blocker, not a benign parity note. `anon` and `authenticated` retain `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` on 16 current public tables and through captured default table ACLs. Both client roles also retain `USAGE`, `SELECT`, and `UPDATE` on the two application sequences; those sequence privileges should be service-only. RLS does not neutralize all of these privileges or their blast radius.
 
-Historical fidelity is preserved in the eight applied migration bodies, and this branch intentionally adds no pending migration. Separately authorized forward-hardening work must add and deploy a new production migration that revokes those high-blast-radius table/default privileges from `anon`/`authenticated`, revokes their application-sequence/default-sequence privileges while retaining required `service_role` access, validates application behavior, and captures fresh production advisors/grants. Phase 0 must remain blocked until that production change is authorized, executed, and evidenced.
+Historical fidelity is preserved in the eight production-applied migration bodies. The new local-only `disable_unused_pg_graphql` migration does not alter these client-role grants. Separately authorized forward-hardening work must add and deploy another production migration that revokes those high-blast-radius table/default privileges from `anon`/`authenticated`, revokes their application-sequence/default-sequence privileges while retaining required `service_role` access, validates application behavior, and captures fresh production advisors/grants. Phase 0 must remain blocked until that production change is authorized, executed, and evidenced.
 
 ## Production advisors
 
@@ -104,6 +106,7 @@ These findings remain follow-up work. They do not create a production/local pari
 
 ## Safety record
 
-- Production received catalog `SELECT` queries and advisor reads only.
+- Production received only read-only catalog/migration-list queries during these verification waves.
 - No database push, migration repair, linked reset, remote DDL, restore, firewall mutation, push, or merge was performed.
 - The committed JSON contains catalog metadata only; it contains no rows, credentials, tokens, connection strings, or local stack state.
+- The read-only linked migration list shows `20260820210852` local-only. Production authorization is required before even the dry-run/apply checkpoint recorded in the migration evidence.
