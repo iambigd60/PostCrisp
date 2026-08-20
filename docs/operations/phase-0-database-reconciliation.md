@@ -13,7 +13,7 @@
 | Supabase project | `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`) |
 | Vercel project | `prj_jk99T7FADZ391B7LWt9g8SYwLn9w` |
 | Supabase CLI | `2.115.0` |
-| Docker verification | Docker Desktop running; engine `29.6.1` |
+| Docker verification | Historical evidence: Docker Desktop running; engine `29.6.1`. Current Task 5 refresh at `2026-08-20T20:06:54.2150569Z`: Docker Desktop Linux engine unavailable (`dockerDesktopLinuxEngine` named pipe absent); `supabase db reset --local` exited 1, so fresh local clean-room verification is blocked. |
 
 The repository baseline was reverified in this worktree on 2026-08-20:
 
