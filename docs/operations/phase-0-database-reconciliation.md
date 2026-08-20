@@ -67,6 +67,12 @@ These checks reconcile the repository migration lineage without changing product
 
 Task 3 added a catalog-only inventory and dependency-free comparator. Production was queried read-only, and local inventory was captured only after a fresh `supabase db reset --local`.
 
+After each verification reset, run the database-backed default-grant integration check separately from the Node unit suite:
+
+```text
+supabase db query --local --file scripts/phase0/probe-default-grants.sql --output-format json
+```
+
 The first comparison exposed 21 column-order differences and 163 missing legacy Data API grants. Both were clean-room reconstruction defects:
 
 - the composite baseline now preserves production order for `profiles` and the hoisted `saved_content` prerequisite, while `purchased_credits` remains added by its exact production-timestamp migration; and

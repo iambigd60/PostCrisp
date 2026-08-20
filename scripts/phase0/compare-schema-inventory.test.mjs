@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -8,11 +8,6 @@ import { fileURLToPath } from 'node:url';
 
 const comparatorPath = fileURLToPath(new URL('./compare-schema-inventory.mjs', import.meta.url));
 const inventorySqlPath = fileURLToPath(new URL('./schema-inventory.sql', import.meta.url));
-const configPath = fileURLToPath(new URL('../../supabase/config.toml', import.meta.url));
-const compositeMigrationPath = fileURLToPath(new URL(
-  '../../supabase/migrations/20260707062202_protect_privileged_profile_columns_v1.sql',
-  import.meta.url,
-));
 
 async function runComparator(production, local) {
   const directory = await mkdtemp(join(tmpdir(), 'postcrisp-schema-parity-'));
@@ -387,18 +382,4 @@ test('inventory correlates default grants by normalized creator ACL-set fingerpr
   assert.equal(new Set(defaultGrants.map((grant) => grant.creator_acl_fingerprint)).size, 2);
   assert.equal(defaultGrants.some((grant) => 'creator' in grant || 'owner' in grant), false);
   assert.equal(defaultGrants.some((grant) => 'source_count' in grant), false);
-});
-
-test('bootstrap encodes mutable production defaults without the global auto-exposure toggle', async () => {
-  const [config, migration] = await Promise.all([
-    readFile(configPath, 'utf8'),
-    readFile(compositeMigrationPath, 'utf8'),
-  ]);
-
-  assert.doesNotMatch(config, /^\s*auto_expose_new_tables\s*=\s*true\s*$/mu);
-  assert.match(
-    migration,
-    /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public/,
-  );
-  assert.match(migration, /reserved superuser creator `supabase_admin`/);
 });

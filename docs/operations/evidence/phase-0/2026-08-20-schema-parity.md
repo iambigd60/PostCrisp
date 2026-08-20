@@ -44,6 +44,14 @@ Each inventory contains the same counts:
 
 The dependency-free Node comparator canonicalizes object-key/array order, line endings, and explicitly ignored capture noise (`captured_at`, `generated_at`, `oid`, and `owner`). It exits nonzero and prints exact missing, extra, or changed fields for all other differences.
 
+Default-grant behavior is verified separately from the fast Node suite because it requires a running fresh local stack:
+
+```text
+supabase db query --local --file scripts/phase0/probe-default-grants.sql --output-format json
+```
+
+The probe is one atomic `DO` statement. It creates controlled `postgres` and no-default-creator objects, compares actual ACLs with the captured defaults, raises on any mismatch, and removes every probe object and role on success. A raised assertion rolls the statement back and returns a nonzero CLI exit.
+
 Final command and result:
 
 ```text
