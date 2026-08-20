@@ -29,8 +29,8 @@ test('emits inventory contract v3 security and schema object classes', () => {
 test('keeps tables distinct while including new relation classes in columns', () => {
   // Catches views/foreign tables being mislabeled as tables or losing their columns.
   const sql = readFileSync(queryPath, 'utf8')
-  const tables = sql.match(/tables AS \(([\s\S]*?)\n\),\ncolumns AS \(/)?.[1] ?? ''
-  const columns = sql.match(/columns AS \(([\s\S]*?)\n\),\nconstraints AS \(/)?.[1] ?? ''
+  const tables = sql.match(/tables AS \(([\s\S]*?)\r?\n\),\r?\ncolumns AS \(/)?.[1] ?? ''
+  const columns = sql.match(/columns AS \(([\s\S]*?)\r?\n\),\r?\nconstraints AS \(/)?.[1] ?? ''
 
   assert.match(tables, /c\.relkind IN \('r', 'p'\)/)
   assert.doesNotMatch(tables, /'v'|'m'|'f'/)
