@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Task 3 deterministic schema parity established; Task 4 recovery/platform evidence captured. Phase 0 remains blocked on leaked-password protection, source/UI restore eligibility, an authorized restore drill, and live Vercel/provider-control access.
+**Status:** Task 5 exit evidence assembled; Phase 0 is `BLOCKED`. Repository reconstruction passes, but leaked-password protection, source/UI restore eligibility, the authorized restore drill, live Vercel/provider-control access, the Auth-signature CLI invocation, and independent exit review remain unresolved.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -94,3 +94,11 @@ The timestamped [platform-control evidence](evidence/phase-0/2026-08-20-platform
 - Anthropic and OpenAI are the two real provider adapters configured in code. Their current spend enforcement, alerts, and rate limits—and the Vercel production environment-variable name inventory—remain `BLOCKED BY ACCESS`; no runtime key or secret was inspected or reused.
 
 Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and independent exit review finds no unresolved blocker.
+
+## Task 5 exit gate
+
+The timestamped [Phase 0 exit report](evidence/phase-0/2026-08-20-exit-report.md) records the fresh clean-room, migration-lineage, schema-parity, focused-test, full-test, typecheck, lint, diff, and worktree results. The reset applied all eight migrations; the linked list paired all eight versions; the linked dry run was up to date; and fresh production/local inventories matched the committed SHA-256 `138c91b56e1d7e21101bc232f09c071459c4e52603ff6147f15a09f2221c6d8b`.
+
+These repository results do not make Phase 0 complete. Task 4 still contains `NOT ENABLED`, `BLOCKED BY ACCESS`, and `REQUIRES AUTHORIZATION` controls. The restore drill has not run and still requires explicit authorization plus residual-cost acceptance. The documented `supabase db query --local --file scripts/phase0/auth-restore-signature.sql --output-format json` invocation also failed with Supabase CLI `2.115.0` because the CLI prepared-statement path rejects the file's multiple commands; direct local `psql` execution proved the SQL itself executes but does not close that runbook defect.
+
+Independent council preflight also failed closed: `three-aimigos status` and the mandatory `three-aimigos doctor` each exited 1 with configuration unavailable while Anthropic, OpenAI, and optional xAI provider health was reported healthy. No council was started and no Auditor verdict exists. Do not proceed to Phase 1 until the exit report's repository, external-control, restore, and independent-review blockers are all resolved and freshly reverified.
