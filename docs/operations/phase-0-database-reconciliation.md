@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Task 3 deterministic schema parity established; later Phase 0 platform and recovery gates remain pending.
+**Status:** Task 3 deterministic schema parity established; Task 4 recovery/platform evidence captured. Phase 0 remains blocked on an authorized restore drill and live Vercel/provider-control access.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -81,3 +81,16 @@ The first comparison exposed 21 column-order differences and 163 missing legacy 
 The final inventories match exactly across 18 tables, 147 columns, 58 constraints, 2 sequences, 42 indexes, 39 policies, 4 functions/procedures, 6 triggers, and 479 object/default grants. Broad default ACLs remain because they are current production state; changing them requires an authorized production migration. See [the schema parity evidence](evidence/phase-0/2026-08-20-schema-parity.md).
 
 The production advisors still report leaked-password protection disabled, three informational policyless-RLS findings on client-CRUD-denied tables, and 89 performance notices. Task 3 records those results without expanding into production mutation or performance remediation.
+
+## Task 4 recovery and external controls
+
+The timestamped [platform-control evidence](evidence/phase-0/2026-08-20-platform-controls.md) records the live read-only state without exposing credentials, connection strings, account data, or table rows:
+
+- Supabase returned eight completed physical backups, with the latest at `2026-08-20T10:56:15.704Z`. The authenticated organization is Pro, and the observed restore points cover the documented seven-day Pro access window.
+- PITR is explicitly disabled, so no PITR retention window exists. The scheduled physical backups are not directly downloadable; a manual logical dump is a separate unexecuted path.
+- Restore-to-new-project prerequisites are present, but the drill would create a paid project containing production database and Auth data. It is `REQUIRES AUTHORIZATION` under the hard cost ceilings in the [isolated restore drill](phase-0-restore-drill.md), and it has not run.
+- The live Supabase security advisor reports leaked-password protection disabled. Enabling it is the intended Phase 0 control change, but no Auth setting was changed on this read-only pass.
+- Vercel project identity was verified, but project-specific firewall state remains `BLOCKED BY ACCESS`: the connector does not expose it, the current CLI session is not authenticated, and Chrome was not running. Repository firewall instructions are not live proof.
+- Anthropic and OpenAI are the two real provider adapters configured in code. Their current spend enforcement, alerts, and rate limits—and the Vercel production environment-variable name inventory—remain `BLOCKED BY ACCESS`; no runtime key or secret was inspected or reused.
+
+Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and independent exit review finds no unresolved blocker.
