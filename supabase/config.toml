@@ -16,15 +16,8 @@ extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
 max_rows = 1000
-# Controls whether new tables, views, sequences and functions created in the `public` schema by
-# `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
-# without explicit GRANTs. When unset, new entities are NOT auto-exposed, matching the new cloud
-# default. Set to `true` to keep the legacy behaviour of auto-exposing new entities; this is
-# deprecated and the field is removed on 2026-10-30 once the always-revoked behaviour is permanent.
-# Production's existing public objects retain the legacy Data API grants. Keep
-# local clean-room resets on that legacy behavior until those grants are
-# deliberately migrated in a later, production-changing phase.
-auto_expose_new_tables = true
+# Production-matching object and default grants are encoded explicitly in the
+# composite bootstrap migration; local behavior does not rely on auto-exposure.
 
 [api.tls]
 # Enable HTTPS endpoints locally using a self-signed certificate.

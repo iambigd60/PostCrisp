@@ -2,6 +2,27 @@
 -- This is not the byte-for-byte historical migration: the current tracked
 -- baseline and three hoisted ordering prerequisites rebuild a blank database.
 -- The exact production statement for version 20260707062202 is appended last.
+
+-- Production currently carries legacy public-schema default ACLs for two
+-- application object creators. Reproduce the mutable postgres ACLs explicitly
+-- so clean-room rebuilds do not depend on the global auto-exposure toggle.
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON TABLES FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT SELECT, UPDATE, USAGE ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+
+-- The CLI owns the reserved superuser creator `supabase_admin`; migrations run
+-- as non-superuser `postgres` and cannot safely impersonate or alter it. Its
+-- platform-seeded defaults are captured and compared by creator ACL fingerprint.
+
 -- ============================================================
 -- PostCrisp Database Schema
 -- Run this in the Supabase SQL editor

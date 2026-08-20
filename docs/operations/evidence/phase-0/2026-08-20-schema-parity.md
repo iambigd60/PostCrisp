@@ -15,11 +15,11 @@
 The committed [catalog query](../../../../scripts/phase0/schema-inventory.sql) records stable metadata for:
 
 - public tables and their RLS/replica-identity flags;
-- columns, constraints, sequences, and indexes;
-- RLS policies, public-schema functions/procedures, and user-defined triggers;
+- columns, constraints, sequences (including `OWNED BY` targets), and indexes;
+- RLS policies, public-schema functions/procedures, and user-defined triggers on public tables or invoking public application functions;
 - schema, table, column, sequence, function, procedure, and public-schema default grants.
 
-The query reads only PostgreSQL catalogs. It excludes table rows, sequence current values, secrets, OIDs, owners/grantors, capture timestamps, and raw connection information. Default grants are grouped without exposing their owning roles; `source_count` preserves multiplicity when otherwise-identical owner-specific ACL rows exist.
+The query reads only PostgreSQL catalogs. It excludes table rows, sequence current values, secrets, OIDs, owners/grantors, capture timestamps, and raw connection information. Default grants retain creator-to-ACL correlation through deterministic ACL-set fingerprints without exposing creator identities. Duplicate identities remain separate entries, and the comparator checks their multiplicity.
 
 ## Capture and comparison
 
@@ -39,8 +39,8 @@ Each inventory contains the same counts:
 | Indexes | 42 |
 | Policies | 39 |
 | Functions/procedures | 4 |
-| Triggers | 5 |
-| Grants, including grouped default grants | 443 |
+| Triggers | 6 |
+| Grants, including creator-correlated default grants | 479 |
 
 The dependency-free Node comparator canonicalizes object-key/array order, line endings, and explicitly ignored capture noise (`captured_at`, `generated_at`, `oid`, and `owner`). It exits nonzero and prints exact missing, extra, or changed fields for all other differences.
 
@@ -62,9 +62,11 @@ The first fresh-reset comparison failed with two concrete reconstruction defects
 The clean-room representation was corrected without changing production:
 
 - The composite baseline now declares `profiles` and its hoisted `saved_content` prerequisite in production column order. `purchased_credits` is again added by its exact production-timestamp migration, placing it at ordinal 18.
-- `api.auto_expose_new_tables = true` reproduces production's existing legacy object and default grants during a blank local rebuild. This is a parity setting, not a recommendation to broaden production access. It should be removed only with an authorized migration that deliberately changes production grants.
+- The composite bootstrap explicitly reproduces the captured `postgres` default ACLs before application DDL; the deprecated global `api.auto_expose_new_tables` compatibility toggle is not enabled. Supabase seeds the reserved `supabase_admin` creator defaults before migrations, and the inventory correlates that second creator by its normalized ACL-set fingerprint because the non-superuser migration role cannot safely impersonate or alter it.
 
-After a second fresh `supabase db reset --local`, all 443 captured grants and every other captured object matched. The seven non-composite migration files still hash-match their exact production statements, and the composite migration still ends with the exact production v1 statement.
+After a fresh `supabase db reset --local`, all 479 captured grants and every other captured object matched byte-for-byte at SHA-256 `138c91b56e1d7e21101bc232f09c071459c4e52603ff6147f15a09f2221c6d8b`. A local future-object probe proved that `postgres`-created tables, sequences, and functions receive exactly its captured default ACL set, while a newly created role with no captured defaults receives no legacy Data API grants. The reserved `supabase_admin` creator could not be safely impersonated, so its production/local correlation is proved through matching creator ACL fingerprints instead. The seven non-composite migration files still hash-match their exact production statements, and the composite migration still ends with the exact production v1 statement.
+
+The broad default ACLs remain a security risk because they are current production state. Hardening them requires an authorized production migration; Task 3 proves parity and does not claim remediation.
 
 ## Production advisors
 
@@ -73,7 +75,7 @@ Supabase security and performance advisors were run read-only after parity was e
 Security advisor: 4 findings.
 
 - `WARN`: leaked-password protection is disabled. This is a platform-control blocker for a later authorized task. [Remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)
-- `INFO` x3: RLS is enabled with no policies on `public.onboarding_events`, `public.processed_stripe_events`, and `public.tutorial_redemptions`. These are intentionally service-role-only tables in the current design; the finding is recorded, not waived from schema comparison. [Advisor description](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+- `INFO` x3: RLS is enabled with no policies on `public.onboarding_events`, `public.processed_stripe_events`, and `public.tutorial_redemptions`. Client CRUD is denied on these tables in the current design; the finding is recorded, not waived from schema comparison. [Advisor description](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
 
 Performance advisor: 89 findings.
 

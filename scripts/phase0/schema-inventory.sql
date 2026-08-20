@@ -71,10 +71,32 @@ sequences AS (
     s.seqmin AS min_value,
     s.seqmax AS max_value,
     s.seqcache AS cache_size,
-    s.seqcycle AS cycle
+    s.seqcycle AS cycle,
+    owned.schema AS owned_by_schema,
+    owned.table AS owned_by_table,
+    owned.column AS owned_by_column
   FROM pg_catalog.pg_sequence AS s
   JOIN pg_catalog.pg_class AS c ON c.oid = s.seqrelid
   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+  LEFT JOIN LATERAL (
+    SELECT
+      tn.nspname AS schema,
+      tc.relname AS table,
+      a.attname AS column
+    FROM pg_catalog.pg_depend AS d
+    JOIN pg_catalog.pg_class AS tc ON tc.oid = d.refobjid
+    JOIN pg_catalog.pg_namespace AS tn ON tn.oid = tc.relnamespace
+    JOIN pg_catalog.pg_attribute AS a
+      ON a.attrelid = tc.oid
+     AND a.attnum = d.refobjsubid
+    WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
+      AND d.objid = c.oid
+      AND d.objsubid = 0
+      AND d.refclassid = 'pg_catalog.pg_class'::pg_catalog.regclass
+      AND d.deptype IN ('a', 'i')
+    ORDER BY d.deptype
+    LIMIT 1
+  ) AS owned ON true
   WHERE n.nspname = 'public'
 ),
 indexes AS (
@@ -150,12 +172,17 @@ triggers AS (
     c.relname AS table,
     t.tgname AS name,
     t.tgenabled AS enabled,
+    fn.nspname AS function_schema,
+    f.proname AS function_name,
+    pg_catalog.pg_get_function_identity_arguments(f.oid) AS function_identity_arguments,
     pg_catalog.pg_get_triggerdef(t.oid, false) AS definition
   FROM pg_catalog.pg_trigger AS t
   JOIN pg_catalog.pg_class AS c ON c.oid = t.tgrelid
   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
-  WHERE n.nspname = 'public'
-    AND NOT t.tgisinternal
+  JOIN pg_catalog.pg_proc AS f ON f.oid = t.tgfoid
+  JOIN pg_catalog.pg_namespace AS fn ON fn.oid = f.pronamespace
+  WHERE NOT t.tgisinternal
+    AND (n.nspname = 'public' OR fn.nspname = 'public')
 ),
 schema_grants AS (
   SELECT
@@ -167,7 +194,7 @@ schema_grants AS (
     CASE acl.grantee WHEN 0 THEN 'public' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee,
     acl.privilege_type AS privilege,
     acl.is_grantable AS grantable,
-    NULL::bigint AS source_count
+    NULL::text AS creator_acl_fingerprint
   FROM pg_catalog.pg_namespace AS n
   CROSS JOIN LATERAL pg_catalog.aclexplode(
     COALESCE(n.nspacl, pg_catalog.acldefault('n'::"char", n.nspowner))
@@ -185,7 +212,7 @@ relation_grants AS (
     CASE acl.grantee WHEN 0 THEN 'public' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee,
     acl.privilege_type AS privilege,
     acl.is_grantable AS grantable,
-    NULL::bigint AS source_count
+    NULL::text AS creator_acl_fingerprint
   FROM pg_catalog.pg_class AS c
   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
   CROSS JOIN LATERAL pg_catalog.aclexplode(
@@ -208,7 +235,7 @@ column_grants AS (
     CASE acl.grantee WHEN 0 THEN 'public' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee,
     acl.privilege_type AS privilege,
     acl.is_grantable AS grantable,
-    NULL::bigint AS source_count
+    NULL::text AS creator_acl_fingerprint
   FROM pg_catalog.pg_attribute AS a
   JOIN pg_catalog.pg_class AS c ON c.oid = a.attrelid
   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
@@ -230,7 +257,7 @@ function_grants AS (
     CASE acl.grantee WHEN 0 THEN 'public' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee,
     acl.privilege_type AS privilege,
     acl.is_grantable AS grantable,
-    NULL::bigint AS source_count
+    NULL::text AS creator_acl_fingerprint
   FROM pg_catalog.pg_proc AS p
   JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
   CROSS JOIN LATERAL pg_catalog.aclexplode(
@@ -242,6 +269,7 @@ function_grants AS (
 ),
 default_grant_rows AS (
   SELECT
+    d.defaclrole AS creator_id,
     CASE d.defaclobjtype
       WHEN 'r' THEN 'DEFAULT TABLE'
       WHEN 'S' THEN 'DEFAULT SEQUENCE'
@@ -263,19 +291,33 @@ default_grant_rows AS (
   WHERE n.nspname = 'public'
     AND acl.grantee <> d.defaclrole
 ),
+default_creator_fingerprints AS (
+  SELECT
+    creator_id,
+    pg_catalog.md5(pg_catalog.string_agg(
+      pg_catalog.concat_ws(
+        '|', object_type, schema, object, "column", identity_arguments,
+        grantee, privilege, grantable::text
+      ),
+      E'\n' ORDER BY object_type, schema, object, "column", identity_arguments,
+        grantee, privilege, grantable
+    )) AS creator_acl_fingerprint
+  FROM default_grant_rows
+  GROUP BY creator_id
+),
 default_grants AS (
   SELECT
-    object_type,
-    schema,
-    object,
-    "column",
-    identity_arguments,
-    grantee,
-    privilege,
-    grantable,
-    count(*) AS source_count
-  FROM default_grant_rows
-  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
+    r.object_type,
+    r.schema,
+    r.object,
+    r."column",
+    r.identity_arguments,
+    r.grantee,
+    r.privilege,
+    r.grantable,
+    f.creator_acl_fingerprint
+  FROM default_grant_rows AS r
+  JOIN default_creator_fingerprints AS f USING (creator_id)
 ),
 grants AS (
   SELECT * FROM schema_grants
@@ -315,7 +357,7 @@ SELECT jsonb_build_object(
   ), '[]'::jsonb),
   'grants', COALESCE((
     SELECT jsonb_agg(to_jsonb(g) ORDER BY g.object_type, g.schema, g.object, g.column,
-      g.identity_arguments, g.grantee, g.privilege)
+      g.identity_arguments, g.grantee, g.privilege, g.creator_acl_fingerprint)
     FROM grants AS g
   ), '[]'::jsonb)
 ) AS inventory;

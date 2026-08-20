@@ -40,7 +40,11 @@ function objectIdentity(section, object) {
     const functionArguments = object.identity_arguments == null
       ? ''
       : `(${object.identity_arguments})`;
-    return `${object.object_type} ${objectPath}${functionArguments} -> ` +
+    const creatorFingerprint = object.object_type?.startsWith('DEFAULT ') &&
+      object.creator_acl_fingerprint != null
+      ? ` creator ${object.creator_acl_fingerprint}`
+      : '';
+    return `${object.object_type} ${objectPath}${functionArguments}${creatorFingerprint} -> ` +
       `${object.grantee} ${object.privilege}`;
   }
 
@@ -58,35 +62,74 @@ function findDifferences(production, local) {
     const localObjects = Array.isArray(local[section]) ? local[section] : [];
     if (!Array.isArray(production[section]) && !Array.isArray(local[section])) continue;
 
-    const productionByIdentity = new Map(
-      productionObjects.map((object) => [objectIdentity(section, object), object]),
-    );
-    const localByIdentity = new Map(
-      localObjects.map((object) => [objectIdentity(section, object), object]),
-    );
-    for (const object of productionObjects) {
-      const identity = objectIdentity(section, object);
-      const localObject = localByIdentity.get(identity);
-      if (!localObject) {
-        differences.push(`- missing in local: ${section} ${identity}`);
-        continue;
+    const bucketByIdentity = (objects) => {
+      const buckets = new Map();
+      for (const object of objects) {
+        const identity = objectIdentity(section, object);
+        const bucket = buckets.get(identity) ?? [];
+        bucket.push({ object, occurrence: bucket.length + 1 });
+        buckets.set(identity, bucket);
+      }
+      return buckets;
+    };
+
+    const productionBuckets = bucketByIdentity(productionObjects);
+    const localBuckets = bucketByIdentity(localObjects);
+    const identities = new Set([...productionBuckets.keys(), ...localBuckets.keys()]);
+
+    for (const identity of [...identities].sort()) {
+      const productionBucket = productionBuckets.get(identity) ?? [];
+      const localBucket = localBuckets.get(identity) ?? [];
+      const unmatchedLocal = [...localBucket];
+      const unmatchedProduction = [];
+
+      for (const productionEntry of productionBucket) {
+        const exactIndex = unmatchedLocal.findIndex(
+          (localEntry) => JSON.stringify(productionEntry.object) === JSON.stringify(localEntry.object),
+        );
+        if (exactIndex >= 0) {
+          unmatchedLocal.splice(exactIndex, 1);
+        } else {
+          unmatchedProduction.push(productionEntry);
+        }
       }
 
-      const fields = new Set([...Object.keys(object), ...Object.keys(localObject)]);
-      for (const field of [...fields].sort()) {
-        if (JSON.stringify(object[field]) === JSON.stringify(localObject[field])) continue;
+      const changedCount = Math.min(unmatchedProduction.length, unmatchedLocal.length);
+      for (let index = 0; index < changedCount; index += 1) {
+        const productionEntry = unmatchedProduction[index];
+        const localEntry = unmatchedLocal[index];
+        const fields = new Set([
+          ...Object.keys(productionEntry.object),
+          ...Object.keys(localEntry.object),
+        ]);
+        const occurrence = Math.max(productionBucket.length, localBucket.length) > 1
+          ? ` (production occurrence ${productionEntry.occurrence}, local occurrence ${localEntry.occurrence})`
+          : '';
+        for (const field of [...fields].sort()) {
+          if (JSON.stringify(productionEntry.object[field]) ===
+              JSON.stringify(localEntry.object[field])) continue;
+          differences.push(
+            `- changed in local: ${section} ${identity}${occurrence}.${field}\n` +
+            `  production: ${JSON.stringify(productionEntry.object[field])}\n` +
+            `  local: ${JSON.stringify(localEntry.object[field])}`,
+          );
+        }
+      }
+
+      for (const entry of unmatchedProduction.slice(changedCount)) {
+        const duplicate = productionBucket.length > 1 || localBucket.length > 1;
         differences.push(
-          `- changed in local: ${section} ${identity}.${field}\n` +
-          `  production: ${JSON.stringify(object[field])}\n` +
-          `  local: ${JSON.stringify(localObject[field])}`,
+          `- missing in local: ${section} ${identity}` +
+          `${duplicate ? ` (occurrence ${entry.occurrence})\n  production: ${JSON.stringify(entry.object)}` : ''}`,
         );
       }
-    }
 
-    for (const object of localObjects) {
-      const identity = objectIdentity(section, object);
-      if (!productionByIdentity.has(identity)) {
-        differences.push(`- extra in local: ${section} ${identity}`);
+      for (const entry of unmatchedLocal.slice(changedCount)) {
+        const duplicate = productionBucket.length > 1 || localBucket.length > 1;
+        differences.push(
+          `- extra in local: ${section} ${identity}` +
+          `${duplicate ? ` (occurrence ${entry.occurrence})\n  local: ${JSON.stringify(entry.object)}` : ''}`,
+        );
       }
     }
   }

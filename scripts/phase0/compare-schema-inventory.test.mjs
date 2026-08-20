@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -7,6 +7,12 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const comparatorPath = fileURLToPath(new URL('./compare-schema-inventory.mjs', import.meta.url));
+const inventorySqlPath = fileURLToPath(new URL('./schema-inventory.sql', import.meta.url));
+const configPath = fileURLToPath(new URL('../../supabase/config.toml', import.meta.url));
+const compositeMigrationPath = fileURLToPath(new URL(
+  '../../supabase/migrations/20260707062202_protect_privileged_profile_columns_v1.sql',
+  import.meta.url,
+));
 
 async function runComparator(production, local) {
   const directory = await mkdtemp(join(tmpdir(), 'postcrisp-schema-parity-'));
@@ -27,6 +33,21 @@ async function runComparator(production, local) {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+function captureLocalInventory() {
+  const supabaseArguments = [
+    'db', 'query', '--local', '--file', inventorySqlPath, '--output-format', 'json',
+  ];
+  const [command, commandArguments] = process.platform === 'win32'
+    ? [
+        process.env.ComSpec,
+        ['/d', '/s', '/c', `supabase db query --local --file ${inventorySqlPath} --output-format json`],
+      ]
+    : ['supabase', supabaseArguments];
+  const result = spawnSync(command, commandArguments, { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return JSON.parse(result.stdout).rows[0].inventory;
 }
 
 test('accepts reordered objects and ignored capture metadata as equal', async () => {
@@ -228,4 +249,156 @@ test('omits null function arguments from non-function grant identities', async (
     ].join('\n'),
   );
   assert.equal(result.stderr, '');
+});
+
+test('reports duplicate identity multiplicity instead of collapsing entries', async () => {
+  // Catches Map-based comparison hiding one of two grants with the same stable identity.
+  const grant = {
+    object_type: 'TABLE',
+    schema: 'public',
+    object: 'feedback',
+    column: null,
+    identity_arguments: null,
+    grantee: 'authenticated',
+    privilege: 'SELECT',
+    grantable: false,
+  };
+  const production = { grants: [grant, grant] };
+  const local = { grants: [grant] };
+
+  const result = await runComparator(production, local);
+
+  assert.equal(result.status, 1);
+  assert.equal(
+    result.stdout,
+    [
+      'Schema inventories differ:',
+      '- missing in local: grants TABLE public.feedback -> authenticated SELECT (occurrence 2)',
+      '  production: {"column":null,"grantable":false,"grantee":"authenticated",' +
+        '"identity_arguments":null,"object":"feedback","object_type":"TABLE",' +
+        '"privilege":"SELECT","schema":"public"}',
+      '',
+    ].join('\n'),
+  );
+  assert.equal(result.stderr, '');
+});
+
+test('preserves default-grant creator to ACL-set correlation', async () => {
+  // Aggregate privileges and fingerprint counts match; only creator assignment differs.
+  const defaultGrant = (privilege, creatorAclFingerprint) => ({
+    object_type: 'DEFAULT TABLE',
+    schema: 'public',
+    object: 'future objects',
+    column: null,
+    identity_arguments: null,
+    grantee: 'authenticated',
+    privilege,
+    grantable: false,
+    creator_acl_fingerprint: creatorAclFingerprint,
+  });
+  const production = {
+    grants: [
+      defaultGrant('SELECT', 'creator-set-a'),
+      defaultGrant('DELETE', 'creator-set-a'),
+      defaultGrant('INSERT', 'creator-set-b'),
+    ],
+  };
+  const local = {
+    grants: [
+      defaultGrant('SELECT', 'creator-set-a'),
+      defaultGrant('DELETE', 'creator-set-b'),
+      defaultGrant('INSERT', 'creator-set-a'),
+    ],
+  };
+
+  const result = await runComparator(production, local);
+
+  assert.equal(result.status, 1);
+  assert.equal(
+    result.stdout,
+    [
+      'Schema inventories differ:',
+      '- missing in local: grants DEFAULT TABLE public.future objects creator creator-set-a -> authenticated DELETE',
+      '- extra in local: grants DEFAULT TABLE public.future objects creator creator-set-a -> authenticated INSERT',
+      '- extra in local: grants DEFAULT TABLE public.future objects creator creator-set-b -> authenticated DELETE',
+      '- missing in local: grants DEFAULT TABLE public.future objects creator creator-set-b -> authenticated INSERT',
+      '',
+    ].join('\n'),
+  );
+  assert.equal(result.stderr, '');
+});
+
+test('inventory includes the auth trigger that invokes the public signup function', () => {
+  const inventory = captureLocalInventory();
+  assert.equal(inventory.triggers.length, 6);
+  const trigger = inventory.triggers.find((candidate) =>
+    candidate.schema === 'auth' &&
+    candidate.table === 'users' &&
+    candidate.name === 'on_auth_user_created');
+
+  assert.deepEqual(trigger, {
+    schema: 'auth',
+    table: 'users',
+    name: 'on_auth_user_created',
+    enabled: 'O',
+    function_schema: 'public',
+    function_name: 'handle_new_user',
+    function_identity_arguments: '',
+    definition: 'CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users ' +
+      'FOR EACH ROW EXECUTE FUNCTION handle_new_user()',
+  });
+});
+
+test('inventory records deterministic sequence OWNED BY metadata', () => {
+  const inventory = captureLocalInventory();
+  const ownership = Object.fromEntries(inventory.sequences.map((sequence) => [
+    sequence.name,
+    {
+      schema: sequence.owned_by_schema,
+      table: sequence.owned_by_table,
+      column: sequence.owned_by_column,
+    },
+  ]));
+
+  assert.deepEqual(ownership, {
+    onboarding_events_id_seq: {
+      schema: 'public',
+      table: 'onboarding_events',
+      column: 'id',
+    },
+    tutorial_redemptions_id_seq: {
+      schema: 'public',
+      table: 'tutorial_redemptions',
+      column: 'id',
+    },
+  });
+});
+
+test('inventory correlates default grants by normalized creator ACL-set fingerprint', () => {
+  const inventory = captureLocalInventory();
+  const defaultGrants = inventory.grants.filter((grant) =>
+    grant.object_type.startsWith('DEFAULT '));
+
+  assert.ok(defaultGrants.length > 0);
+  assert.equal(
+    defaultGrants.every((grant) => /^[0-9a-f]{32}$/.test(grant.creator_acl_fingerprint)),
+    true,
+  );
+  assert.equal(new Set(defaultGrants.map((grant) => grant.creator_acl_fingerprint)).size, 2);
+  assert.equal(defaultGrants.some((grant) => 'creator' in grant || 'owner' in grant), false);
+  assert.equal(defaultGrants.some((grant) => 'source_count' in grant), false);
+});
+
+test('bootstrap encodes mutable production defaults without the global auto-exposure toggle', async () => {
+  const [config, migration] = await Promise.all([
+    readFile(configPath, 'utf8'),
+    readFile(compositeMigrationPath, 'utf8'),
+  ]);
+
+  assert.doesNotMatch(config, /^\s*auto_expose_new_tables\s*=\s*true\s*$/mu);
+  assert.match(
+    migration,
+    /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public/,
+  );
+  assert.match(migration, /reserved superuser creator `supabase_admin`/);
 });

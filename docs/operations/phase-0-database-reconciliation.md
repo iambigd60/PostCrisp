@@ -70,8 +70,8 @@ Task 3 added a catalog-only inventory and dependency-free comparator. Production
 The first comparison exposed 21 column-order differences and 163 missing legacy Data API grants. Both were clean-room reconstruction defects:
 
 - the composite baseline now preserves production order for `profiles` and the hoisted `saved_content` prerequisite, while `purchased_credits` remains added by its exact production-timestamp migration; and
-- local resets explicitly reproduce production's existing legacy auto-exposure/default-grant behavior with `api.auto_expose_new_tables = true`.
+- local resets explicitly reproduce the captured production object/default ACLs from the composite bootstrap without enabling the deprecated global `api.auto_expose_new_tables` compatibility toggle. The reserved `supabase_admin` defaults remain platform-seeded and are correlated by normalized ACL-set fingerprint.
 
-The final inventories match exactly across 18 tables, 147 columns, 58 constraints, 2 sequences, 42 indexes, 39 policies, 4 functions/procedures, 5 triggers, and 443 object/default grants. See [the schema parity evidence](evidence/phase-0/2026-08-20-schema-parity.md).
+The final inventories match exactly across 18 tables, 147 columns, 58 constraints, 2 sequences, 42 indexes, 39 policies, 4 functions/procedures, 6 triggers, and 479 object/default grants. Broad default ACLs remain because they are current production state; changing them requires an authorized production migration. See [the schema parity evidence](evidence/phase-0/2026-08-20-schema-parity.md).
 
-The production advisors still report leaked-password protection disabled, three informational policyless-RLS findings on service-role-only tables, and 89 performance notices. Task 3 records those results without expanding into production mutation or performance remediation.
+The production advisors still report leaked-password protection disabled, three informational policyless-RLS findings on client-CRUD-denied tables, and 89 performance notices. Task 3 records those results without expanding into production mutation or performance remediation.
