@@ -5,11 +5,11 @@
 **Final-review fix-wave base:** `03137e8`
 **Verification state:** working tree on `codex/phase-0-containment`; commit recorded after this evidence update
 
-The final-review fix wave closes the prepared-statement preflight defect, expands schema/Auth security coverage, and prevents arbitrary Auth capture fields from being retained. It does not make Phase 0 complete. Docker absence blocks the required local inventory-v2 proof, current production grants expose high-blast-radius privileges to client roles, and the live-control/restore/final-independent-review gates remain unresolved.
+The membership-option unblock extends the Auth global-role fingerprint to PostgreSQL 17's security-bearing `inherit_option` and `set_option`. It does not make Phase 0 complete. Docker was available for the narrow isolated PostgreSQL 17 regression, but the required full local Supabase reset/inventory-v2 proof was not rerun; current production grants expose high-blast-radius privileges to client roles, and the live-control/restore/final-independent-review gates remain unresolved.
 
 ## Safety boundary
 
-Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no non-dry-run database push, repair, linked reset, remote DDL, browser launch, push, merge, or Phase 1 work occurred. Raw linked query output was held only in process memory long enough to validate its reviewed shape/counts and was not persisted.
+Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no non-dry-run database push, repair, linked reset, remote DDL, browser launch, push, merge, or Phase 1 work occurred. One unexposed disposable local PostgreSQL 17 container exercised membership catalog mutations and was then removed. Raw linked query output was held only in process memory long enough to validate its reviewed shape/counts and was not persisted.
 
 All eight applied migration versions and captured statement bodies remain unchanged from `03137e8`. No pending hardening migration was created.
 
@@ -25,6 +25,16 @@ All timestamps below are UTC on 2026-08-20.
 
 | Start | Command | Exit | Result |
 | --- | --- | ---: | --- |
+| `20:54Z` | `node --test scripts/phase0/auth-restore-signature-query.test.mjs` before the SQL change | 1 | Authentic RED: 3 passed, 1 failed, 1 skipped. The failure was `membership fingerprint omits inherit_option`, the expected omitted-option reason. |
+| `20:57Z` | the same query test with `PHASE0_PG17_CONTAINER` against isolated PostgreSQL `17.6` before the SQL change | 1 | Database-backed RED: 3 passed and 2 failed. With the membership item count unchanged, changing `inherit_option` left the global-role signature unchanged. No raw catalog row, role identity, or hash is retained here. |
+| `20:57Z` | the same PostgreSQL 17-backed query test after the minimal SQL change | 0 | GREEN: all 5 passed. Omitting either named option is rejected, and independently changing `inherit_option` or `set_option` changes the global-role signature without changing the item count. |
+| `20:57Z` | focused Auth query/capture/comparator tests | 0 | 40 tests passed with no skip. The PostgreSQL 17 mutations change the fingerprint, and the comparator fails rather than returning `PASS_BOUNDED` when the global-role signature differs. |
+| `20:57Z` | `node scripts/phase0/capture-auth-restore-signature.mjs --linked` | 0 | Read-only linked capture returned exactly 10 reviewed keys, 1,157 Auth metadata items, and 68 global-role items. Raw output was discarded and no signature hash or identity was retained. |
+| `20:58Z` | `npm test -- --run` | 0 | 26 files and 240 tests passed. npm emitted its existing `--run` configuration warning. |
+| `20:58Z` | `npm run typecheck` | 0 | TypeScript completed without errors. |
+| `20:58Z` | `npm run lint` | 0 | Completed with the same four baseline warnings below, plus the existing Next.js/Sentry deprecation notices. |
+| `20:59Z` | high-confidence credential-value scan over all changed tracked files and the ignored task report | 1 | No matching files; `rg` exit 1 is the expected no-match result. |
+| `20:59Z` | `git diff --check` and changed-path scope check | 0 | No whitespace errors; exactly six tracked files changed, with no migration or `progress.md` path. |
 | `20:42:34.9890544Z` | `node --test` over all seven Phase 0 query/launcher/comparator test files | 1 | 60 tests: 57 passed; only the 3 local-database inventory tests failed because the Docker-backed local database was unavailable. All credential-free/static/unit contracts passed. |
 | `20:37:57.7662633Z` | `supabase db reset --local` | 1 | Docker Desktop's `dockerDesktopLinuxEngine` named pipe was absent; no reset occurred. |
 | `20:37:57Z` | `node scripts/phase0/compare-schema-inventory.mjs <production-v2> <local-v1>` | 2 | Failed closed: `local inventory_contract_version must equal 2`. The historical local artifact is not accepted as current parity proof. |
@@ -51,11 +61,11 @@ The four baseline lint warnings are distinct from a clean lint result:
 ## Contract changes and remaining local blocker
 
 - `restore-source-preflight.sql` is now one read-only prepared statement. Its launcher pins Supabase CLI `2.115.0`, applies the existing 45-second deadline/process-tree termination contract, accepts only linked/local/validated project-ref targets, validates the exact metadata-only shape, and suppresses partial output.
-- Schema inventory contract v2 adds application-schema state, installed extensions, public views/materialized views, foreign tables, and public types. The production v2 snapshot is committed. The local snapshot remains v1, so the comparator exits `2` until Docker is restored and a fresh local v2 capture succeeds.
-- The Auth fingerprint now includes view definitions, column ACLs, enum labels, trigger enabled state, and a password-free aggregate fingerprint of global roles, memberships, and all-database/current-database settings. `PASS_BOUNDED` requires this evidence and stable hashes across captures.
+- Schema inventory contract v2 adds application-schema state, installed extensions, public views/materialized views, foreign tables, and public types. The production v2 snapshot is committed. The local snapshot remains v1, so the comparator exits `2` until a fresh full local v2 capture succeeds.
+- The Auth fingerprint now includes view definitions, column ACLs, enum labels, trigger enabled state, and a password-free aggregate fingerprint of global roles, memberships, and all-database/current-database settings. Each PostgreSQL 17 membership item names and deterministically renders `admin_option`, `inherit_option`, and `set_option`. `PASS_BOUNDED` requires this evidence and stable hashes across captures.
 - Auth launcher normalization reconstructs only the exact 10-key reviewed contract; extra identity/secret-like keys such as `email` and `token` are dropped.
 
-Docker must be restored before running a fresh reset, the three database-backed inventory tests, local Auth/preflight launchers, the local inventory-v2 capture, the default-grant probe, and the production-v2/local-v2 comparator. No fresh local result is claimed.
+Docker is currently available, but this membership-only unblock did not run the fresh full Supabase reset, three database-backed inventory tests, local Auth/preflight launchers, local inventory-v2 capture, default-grant probe, or production-v2/local-v2 comparator. Those are later gates; no fresh local parity result is claimed.
 
 ## Live-control gate
 
@@ -75,4 +85,4 @@ The Greybeard final review produced the four Important and one Minor findings ad
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Restore Docker and complete inventory-v2 local proof; authorize, deploy, and evidence the client-role grant hardening separately; satisfy the exact live-control/restore checkpoints; and obtain independent post-fix approval before reconsidering the gate.
+Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Complete the fresh inventory-v2 local proof as a later gate; authorize, deploy, and evidence the client-role grant hardening separately; satisfy the exact live-control/restore checkpoints; and obtain independent post-fix approval before reconsidering the gate.

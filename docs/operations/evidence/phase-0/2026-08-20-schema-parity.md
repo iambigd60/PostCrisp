@@ -8,7 +8,7 @@
 
 **Local source:** a fresh `supabase db reset --local` using Supabase CLI `2.115.0`
 
-**Verdict:** **BLOCKED — the historical v1 captured scope matched, but inventory contract v2 has no fresh local capture because Docker is unavailable.**
+**Verdict:** **BLOCKED — the historical v1 captured scope matched, but inventory contract v2 has no fresh local capture. Docker is now available for an isolated PostgreSQL 17 regression; the full local Supabase reset/capture was not rerun in that membership-only task.**
 
 ## Scope and exclusions
 
@@ -24,7 +24,7 @@ The query reads only PostgreSQL catalogs. It excludes table rows, sequence curre
 
 ## Capture and comparison
 
-The production file was refreshed read-only from inventory contract v2. The local file remains the earlier v1 capture because Docker Desktop's Linux engine is unavailable:
+The production file was refreshed read-only from inventory contract v2. The local file remains the earlier v1 capture. Docker Desktop's Linux engine was unavailable during the prior Task 5 attempt; it was available later for an isolated PostgreSQL 17 membership-fingerprint regression, but that narrow task did not rerun the full local Supabase reset/capture:
 
 - [production inventory](2026-08-20-production-schema-inventory.json)
 - [local inventory](2026-08-20-local-schema-inventory.json)
@@ -61,7 +61,7 @@ Schema inventory contract invalid: local inventory_contract_version must equal 2
 EXIT 2
 ```
 
-This is a Phase 0 exit blocker. Restore Docker, run `supabase db reset --local`, capture inventory v2 with the committed query, require every foreign-option-presence flag to be false or complete a separately authorized secrets-safe transient review, and rerun the comparator. Do not describe the historical v1 match as current exact schema parity.
+This is a Phase 0 exit blocker. With Docker available, run `supabase db reset --local` as its own later gate, capture inventory v2 with the committed query, require every foreign-option-presence flag to be false or complete a separately authorized secrets-safe transient review, and rerun the comparator. Do not describe the isolated PostgreSQL 17 regression or historical v1 match as current exact schema parity.
 
 ## Differences found and reconciled locally
 

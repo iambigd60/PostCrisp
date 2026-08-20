@@ -252,11 +252,13 @@ global_role_items as (
   union all
 
   select format(
-    'membership|role=%s|member=%s|grantor=%s|admin=%s',
+    'membership|role=%s|member=%s|grantor=%s|admin=%s|inherit_option=%s|set_option=%s',
     pg_catalog.pg_get_userbyid(m.roleid),
     pg_catalog.pg_get_userbyid(m.member),
     pg_catalog.pg_get_userbyid(m.grantor),
-    m.admin_option
+    m.admin_option,
+    case when m.inherit_option then 'true' else 'false' end,
+    case when m.set_option then 'true' else 'false' end
   )
   from pg_catalog.pg_auth_members m
 
