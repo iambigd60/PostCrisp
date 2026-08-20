@@ -148,6 +148,8 @@ The executable query `scripts/phase0/auth-restore-signature.sql` returns only:
 
 Raw owner/ACL/policy-role names and routine definitions are incorporated only into canonical metadata items and are never emitted; the query returns only the aggregate signature. OIDs are excluded because they are restore-unstable. Global role memberships and settings outside the `auth` schema are also excluded; a drift confined to those external surfaces will not be detected by this Auth signature and must be covered by separate schema/role evidence. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, or routine bodies. Its SHA-256 at this review is `76DCD5229E671396F5C822CCF0DA839BE83FF9183785DE682A64FCF5DD649CCE`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
 
+The comparator requires a positive `metadata_item_count` and the reviewed query's exact `bounded_user_count_cap` of `100001` in every signature capture. All signature-capture caps must also match one another. The four-point ordering result is emitted as `checks.backup_and_capture_chronology_valid`, covering the selected backup timestamp plus source-before-authorization, source-before-clone, and clone captures.
+
 Metadata behavior follows the current PostgreSQL catalog and information-function references for [`pg_policy`](https://www.postgresql.org/docs/current/catalog-pg-policy.html), [`pg_proc`](https://www.postgresql.org/docs/current/catalog-pg-proc.html), and [`pg_get_functiondef`](https://www.postgresql.org/docs/current/functions-info.html).
 
 Execute it in read-only mode against the source before authorization, again immediately before clone, and against the healthy clone. Store raw outputs only in the encrypted transient workspace:
@@ -170,7 +172,7 @@ node scripts/phase0/compare-auth-restore-signature.mjs \
 
 Comparison results:
 
-- `PASS_BOUNDED` / exit 0: Auth schema/users relation present, backup timestamp precedes captures, metadata signatures match, counts are uncapped, and all three bounded counts match.
+- `PASS_BOUNDED` / exit 0: Auth schema/users relation present, the complete four-point chronology is valid, metadata item count is positive, metadata signatures match, every signature capture uses the reviewed `100001` cap, counts are uncapped, and all three bounded counts match.
 - `FAIL` / exit 1: missing Auth structure, malformed or wrongly typed evidence, invalid hash/count/cap semantics, any violation of `backup <= source-before-authorization <= source-before-clone <= clone`, or metadata-signature mismatch.
 - `INDETERMINATE` / exit 2: a count reaches the cap or differs. The drill cannot pass without independently authorized backup-time aggregate evidence or a newer backup/retry.
 

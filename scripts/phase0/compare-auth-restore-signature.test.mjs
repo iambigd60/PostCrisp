@@ -68,6 +68,8 @@ test('passes stable, uncapped metadata and aggregate evidence', () => {
   const output = JSON.parse(result.stdout)
   assert.equal(output.result, 'PASS_BOUNDED')
   assert.equal(output.checks.metadata_signature_stable, true)
+  assert.equal(output.checks.backup_and_capture_chronology_valid, true)
+  assert.equal('selected_backup_precedes_captures' in output.checks, false)
   assert.match(output.query_sha256, /^[0-9a-f]{64}$/)
   assert.equal('bounded_user_count' in output, false)
 })
@@ -111,7 +113,7 @@ test('rejects null metadata counts', () => {
     captured_at: '2026-08-20T18:00:00.000Z',
     metadata_item_count: null,
   }) })
-  assertInvalid(result, 'metadata_item_count must be a nonnegative integer')
+  assertInvalid(result, 'metadata_item_count must be a positive integer')
 })
 
 test('rejects metadata counts with the wrong type', () => {
@@ -119,18 +121,28 @@ test('rejects metadata counts with the wrong type', () => {
     captured_at: '2026-08-20T18:00:00.000Z',
     metadata_item_count: '562',
   }) })
-  assertInvalid(result, 'metadata_item_count must be a nonnegative integer')
+  assertInvalid(result, 'metadata_item_count must be a positive integer')
 })
 
 test('rejects negative and fractional metadata counts', () => {
   assertInvalid(runComparison({ sourceBeforeAuthorization: signature({
     captured_at: '2026-08-20T18:00:00.000Z',
     metadata_item_count: -1,
-  }) }), 'metadata_item_count must be a nonnegative integer')
+  }) }), 'metadata_item_count must be a positive integer')
   assertInvalid(runComparison({ sourceBeforeAuthorization: signature({
     captured_at: '2026-08-20T18:00:00.000Z',
     metadata_item_count: 1.5,
-  }) }), 'metadata_item_count must be a nonnegative integer')
+  }) }), 'metadata_item_count must be a positive integer')
+})
+
+test('rejects a zero metadata item count', () => {
+  const result = runComparison({
+    sourceBeforeAuthorization: signature({
+      captured_at: '2026-08-20T18:00:00.000Z',
+      metadata_item_count: 0,
+    }),
+  })
+  assertInvalid(result, 'metadata_item_count must be a positive integer')
 })
 
 test('rejects null and malformed metadata signature hashes', () => {
@@ -177,6 +189,39 @@ test('rejects null, wrongly typed, zero, and fractional caps', () => {
       bounded_user_count_cap: invalidCap,
     }) }), 'bounded_user_count_cap must be a positive integer')
   }
+})
+
+test('rejects the wrong positive reviewed-query cap even when count and capped are coherent', () => {
+  const wrongCap = {
+    bounded_user_count: 5,
+    bounded_user_count_cap: 6,
+    bounded_user_count_capped: false,
+  }
+  const result = runComparison({
+    sourceBeforeAuthorization: signature({
+      ...wrongCap,
+      captured_at: '2026-08-20T18:00:00.000Z',
+    }),
+    sourceBeforeClone: signature({
+      ...wrongCap,
+      captured_at: '2026-08-20T18:01:00.000Z',
+    }),
+    clone: signature({
+      ...wrongCap,
+      captured_at: '2026-08-20T18:02:00.000Z',
+    }),
+  })
+  assertInvalid(result, 'bounded_user_count_cap must equal reviewed query cap 100001')
+})
+
+test('rejects differing caps across signature captures', () => {
+  const result = runComparison({
+    sourceBeforeClone: signature({
+      captured_at: '2026-08-20T18:01:00.000Z',
+      bounded_user_count_cap: 100000,
+    }),
+  })
+  assertInvalid(result, 'all capture bounded_user_count_cap values must match')
 })
 
 test('rejects null and wrongly typed capped flags', () => {
