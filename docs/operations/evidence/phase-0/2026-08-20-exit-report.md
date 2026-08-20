@@ -2,10 +2,10 @@
 
 **Gate result:** **BLOCKED — do not start Phase 1.**
 **Recorded:** 2026-08-20 (America/Los_Angeles)
-**Repository verification range:** `c449867..e101996`
+**Repository verification range:** `c449867..40d9b28`
 **Branch:** `codex/phase-0-containment`
 
-The repository migration lineage, clean-room reconstruction, and captured `public` schema remain reproducible. That repository evidence does not satisfy the Phase 0 exit gate: live recovery and platform controls remain unresolved, the isolated restore drill has not run, and the required independent council review could not start.
+This refresh replaces the prior Auth-signature CLI-invocation blocker after Task 4 (`40d9b28`) made the query launcher executable and bounded its process-tree timeout. The linked read-only launcher and all focused Auth tests now pass. Phase 0 remains blocked because clean-room verification could not refresh without a local Docker engine and because the required live-control, restore, and independent-council gates remain unresolved.
 
 ## Safety boundary
 
@@ -17,27 +17,22 @@ All timestamps below are UTC on 2026-08-20. Commands were run from `C:\Projects\
 
 | Start | Command | Exit | Result |
 | --- | --- | ---: | --- |
-| `18:56:02.0824318Z` | `supabase db reset --local` | 0 | Recreated the local database and applied all eight production-version migrations in order. |
-| `18:56:38.6796287Z` | `supabase migration list --linked` | 0 | Returned eight exact local/remote version pairs from `20260707062202` through `20260819010835`. |
-| `18:56:46.2193371Z` | `supabase db push --dry-run --linked` | 0 | `upToDate: true`; no migrations, seeds, or roles pending. Production was not changed. |
-| `18:56:55.2910304Z` | `node .superpowers/sdd/2026-08-20-phase-0-containment/verify-exact-migrations.mjs` | 0 | The seven literal production migrations hash-matched the statement artifact; the composite migration ended with the exact production v1 body. |
-| `18:57:02.2724724Z` | `powershell -NoProfile -File .superpowers/sdd/2026-08-20-phase-0-containment/capture-schema-inventory.ps1 -Scope linked -OutputPath .superpowers/sdd/2026-08-20-phase-0-containment/task-5-production-review.json` | 0 | Captured a fresh read-only production catalog inventory into the ignored review workspace. |
-| `18:57:10.8164685Z` | `powershell -NoProfile -File .superpowers/sdd/2026-08-20-phase-0-containment/capture-schema-inventory.ps1 -Scope local -OutputPath .superpowers/sdd/2026-08-20-phase-0-containment/task-5-local-review.json` | 0 | Captured the post-reset local catalog inventory into the ignored review workspace. |
-| `18:57:16.9331329Z` | `node scripts/phase0/compare-schema-inventory.mjs .superpowers/sdd/2026-08-20-phase-0-containment/task-5-production-review.json .superpowers/sdd/2026-08-20-phase-0-containment/task-5-local-review.json` | 0 | `Schema inventories match.` |
-| `18:57:22.7470333Z` | `node scripts/phase0/compare-schema-inventory.mjs docs/operations/evidence/phase-0/2026-08-20-production-schema-inventory.json docs/operations/evidence/phase-0/2026-08-20-local-schema-inventory.json` | 0 | Committed inventories still match. |
-| `18:57:30.0530800Z` | `Get-FileHash -Algorithm SHA256` over both fresh and both committed inventory files | 0 | All four files had SHA-256 `138C91B56E1D7E21101BC232F09C071459C4E52603FF6147F15A09F2221C6D8B`. |
-| `18:57:36.9138523Z` | `node --test scripts/phase0/compare-schema-inventory.test.mjs` | 0 | 11 tests passed; 0 failed. |
-| `18:57:46.4221094Z` | `node --test scripts/phase0/compare-auth-restore-signature.test.mjs` | 0 | 23 tests passed; 0 failed. |
-| `18:57:53.0453668Z` | `supabase db query --local --file scripts/phase0/probe-default-grants.sql --output-format json` | 0 | The atomic default-grant integration probe completed with `DO`. |
-| `18:57:59.1265874Z` | `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` | 0 | Hash remained `76DCD5229E671396F5C822CCF0DA839BE83FF9183785DE682A64FCF5DD649CCE`. |
-| `18:58:04.1450650Z` | `supabase db query --local --file scripts/phase0/auth-restore-signature.sql --output-format json` | 1 | CLI rejected the multi-command file: `cannot insert multiple commands into a prepared statement`. This exact documented invocation is not executable with Supabase CLI `2.115.0`. |
-| `18:58:25.4955139Z` | `Get-Content -Raw scripts/phase0/auth-restore-signature.sql \| docker exec -i supabase_db_postcrisp psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 --no-psqlrc --tuples-only --no-align` | 0 | The same SQL completed locally in a read-only transaction and returned the expected structural signature. This proves the SQL executes, but it does not make the documented CLI command pass. |
-| `18:58:31.0771371Z` | `npm test -- --run` | 0 | 26 files and 240 tests passed. npm also emitted the pre-existing `Unknown cli config "--run"` warning. |
-| `18:58:37.9513697Z` | `npm run typecheck` | 0 | TypeScript completed without errors. |
-| `18:58:44.3812244Z` | `npm run lint` | 0 | Completed with the same four baseline application warnings listed below, plus Next.js/Sentry deprecation notices. |
-| `18:58:57.0347013Z` | `git diff --check c449867..HEAD` | 0 | No whole-branch whitespace errors. |
-| `18:58:57.0447028Z` | `git status --short --branch` | 0 | Clean tracked worktree: `## codex/phase-0-containment`. |
-| `18:59:07.7257450Z` | `git diff --find-renames --full-index --output=.superpowers/sdd/2026-08-20-phase-0-containment/task-5-review-c449867..e101996.diff c449867..e101996` | 0 | Generated the ignored 1,098,269-byte whole-branch review package; SHA-256 `E8E86268DDFC29338C62FA36F04B7CB66FF8E6D0D3D0C360732435A0CB3F4A33`. |
+| `20:06:54.2150569Z` | `supabase db reset --local` | 1 | Could not connect to Docker Desktop's `dockerDesktopLinuxEngine` named pipe. No reset occurred. |
+| `20:06:55.7692429Z` | `supabase migration list --linked` | 0 | Returned all eight exact local/remote version pairs from `20260707062202` through `20260819010835`. |
+| `20:06:59.1992746Z` | `supabase db push --dry-run --linked` | 0 | `upToDate: true`; no migrations, seeds, or roles pending. Production was not changed. |
+| `20:07:02.4397928Z` | `node --test scripts/phase0/compare-schema-inventory.test.mjs` | 1 | Eight non-database tests passed; three database-backed inventory tests could not connect to the unavailable local database. |
+| `20:07:06.6114047Z` | `node scripts/phase0/compare-schema-inventory.mjs docs/operations/evidence/phase-0/2026-08-20-production-schema-inventory.json docs/operations/evidence/phase-0/2026-08-20-local-schema-inventory.json` | 0 | Committed inventories match. This is not a replacement for a fresh post-reset local capture. |
+| `20:07:06.6815383Z` | `node --test scripts/phase0/auth-restore-signature-query.test.mjs` | 0 | 2 tests passed; the SQL is one prepared-statement-compatible read-only query. |
+| `20:07:06.8084989Z` | `node --test scripts/phase0/capture-auth-restore-signature.test.mjs` | 0 | 9 tests passed, including prompt timeout, partial-output suppression, and Windows process-tree termination. |
+| `20:07:07.5978779Z` | `node --test scripts/phase0/compare-auth-restore-signature.test.mjs` | 0 | 23 comparator tests passed. |
+| `20:07:10.1044291Z` | `node scripts/phase0/capture-auth-restore-signature.mjs --local` | 1 | Local Supabase CLI query could not connect because the Docker engine is unavailable; no capture was retained. |
+| `20:07:12.5559861Z` | `node scripts/phase0/capture-auth-restore-signature.mjs --linked` | 0 | The credential-free launcher completed one linked read-only signature query and emitted only its required JSON contract. Raw output was not persisted in evidence. |
+| `20:07:17.0759518Z` | `npm test -- --run` | 0 | 26 files and 240 tests passed. |
+| `20:07:19.4628055Z` | `npm run typecheck` | 0 | TypeScript completed without errors. |
+| `20:07:38.0705340Z` | `npm run lint` | 0 | Completed with the same four baseline application warnings listed below, plus Next.js/Sentry deprecation notices. |
+| `20:07:41.4719730Z` | `git diff --check c449867..HEAD` | 0 | No whole-branch whitespace errors. |
+| `20:07:41.6345021Z` | `git diff --find-renames --full-index --output=.superpowers/sdd/2026-08-20-phase-0-containment/task-5-review-c449867..40d9b28.diff c449867..HEAD` | 0 | Generated the ignored 1,128,423-byte whole-branch review package; SHA-256 `BE22748705438731CAAFC161763EC9C40839C8551222AD3E9AC4C48AE8B0178A`. |
+| `20:07:41.7313556Z` | `git status --short --branch` | 0 | Clean tracked worktree: `## codex/phase-0-containment`. |
 
 The four baseline lint warnings are distinct from a clean lint result:
 
@@ -46,11 +41,11 @@ The four baseline lint warnings are distinct from a clean lint result:
 - `src/app/admin/feature-access/page.tsx:44`: missing `load` dependency.
 - `src/components/ui/FeatureGate.tsx:113`: `@next/next/no-img-element`.
 
-The failed Auth CLI invocation is a repository/runbook blocker for the restore procedure. The direct local `psql` result narrows the defect to invocation compatibility; it is not a substitute for fixing and independently reviewing the committed procedure.
+The prior multi-command prepared-statement failure is resolved: Task 4 changed the Auth signature to one read-only query, and the fresh query, capture, comparator, and linked-launcher evidence above passed. The unavailable local Docker engine prevents a fresh reset, local launcher execution, and the three database-backed inventory tests; it must be restored before clean-room verification can be refreshed.
 
 ## Live-control gate
 
-Task 4 controls are not all `VERIFIED`, so the exit condition fails even where repository checks passed:
+The resolved Auth invocation does not satisfy the live-control exit gate:
 
 | Control | Exit classification | Required checkpoint |
 | --- | --- | --- |
@@ -67,12 +62,11 @@ Task 4 controls are not all `VERIFIED`, so the exit condition fails even where r
 
 The required independent review did not run.
 
-- At `2026-08-20T11:55:13.8920555-07:00`, `three-aimigos status` exited 1 with `Action required`, `Configuration: unavailable`, and healthy required Anthropic/OpenAI providers plus healthy optional xAI.
-- At `2026-08-20T11:55:27.3510072-07:00`, the mandatory `three-aimigos doctor` exited 1 with the same configuration/provider state.
-- Per the Three AImigos preflight contract, no `start`, `init`, or `configure` command was run. No council was dispatched and no Auditor response or verdict exists.
+- Immediately before this Task 5 refresh, the controller ran `three-aimigos doctor`; it exited 1 with `Action required`, `Configuration: unavailable`, required Anthropic/OpenAI healthy, and optional xAI authentication required.
+- Per the Three AImigos preflight contract, no `status`, `start`, `init`, `configure`, or repeat `doctor` command was run by this task. No council was dispatched and no Auditor response or verdict exists.
 
 This is an independent-review blocker, not an adverse or favorable review verdict. Phase 0 cannot complete until an eligible independent exit review covers the approved spec, plan, evidence, SQL, scripts, and complete branch diff and returns with no unresolved blocker.
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Resume only at the exact access/authorization checkpoints above, correct and reverify the Auth-signature invocation contract, complete the isolated restore drill and cleanup evidence, and obtain the required independent exit review.
+Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Restore the local Docker engine and rerun clean-room evidence; then satisfy the exact access/authorization checkpoints above, complete the isolated restore drill and cleanup evidence, and obtain the required independent exit review.
