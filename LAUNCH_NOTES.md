@@ -13,7 +13,7 @@
 - Foundation Analysis refine is disabled unless `ENABLE_FOUNDATION_REFINE=true`; leave it off for public testing until async/background processing is introduced.
 - Foundation Analysis evidence is now hybrid. Users can add top-post URLs, but every URL must match the selected platform or the analysis is blocked.
 - Saved social Channel URLs also enforce platform-domain matching.
-- Before public cost trials, confirm production Supabase has the latest `src/lib/supabase-schema.sql` and Vercel has `SUPABASE_SERVICE_ROLE_KEY`.
+- Before public cost trials, confirm production Supabase is current through the paired files under `supabase/migrations/` and Vercel has `SUPABASE_SERVICE_ROLE_KEY`. Do not execute the deprecated `src/lib/supabase-schema.sql` snapshot.
 
 ---
 

@@ -9,7 +9,7 @@ const ignoredKeys = new Set([
   'owner',
 ]);
 
-const INVENTORY_CONTRACT_VERSION = 2;
+const INVENTORY_CONTRACT_VERSION = 3;
 const requiredSections = [
   'application_schemas',
   'columns',
@@ -43,11 +43,19 @@ function validateInventoryContract(inventory, label) {
   }
 }
 
-function canonicalize(value) {
+const orderSensitiveArrayPaths = new Set([
+  'types[].composite_attributes',
+  'types[].enum_labels',
+]);
+
+function canonicalize(value, path = '') {
   if (Array.isArray(value)) {
-    return value
-      .map(canonicalize)
-      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    const canonicalItems = value.map(item => canonicalize(item, `${path}[]`));
+    return orderSensitiveArrayPaths.has(path)
+      ? canonicalItems
+      : canonicalItems.sort(
+        (left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)),
+      );
   }
 
   if (value && typeof value === 'object') {
@@ -55,7 +63,10 @@ function canonicalize(value) {
       Object.entries(value)
         .filter(([key]) => !ignoredKeys.has(key))
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nestedValue]) => [key, canonicalize(nestedValue)]),
+        .map(([key, nestedValue]) => [
+          key,
+          canonicalize(nestedValue, path === '' ? key : `${path}.${key}`),
+        ]),
     );
   }
 

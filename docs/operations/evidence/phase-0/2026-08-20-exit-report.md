@@ -4,7 +4,7 @@
 
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
-**Current checkpoint:** evidence refreshed through approximately 2026-08-20T22:52Z
+**Current checkpoint:** evidence and correction-wave verification refreshed through approximately 2026-08-20T23:42Z
 
 **Branch:** `codex/phase-0-containment`
 
@@ -16,12 +16,47 @@ Phase 0 has closed the migration-history, object-parity, optional-extension, cli
 | --- | --- | --- |
 | Production/local migration history | `VERIFIED` | Fresh linked listing returned exactly ten paired versions through `20260820220303`. The linked `--skip-vault` dry run exited `0`, reported the remote database up to date, and performed no apply. |
 | Optional `pg_graphql` drift | `VERIFIED` | The CLI-generated non-`CASCADE` removal migration is applied; production/local inventories contain five extensions and no `pg_graphql`. |
-| Object parity | `VERIFIED` | Reviewed post-hardening production and fresh-reset local contract-v2 source captures each contain 325 grants and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`. The tracked prior-key-order copies are byte-identical at `16386F28EE7F40EF2CC69FF8F83497FC246D6DB61FB5C0CF9877DDDA878E0D8F`, semantically identical to the reviewed captures, and comparator-clean. |
+| Object parity | `VERIFIED` | Reviewed post-hardening production and fresh-reset local contract-v2 source captures each contain 325 grants, zero application types, and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`. The tracked copies advance only the contract marker to v3's expanded type coverage; they are byte-identical at `8D117BFF7BDE8B42896EC61DE4E4131DE716D9946D9BBD765883CF67B9D1386D` and comparator-clean. |
 | Client-role grant hardening | `VERIFIED` | The applied reviewed migration removed exactly 154 grant rows: 128 current table, 12 current sequence, and 14 `postgres` defaults. Fresh metadata reports 0 forbidden current tables / 0 current sequences and 0 forbidden `postgres` table / 0 sequence defaults. No non-grant inventory section drifted. |
 | Preserved application grants | `VERIFIED` | The reviewed probe checks exact grantee/schema/object/privilege tuples for table CRUD, column ACL, and function identities/signatures, rejects missing and extra tuples, and preserves intended `service_role` access. |
 | HIBP leaked-password protection | `VERIFIED` | Enabled. The fresh security advisor reports exactly three `INFO` policyless-RLS items and no `WARN` or `ERROR`; the leaked-password warning is absent. |
 | Source restore preflight | `VERIFIED` | At `2026-08-20T22:52:11.037108Z`: no cron catalog/jobs, no `pg_net` queue, 0 foreign servers/mappings, 0 subscriptions, 0 replication slots including unclassified, vault present with 0 secrets; only metadata helper `extensions.grant_pg_net_access()` remains while `pg_net` is absent. |
 | Auth restore signature | `VERIFIED` | At `2026-08-20T22:52:15.711197Z`: exact reviewed 10-key shape, Auth schema/users relation present, uncapped aggregate, PostgreSQL 17 membership options represented; no raw identities retained. |
+
+## Whole-branch review correction
+
+Greybeard review of `0664934` found three Important repository defects and one Minor comparator defect. The correction wave:
+
+- refreshed the canonical reconciliation guide and migration README to the ten-pair applied state and corrected historical version labels;
+- deprecated `src/lib/supabase-schema.sql` as a non-operational snapshot, making paired migrations the only supported bootstrap path;
+- replaced the invalid inline restore aggregate with a committed one-statement query, bounded credential-free launcher, strict output allowlist, hash-bound three-capture comparator, and RED/GREEN tests;
+- restored order-sensitive enum/composite comparison, added composite/range/base type metadata, and advanced the inventory contract to v3; and
+- restored this tracked command/exit ledger.
+
+The correction wave changed no migration SQL and made no production mutation. It used only fresh local rebuilds and read-only linked inventory/lineage/dry-run queries.
+
+## Exact candidate verification
+
+The complete candidate tree was verified sequentially on 2026-08-20 between approximately `23:34Z` and `23:42Z`:
+
+| Command / check | Exit | Result |
+| --- | ---: | --- |
+| `supabase db reset --local` | 0 | Fresh rebuild applied all ten migrations through `20260820220303`. |
+| `supabase db query --local --file scripts/phase0/probe-client-role-grants.sql --output-format json` | 0 | Returned `DO`; exact current/preserved client and service-role tuples passed. |
+| `supabase db query --local --file scripts/phase0/probe-default-grants.sql --output-format json` | 0 | Returned `DO`; customer-owned default-grant contract passed. |
+| `node scripts/phase0/capture-application-restore-aggregates.mjs --local` | 0 | Exact five-relation, `100001`-cap output; all fresh-reset counts were zero. |
+| `node --test scripts/phase0/*.test.mjs` | 0 | 69 passed, 1 intentionally skipped, 0 failed. The skip requires explicit `PHASE0_PG17_CONTAINER`; that PostgreSQL 17 mutation case passed in the earlier isolated membership-option gate. |
+| `npm test -- --run` | 0 | 26 files, 240/240 tests passed. |
+| `npm run typecheck` | 0 | TypeScript completed without errors. |
+| `npm run lint` | 0 | Completed with the four baseline warnings: three hook-dependency warnings and one `no-img-element` warning. |
+| Fresh contract-v3 linked/local inventory capture | 0 | Production and local matched after parse: 18 tables, 0 application types, 325 grants. Fresh local also matched the tracked v3 artifact through the repository comparator. |
+| `supabase migration list --linked` | 0 | Exactly ten paired versions through `20260820220303`. |
+| `supabase db push --dry-run --linked --skip-vault` | 0 | `upToDate: true`; no migrations, seeds, or roles. No apply occurred. |
+| Tracked inventory comparator | 0 | Production/local tracked v3 artifacts match; both SHA-256 `8D117BFF7BDE8B42896EC61DE4E4131DE716D9946D9BBD765883CF67B9D1386D`. |
+| High-confidence secret scan of all 20 intended changed/new paths | 0 | No hit files and no scan errors. |
+| Current stale-claim scan | 0 | No current operator surface says either forward migration/HIBP/grant hardening is pending, references nonexistent `public.purchased_credits`, or instructs operators to run the deprecated schema snapshot. |
+| `git diff --check` | 0 | No whitespace errors. |
+| Post-commit tracked/untracked status | 0 | Clean: no tracked modification and no untracked non-ignored path remained after the bounded correction commit. |
 
 ## Open blockers
 
@@ -60,7 +95,7 @@ The production/local inventory artifacts were refreshed from the reviewed ignore
 - production source: `.superpowers/sdd/2026-08-20-phase-0-containment/post-hardening-production-inventory.json`;
 - local source: `.superpowers/sdd/2026-08-20-phase-0-containment/grant-hardening-fix-local-inventory.json`.
 
-This documentation task made no production call or mutation. No migration/script/application code changed; no restore, paid resource, external setting change, push, merge, or branch switch occurred.
+This correction wave made read-only linked queries but no production mutation. No migration or application code changed; no restore, paid resource, external setting change, push, merge, or branch switch occurred.
 
 ## Historical intermediate checkpoints (superseded)
 

@@ -10,7 +10,7 @@ const comparatorPath = fileURLToPath(new URL('./compare-schema-inventory.mjs', i
 const inventorySqlPath = fileURLToPath(new URL('./schema-inventory.sql', import.meta.url));
 
 const inventoryContract = {
-  inventory_contract_version: 2,
+  inventory_contract_version: 3,
   application_schemas: [],
   columns: [],
   constraints: [],
@@ -55,12 +55,12 @@ async function runComparator(production, local) {
 test('rejects an obsolete inventory contract even when both files are identical', async () => {
   // Catches old snapshots producing a false parity result after coverage expands.
   const result = await runComparator(
-    { inventory_contract_version: 1 },
-    { inventory_contract_version: 1 },
+    { inventory_contract_version: 2 },
+    { inventory_contract_version: 2 },
   );
 
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /production inventory_contract_version must equal 2/);
+  assert.match(result.stderr, /production inventory_contract_version must equal 3/);
   assert.equal(result.stdout, '');
 });
 
@@ -89,6 +89,62 @@ test('reports drift in newly covered view, foreign-table, type, extension, and s
   }
 });
 
+test('reports enum label order drift instead of treating labels as an unordered set', async () => {
+  // Catches PostgreSQL enum sort-order changes being erased during canonicalization.
+  const production = {
+    types: [{
+      schema: 'public',
+      name: 'subscription_tier',
+      kind: 'enum',
+      enum_labels: ['free', 'creator', 'elite'],
+      composite_attributes: [],
+    }],
+  };
+  const local = {
+    types: [{
+      schema: 'public',
+      name: 'subscription_tier',
+      kind: 'enum',
+      enum_labels: ['elite', 'creator', 'free'],
+      composite_attributes: [],
+    }],
+  };
+
+  const result = await runComparator(production, local);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /types public\.subscription_tier\.enum_labels/);
+});
+
+test('reports composite attribute order drift instead of treating attributes as an unordered set', async () => {
+  // Catches a composite type changing positional row semantics with the same attributes.
+  const first = { name: 'provider', ordinal_position: 1, data_type: 'text' };
+  const second = { name: 'model', ordinal_position: 2, data_type: 'text' };
+  const production = {
+    types: [{
+      schema: 'public',
+      name: 'provider_model',
+      kind: 'composite',
+      enum_labels: [],
+      composite_attributes: [first, second],
+    }],
+  };
+  const local = {
+    types: [{
+      schema: 'public',
+      name: 'provider_model',
+      kind: 'composite',
+      enum_labels: [],
+      composite_attributes: [second, first],
+    }],
+  };
+
+  const result = await runComparator(production, local);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /types public\.provider_model\.composite_attributes/);
+});
+
 function captureLocalInventory() {
   const supabaseArguments = [
     'db', 'query', '--local', '--file', inventorySqlPath, '--output-format', 'json',
@@ -103,6 +159,77 @@ function captureLocalInventory() {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   return JSON.parse(result.stdout).rows[0].inventory;
 }
+
+async function executeLocalSql(sql) {
+  const directory = await mkdtemp(join(tmpdir(), 'postcrisp-schema-types-'));
+  const sqlPath = join(directory, 'type-fixture.sql');
+
+  try {
+    await writeFile(sqlPath, sql);
+    const result = process.platform === 'win32'
+      ? spawnSync(
+          process.env.ComSpec,
+          ['/d', '/s', '/c', `supabase db query --local --file ${sqlPath} --output-format json`],
+          { encoding: 'utf8' },
+        )
+      : spawnSync(
+          'supabase',
+          ['db', 'query', '--local', '--file', sqlPath, '--output-format', 'json'],
+          { encoding: 'utf8' },
+        );
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+test('inventory captures ordered enum labels, composite attributes, and range definitions', async () => {
+  // Catches the SQL inventory omitting order-sensitive or behavior-defining type metadata.
+  const enumName = 'phase0_inventory_enum_probe';
+  const compositeName = 'phase0_inventory_composite_probe';
+  const rangeName = 'phase0_inventory_range_probe';
+  const dropSql = [
+    `drop type if exists public.${rangeName};`,
+    `drop type if exists public.${compositeName};`,
+    `drop type if exists public.${enumName};`,
+  ];
+
+  for (const statement of dropSql) await executeLocalSql(statement);
+  try {
+    for (const statement of [
+      `create type public.${enumName} as enum ('free', 'creator', 'elite');`,
+      `create type public.${compositeName} as (provider text, model text);`,
+      `create type public.${rangeName} as range (subtype = integer);`,
+    ]) await executeLocalSql(statement);
+
+    const inventory = captureLocalInventory();
+    const enumType = inventory.types.find(type => type.name === enumName);
+    const compositeType = inventory.types.find(type => type.name === compositeName);
+    const rangeType = inventory.types.find(type => type.name === rangeName);
+
+    assert.deepEqual(enumType.enum_labels, ['free', 'creator', 'elite']);
+    assert.ok(
+      Array.isArray(compositeType.composite_attributes),
+      'composite type must include ordered composite_attributes',
+    );
+    assert.deepEqual(
+      compositeType.composite_attributes.map(attribute => ({
+        name: attribute.name,
+        ordinal_position: attribute.ordinal_position,
+        data_type: attribute.data_type,
+      })),
+      [
+        { name: 'provider', ordinal_position: 1, data_type: 'text' },
+        { name: 'model', ordinal_position: 2, data_type: 'text' },
+      ],
+    );
+    assert.equal(rangeType.range_subtype, 'integer');
+    assert.equal(typeof rangeType.range_subtype_opclass, 'string');
+    assert.equal(typeof rangeType.range_multirange_type, 'string');
+  } finally {
+    for (const statement of dropSql) await executeLocalSql(statement);
+  }
+});
 
 test('accepts reordered objects and ignored capture metadata as equal', async () => {
   // Catches treating catalog row order, owners, OIDs, or capture times as drift.

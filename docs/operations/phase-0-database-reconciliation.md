@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Phase 0 is `BLOCKED`. Fresh local inventory-v2 matches production exactly after an explicit local-only migration disables unused `pg_graphql`, and the current linked dry run lists only that migration with empty seed and role lists. The migration is not applied and still requires an authorized apply/post-apply checkpoint. Captured production client-role grants, leaked-password protection, source/UI restore eligibility, the authorized restore drill, live Vercel/provider-control access, and the council/Auditor verdict remain unresolved; independent scoped review approved `7be975d` with no findings.
+**Status:** Phase 0 is `BLOCKED` only on the isolated restore drill, Vercel/provider-console controls, and a valid independent council verdict. Production and local history pair exactly ten versions through `20260820220303`; the linked `--skip-vault` dry run is empty. The `pg_graphql` removal and client-role grant-hardening migrations are applied, contract-v3 production/local inventories match with 325 grants, leaked-password protection is enabled, and the source preflight is clean.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -13,7 +13,7 @@
 | Supabase project | `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`) |
 | Vercel project | `prj_jk99T7FADZ391B7LWt9g8SYwLn9w` |
 | Supabase CLI | `2.115.0` |
-| Docker verification | Historical Task 5 refresh at `2026-08-20T20:06:54.2150569Z`: Docker Desktop Linux engine unavailable and `supabase db reset --local` exited 1. Current evidence: engine `29.6.1` completed fresh local resets before and after `20260820210852_disable_unused_pg_graphql.sql`; the post-migration reset applied all nine local migrations. |
+| Docker verification | Historical Task 5 refresh at `2026-08-20T20:06:54.2150569Z`: Docker Desktop Linux engine unavailable and `supabase db reset --local` exited 1. Current evidence: engine `29.6.1` completed a fresh reset at exact branch head and applied all ten local migrations. |
 
 The repository baseline was reverified in this worktree on 2026-08-20:
 
@@ -48,13 +48,17 @@ Use the composite-baseline architecture established in [the reconciliation ADR](
 3. Replay the remaining seven production-timestamp files from the exact captured production bodies, not from assumed timestamp-only renames of the current local files.
 4. Keep all eight normalized production bodies and stable hashes in [the exact statement artifact](evidence/phase-0/2026-08-20-production-migration-statements.json), with the query and comparison evidence in [the production migration history](evidence/phase-0/2026-08-20-production-migration-history.md).
 
-The eight-file list above is the immutable production-history baseline. `20260820210852_disable_unused_pg_graphql.sql` is a new forward migration, generated with the CLI and currently local-only. It must not be added to the exact-production-statement artifact until production applies it under explicit authorization.
+The eight-file list above remains the immutable historical production-body baseline. Two reviewed forward migrations now follow it and are applied in production: `20260820210852_disable_unused_pg_graphql.sql` and `20260820220303_harden_client_role_grants.sql`. They are recorded in the current migration-history evidence but are not retroactively folded into the eight-body reconstruction artifact.
 
 The disposable composite lab rebuilt a blank local database and its linked dry run reported no pending migrations. The latest-version squashed alternative was therefore not tested or selected.
 
-## Task 2 reconstruction result
+## Forward repair and rollback
 
-Task 2 implemented the selected representation in tracked migrations:
+Treat every post-reconciliation database correction as a new forward migration. Do not edit, reapply, or repair the ten paired versions, and do not restore the historical broad client/default grants as a rollback. If application access regresses, derive the smallest missing exact object/column/function tuple from the reviewed probes and add a scoped forward grant. Re-enabling `pg_graphql` would likewise require a separately reviewed forward migration and dependency/security assessment; do not add `CASCADE` to the existing removal.
+
+## Historical Task 2 reconstruction result
+
+At the end of Task 2, before the two later forward migrations, the selected representation had these results:
 
 - `20260707062202_protect_privileged_profile_columns_v1.sql` is explicitly labeled as a composite clean-room bootstrap rather than a byte-for-byte historical migration. Its final SQL body matches the exact captured production v1 statement under the documented single-terminal-LF comparison rule.
 - The other seven files use the production timestamps and exact normalized production statement bodies. Their normalized SHA-256 values match the evidence artifact.
@@ -82,9 +86,9 @@ The first comparison exposed 21 column-order differences and 163 missing legacy 
 
 The historical inventory v1 captures matched across 18 tables, 147 columns, 58 constraints, 2 sequences, 42 indexes, 39 policies, 4 functions/procedures, 6 triggers, and 479 object/default grants. Inventory contract v2 also covers the `public` application schema, installed extensions, public views/materialized views, foreign tables, and public enum/domain/range/composite/base types. A pre-migration fresh reset reproduced exactly one remaining difference: the local PostgreSQL 17 image installed `graphql.pg_graphql`, while production did not. The CLI-generated `20260820210852_disable_unused_pg_graphql.sql` contains only the idempotent non-`CASCADE` drop. After a second fresh reset, the tracked local-v2 artifact matched production-v2 exactly, all foreign-option-presence flags were false, the default-grant probe exited `0`, and all 13 schema-inventory tests passed. See [the schema parity evidence](evidence/phase-0/2026-08-20-schema-parity.md).
 
-**Production security blocker:** exact historical parity currently preserves `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` for `anon`/`authenticated` on 16 public tables plus default table ACLs, and gives both client roles `USAGE`/`SELECT`/`UPDATE` on the two application sequences. Those sequence privileges should be service-only. The pending `pg_graphql` migration does not address this blast radius. Separately authorized forward-hardening work must add another migration, preserve required `service_role` access, verify application behavior, and refresh the grant/advisor evidence before Phase 0 can pass.
+**Client-role hardening is closed:** the reviewed `20260820220303_harden_client_role_grants.sql` forward migration is applied. It removed exactly 154 grant rows: 128 current-table, 12 current-sequence, and 14 `postgres` default rows. Current forbidden table/sequence grants and forbidden customer-owned defaults are all zero; exact-tuple probes preserve the required table, column, function-signature, schema, and `service_role` access. Production/local inventories match at 325 grants with no non-grant drift.
 
-The fresh read-only security-advisor query still reports leaked-password protection disabled plus the same three informational policyless-RLS findings on client-CRUD-denied tables. The earlier performance-advisor capture remains 89 notices. No finding or setting changed.
+The reserved `supabase_admin` 8-table-default/6-sequence-default fingerprint is an independently accepted Informational platform-owned residual, not a blocker. Reopen it only if platform automation creates an actual public relation with those grants or official customer remediation becomes available. The fresh security advisor reports only three `INFO` policyless-RLS findings and no `WARN`/`ERROR`; leaked-password protection is enabled.
 
 ## Task 4 recovery and external controls
 
@@ -93,16 +97,16 @@ The timestamped [platform-control evidence](evidence/phase-0/2026-08-20-platform
 - Supabase returned eight completed physical backups, with the latest at `2026-08-20T10:56:15.704Z`. The authenticated organization is Pro, and the observed restore points cover the documented seven-day Pro access window.
 - PITR is explicitly disabled, so no PITR retention window exists. The scheduled physical backups are not directly downloadable; a manual logical dump is a separate unexecuted path.
 - Paid-plan and physical-backup eligibility is verified, but actual source eligibility and the operator-visible **Restore to a New Project** action remain `BLOCKED BY ACCESS`. Execution is `REQUIRES AUTHORIZATION`; the [isolated restore drill](phase-0-restore-drill.md) now requires two fresh outbound/Vault/subscription/replication-slot preflights, a conservative final-configuration estimate below the USD 8 abort threshold, explicit residual-billing-risk acceptance, executable Auth validation, and post-deletion billing evidence. It has not run.
-- The live Supabase security advisor reports leaked-password protection disabled. Enabling it is the intended Phase 0 control change, but no Auth setting was changed on this read-only pass.
+- HIBP leaked-password protection is enabled. The current security advisor contains exactly three `INFO` policyless-RLS findings and no `WARN` or `ERROR`.
 - The Vercel connector reconfirmed the project and READY production deployment, but still exposes neither project-specific firewall state nor production environment-variable names. A 30-day `crisp-engine` log query exceeded the billing limit, a 24-hour query timed out, and a deployment-scoped one-hour query returned no matches; that empty result is not proof of no provider calls. Firewall, environment inventory, and runtime linkage remain `BLOCKED BY ACCESS`.
 - Anthropic and OpenAI are the two real provider adapters configured in code. Their current spend enforcement, alerts, and rate limits remain `BLOCKED BY ACCESS`; no runtime key or secret was inspected or reused.
 
-Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and the still-missing council/Auditor verdict is obtained. The independent scoped review of `7be975d` is approved with no Critical, Important, or Minor findings.
+Phase 0 cannot pass its exit gate until the exact access checkpoints in the platform-control evidence are satisfied, the restore drill is authorized and completed, cleanup is confirmed, and the still-missing council/Auditor verdict is obtained. Independent scoped reviews approved both forward migrations; the whole-branch correction wave remains subject to final re-review.
 
 ## Task 5 exit gate
 
-The timestamped [Phase 0 exit report](evidence/phase-0/2026-08-20-exit-report.md) records the refreshed migration-lineage, schema/Auth/preflight contracts, focused tests, app tests, typecheck, lint, diff, and worktree results. The read-only linked migration list pairs the original eight versions and shows `20260820210852` local-only. The current linked dry run lists exactly that migration and no seeds or roles; no apply occurred. The fresh local reset/capture and production-v2/local-v2 comparator pass.
+The timestamped [Phase 0 exit report](evidence/phase-0/2026-08-20-exit-report.md) records the refreshed migration-lineage, schema/Auth/preflight contracts, focused tests, app tests, typecheck, lint, diff, and worktree results. The read-only linked migration list pairs all ten versions through `20260820220303`; the current linked `--skip-vault` dry run is empty. Fresh-reset production/local contract-v3 inventories compare cleanly.
 
-These repository results do not make Phase 0 complete. The local Auth launcher returned its exact 10-key contract; the local preflight launcher returned its reviewed shape but also recorded one active unclassified local replication slot, so it is not evidence of a clean production outbound gate. Auth `PASS_BOUNDED` requires stable view definitions, column ACLs, enum labels, trigger enabled state, and password-free global role fingerprints whose membership items include `admin_option`, `inherit_option`, and `set_option`. The pending `pg_graphql` apply/post-apply checkpoint, production grant blocker, and Task 4 `NOT ENABLED`, `BLOCKED BY ACCESS`, and `REQUIRES AUTHORIZATION` controls remain; the restore drill has not run or received its required authorization/residual-cost acceptance.
+These repository results do not make Phase 0 complete. The linked Auth launcher returned its exact 10-key contract with PostgreSQL 17 membership options. The linked source preflight is clean: no cron catalog/jobs, `pg_net` queue, foreign servers/mappings, subscriptions, replication slots, or Vault secrets. The restore drill still has not run; clone-specific cost/configuration confirmation, organization/production-sensitive handling authorization, cleanup evidence, Vercel/provider-console evidence, and a valid council verdict remain open.
 
-Independent scoped review approved `7be975d` with no findings. The separate council preflight remains failed closed: current `three-aimigos doctor` returned `Action required` / `Configuration unavailable` with Anthropic, OpenAI, and optional xAI healthy; `configure` reported the project uninitialized. A non-writing `init` inspection showed `GPT-5.5 (openai)` recommended for the first Architect-model choice and was cancelled before any selection. No configuration was written, no council started, and no Auditor verdict exists. Do not proceed to Phase 1 until the exit report's external-control, restore, migration-apply, production-grant, and council blockers are all resolved and freshly reverified.
+The council gate remains failed closed. Three AImigos beta.16 returned malformed Grok 4.6 responses twice, Grok 4.3 access failed, and Gemini 3.5 access was verified but `doctor` remains `Unknown` because the installed adapter reports unknown authentication. No valid Auditor verdict exists. Do not proceed to Phase 1 until the exit report's restore, external-control, and council blockers are resolved and freshly reverified.

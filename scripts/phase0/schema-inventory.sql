@@ -194,6 +194,26 @@ types AS (
     COALESCE((
       SELECT jsonb_agg(
         jsonb_build_object(
+          'name', a.attname,
+          'ordinal_position', a.attnum,
+          'data_type', pg_catalog.format_type(a.atttypid, a.atttypmod),
+          'collation', CASE WHEN a.attcollation <> 0
+            THEN pg_catalog.format('%I.%I', cn.nspname, coll.collname)
+          END
+        )
+        ORDER BY a.attnum
+      )
+      FROM pg_catalog.pg_attribute AS a
+      LEFT JOIN pg_catalog.pg_collation AS coll ON coll.oid = a.attcollation
+      LEFT JOIN pg_catalog.pg_namespace AS cn ON cn.oid = coll.collnamespace
+      WHERE t.typtype = 'c'
+        AND a.attrelid = t.typrelid
+        AND a.attnum > 0
+        AND NOT a.attisdropped
+    ), '[]'::jsonb) AS composite_attributes,
+    COALESCE((
+      SELECT jsonb_agg(
+        jsonb_build_object(
           'name', con.conname,
           'definition', pg_catalog.pg_get_constraintdef(con.oid, false)
         )
@@ -205,11 +225,68 @@ types AS (
     CASE WHEN r.rngtypid IS NOT NULL
       THEN pg_catalog.format_type(r.rngsubtype, NULL)
     END AS range_subtype,
+    CASE WHEN r.rngtypid IS NOT NULL AND r.rngcollation <> 0
+      THEN pg_catalog.format('%I.%I', rcn.nspname, rc.collname)
+    END AS range_collation,
+    CASE WHEN r.rngtypid IS NOT NULL
+      THEN pg_catalog.format('%I.%I', ocn.nspname, oc.opcname)
+    END AS range_subtype_opclass,
+    CASE WHEN r.rngcanonical <> 0
+      THEN pg_catalog.format(
+        '%I.%I(%s)',
+        canonical_n.nspname,
+        canonical_p.proname,
+        pg_catalog.pg_get_function_identity_arguments(canonical_p.oid)
+      )
+    END AS range_canonical_function,
+    CASE WHEN r.rngsubdiff <> 0
+      THEN pg_catalog.format(
+        '%I.%I(%s)',
+        subdiff_n.nspname,
+        subdiff_p.proname,
+        pg_catalog.pg_get_function_identity_arguments(subdiff_p.oid)
+      )
+    END AS range_subtype_diff_function,
+    CASE WHEN r.rngtypid IS NOT NULL
+      THEN pg_catalog.format_type(r.rngmultitypid, NULL)
+    END AS range_multirange_type,
+    CASE WHEN t.typtype = 'b' THEN t.typlen END AS base_internal_length,
+    CASE WHEN t.typtype = 'b' THEN t.typbyval END AS base_passed_by_value,
+    CASE WHEN t.typtype = 'b' THEN t.typalign END AS base_alignment,
+    CASE WHEN t.typtype = 'b' THEN t.typstorage END AS base_storage,
+    CASE WHEN t.typtype = 'b'
+      THEN pg_catalog.format(
+        '%I.%I(%s)',
+        input_n.nspname,
+        input_p.proname,
+        pg_catalog.pg_get_function_identity_arguments(input_p.oid)
+      )
+    END AS base_input_function,
+    CASE WHEN t.typtype = 'b'
+      THEN pg_catalog.format(
+        '%I.%I(%s)',
+        output_n.nspname,
+        output_p.proname,
+        pg_catalog.pg_get_function_identity_arguments(output_p.oid)
+      )
+    END AS base_output_function,
     extension.extname AS extension
   FROM pg_catalog.pg_type AS t
   JOIN pg_catalog.pg_namespace AS n ON n.oid = t.typnamespace
   LEFT JOIN pg_catalog.pg_class AS c ON c.oid = t.typrelid
   LEFT JOIN pg_catalog.pg_range AS r ON r.rngtypid = t.oid OR r.rngmultitypid = t.oid
+  LEFT JOIN pg_catalog.pg_collation AS rc ON rc.oid = r.rngcollation
+  LEFT JOIN pg_catalog.pg_namespace AS rcn ON rcn.oid = rc.collnamespace
+  LEFT JOIN pg_catalog.pg_opclass AS oc ON oc.oid = r.rngsubopc
+  LEFT JOIN pg_catalog.pg_namespace AS ocn ON ocn.oid = oc.opcnamespace
+  LEFT JOIN pg_catalog.pg_proc AS canonical_p ON canonical_p.oid = r.rngcanonical
+  LEFT JOIN pg_catalog.pg_namespace AS canonical_n ON canonical_n.oid = canonical_p.pronamespace
+  LEFT JOIN pg_catalog.pg_proc AS subdiff_p ON subdiff_p.oid = r.rngsubdiff
+  LEFT JOIN pg_catalog.pg_namespace AS subdiff_n ON subdiff_n.oid = subdiff_p.pronamespace
+  LEFT JOIN pg_catalog.pg_proc AS input_p ON input_p.oid = t.typinput
+  LEFT JOIN pg_catalog.pg_namespace AS input_n ON input_n.oid = input_p.pronamespace
+  LEFT JOIN pg_catalog.pg_proc AS output_p ON output_p.oid = t.typoutput
+  LEFT JOIN pg_catalog.pg_namespace AS output_n ON output_n.oid = output_p.pronamespace
   LEFT JOIN LATERAL (
     SELECT e.extname
     FROM pg_catalog.pg_depend AS d
@@ -467,7 +544,7 @@ grants AS (
   SELECT * FROM default_grants
 )
 SELECT jsonb_build_object(
-  'inventory_contract_version', 2,
+  'inventory_contract_version', 3,
   'application_schemas', COALESCE((
     SELECT jsonb_agg(to_jsonb(s) ORDER BY s.name) FROM application_schemas AS s
   ), '[]'::jsonb),

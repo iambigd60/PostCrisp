@@ -1,5 +1,5 @@
 {
-    "inventory_contract_version":  2,
+    "inventory_contract_version":  3,
     "application_schemas":  [
                                 {
                                     "extension_owned":  false,

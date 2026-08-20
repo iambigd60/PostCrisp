@@ -1,6 +1,8 @@
 -- ============================================================
--- PostCrisp Database Schema
--- Run this in the Supabase SQL editor
+-- DEPRECATED HISTORICAL SNAPSHOT - DO NOT EXECUTE
+-- This file is not an operational bootstrap and is intentionally not kept in
+-- schema/grant parity. Build or repair databases only from supabase/migrations/
+-- and verify them with the Phase 0 inventory and grant probes.
 -- ============================================================
 
 -- profiles (extends auth.users)

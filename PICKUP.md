@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
 **Last updated:** 2026-08-20 (Phase 0 containment evidence refresh)
-**Build status:** `codex/phase-0-containment`; the prior implementation gate passed 240/240 app tests, typecheck, and lint with four baseline warnings. This evidence-only refresh changes no migration, script, or application code.
+**Build status:** `codex/phase-0-containment`; the correction candidate passes a fresh ten-migration reset, both database probes, 69/69 focused tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings. It adds bounded restore-aggregate tooling, strengthens type parity, and refreshes operator guidance without changing production or migration SQL.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 BLOCKED. Do not push, merge this branch, change `main`, or begin Phase 1.** Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
@@ -41,7 +41,7 @@ Open items established this session, in priority order. The resolved migration-l
 
 ### 🟡 Medium
 
-4. ~~**Object-level schema parity remains unverified.**~~ **RESOLVED.** Reviewed post-hardening production and fresh-reset local contract-v2 source captures are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE` with 325 grants; tracked prior-key-order copies are comparator-clean.
+4. ~~**Object-level schema parity remains unverified.**~~ **RESOLVED.** Reviewed post-hardening production and fresh-reset local contract-v2 source captures are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE` with 325 grants. Because both contain zero application types, the tracked copies advance safely to contract v3's order-sensitive enum/composite and range/base coverage; they remain byte-identical and comparator-clean.
 5. **`tutorial_redemptions` is append-only by convention, not by grant.** `service_role` holds UPDATE/DELETE/TRUNCATE via Supabase defaults; the migration's `GRANT SELECT, INSERT` only added to that. The ceiling is enforced by app code plus the UNIQUE constraint. The security-critical half is correct — clients have zero grants.
 6. ~~**Leaked-password protection is disabled.**~~ **RESOLVED.** HIBP protection is enabled; the fresh advisor has only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`.
 7. **Server-side auth errors are swallowed at two points.** The onboarding page ignores the `error` from `getUser()` before redirecting to `/login`, and the event route's 401 path never inspects or logs its auth error. Both make a session problem look like ordinary behaviour.
@@ -87,7 +87,7 @@ The older five migrations are all functionally present too: `consume_user_credit
 ### Historical drift findings and current disposition
 
 1. ✅ **RESOLVED / SUPERSEDED by Phase 0 (current 2026-08-20 checkpoint).** Local and remote now pair exactly ten versions through `20260820220303`, and the linked `--skip-vault` dry run is empty. The eight-version snapshot below is historical only.
-2. ✅ **RESOLVED.** Reviewed post-hardening production and fresh-reset local inventory-v2 artifacts are byte-identical with 325 grants.
+2. ✅ **RESOLVED.** Reviewed post-hardening production and fresh-reset local inventory-v2 source captures are byte-identical with 325 grants; zero application types permit their tracked contract-v3 promotion, and the v3 artifacts remain byte-identical and comparator-clean.
 3. ✅ **RESOLVED for current objects and `postgres` defaults.** Applied hardening removed exactly 154 grants with no non-grant drift. Reserved `supabase_admin` defaults remain exactly 8 table + 6 sequence rows and are an accepted Informational conditional residual, not a blocker.
 
 ### `onboarding_events` was never broken — it was never exercised
@@ -221,7 +221,7 @@ This file jumps from session 20 (2026-07-07) to session 25. **PRs #4–#7 merged
 - **PR #4** `7c15c09` — edge rate limiting moved from Upstash Redis to Vercel WAF; all `UPSTASH_*` env vars removed.
 - **PR #5** `291f5f7` — metered `voice-profile/analyze`; reserve-before-generate across all 23 AI routes; `profiles` INSERT lockdown.
 - **PR #6** `2d59f09` — fail-closed access control, admin reset-password origin, mass-assignment + grant lockdowns.
-- **PR #7** `085b190` — non-expiring `profiles.purchased_credits` bucket so credit packs survive allowance reset. Migration `20260724150000` applied to prod ahead of merge (backfill: all users at 0, no balances moved).
+- **PR #7** `085b190` — non-expiring `profiles.purchased_credits` bucket so credit packs survive allowance reset. Production migration `20260724215224` (the earlier local draft was `20260724150000`) applied ahead of merge; the historical backfill observation recorded all users at 0 with no balances moved.
 
 Reconstructed from git history and Vercel deploy metadata, **not** from session notes — treat as an index, not a full record. Anyone with context on those sessions should expand this.
 
@@ -306,7 +306,7 @@ Built and gated by a multi-agent pipeline: TDD implementation → 3-lens review 
 
 ### Deployment notes
 
-- Apply `src/lib/supabase-schema.sql` to the target Supabase project before relying on ledger analytics.
+- Apply the paired files under `supabase/migrations/` to the target Supabase project before relying on ledger analytics. `src/lib/supabase-schema.sql` is a deprecated historical snapshot and must not be executed.
 - Ensure Vercel has `SUPABASE_SERVICE_ROLE_KEY`; ledger writes use service-role credentials server-side.
 - Local dev needs a real `.env.local`; only `.env.local.example` exists in this checkout.
 - To measure real cost, run:

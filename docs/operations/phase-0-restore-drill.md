@@ -188,35 +188,30 @@ The selected backup cannot be queried before restore. Users may be created or de
 
 ### 3. Bounded application aggregates
 
-Run this read-only, values-free query in the same three-capture sequence. It returns only bounded counts and caps each relation at 100,001 rows:
+Use the committed one-statement, values-free query and bounded launcher in the same three-capture sequence:
 
-```sql
-begin read only;
-set local statement_timeout = '30s';
+```powershell
+$phase0TransientRoot = '<encrypted-disposable-workspace>'
+$sourceBeforeAuthorization = Join-Path $phase0TransientRoot 'application-source-before-authorization.json'
+$sourceBeforeClone = Join-Path $phase0TransientRoot 'application-source-before-clone.json'
+$clone = Join-Path $phase0TransientRoot 'application-clone.json'
 
-select 'profiles' as relation, count(*) as bounded_count
-from (select 1 from public.profiles limit 100001) as bounded
-union all
-select 'generations', count(*)
-from (select 1 from public.generations limit 100001) as bounded
-union all
-select 'credit_transactions', count(*)
-from (select 1 from public.credit_transactions limit 100001) as bounded
-union all
-select 'purchased_credits', count(*)
-from (select 1 from public.purchased_credits limit 100001) as bounded
-union all
-select 'processed_stripe_events', count(*)
-from (select 1 from public.processed_stripe_events limit 100001) as bounded
-union all
-select 'ai_config_overrides', count(*)
-from (select 1 from public.ai_config_overrides limit 100001) as bounded
-order by relation;
+node scripts/phase0/capture-application-restore-aggregates.mjs --linked |
+  Out-File -LiteralPath $sourceBeforeAuthorization -Encoding ascii
+node scripts/phase0/capture-application-restore-aggregates.mjs --linked |
+  Out-File -LiteralPath $sourceBeforeClone -Encoding ascii
+node scripts/phase0/capture-application-restore-aggregates.mjs --project-ref <clone-ref> |
+  Out-File -LiteralPath $clone -Encoding ascii
 
-commit;
+node scripts/phase0/compare-application-restore-aggregates.mjs `
+  --query scripts/phase0/application-restore-aggregates.sql `
+  --backup-timestamp <selected-backup-ISO-8601> `
+  $sourceBeforeAuthorization $sourceBeforeClone $clone
 ```
 
-Keep numeric results only in the transient workspace. Exact uncapped equality across both source captures and clone is a bounded pass. A capped or different result is `INDETERMINATE`, not proof of data loss, because backup-time creates/deletions cannot be reconstructed from these aggregates; the drill cannot pass until independently authorized backup-time evidence or a newer backup/retry resolves it. Missing relations, timeouts, or query errors fail.
+The launcher uses the same credential-free Supabase CLI invocation and 45-second process-tree timeout as the Auth capture. It emits only `captured_at`, the fixed `100001` cap, and counts for the five reviewed real relations: `profiles`, `generations`, `credit_transactions`, `processed_stripe_events`, and `ai_config_overrides`. Missing or extra count relations, invalid JSON, and invalid numeric fields fail normalization; unreviewed outer fields are discarded and never re-emitted. The query SHA-256 at this review is `D6067D8BE54EE6D7B22714A31B3026FD2C2C56449834219C8B5639013722477E`; recompute it immediately before use and require the comparator to report the same hash.
+
+Keep raw numeric captures only in the encrypted transient workspace. Retain only the comparator's secrets-free query hash, timestamps, exact relation-name set, boolean checks, status, and limitation. Exact uncapped equality across both source captures and clone is `PASS_BOUNDED` / exit `0`. A capped or different result is `INDETERMINATE` / exit `2`, not proof of data loss, because backup-time creates/deletions cannot be reconstructed from these aggregates. A malformed shape, missing relation, invalid chronology, timeout, or query error is `FAIL` / exit `1` and blocks the drill.
 
 ### 4. Application recovery path
 

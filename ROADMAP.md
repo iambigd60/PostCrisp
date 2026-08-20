@@ -52,7 +52,7 @@ The real defect was that a working pipeline and a dead one looked identical. Fix
 
 Two stacked branches, 32 commits, **merged and deployed 2026-08-18**. 192/192 tests, typecheck clean.
 
-**✅ Migration ordering honoured — confirmed session 27.** `20260818120000_tutorial_redemptions` and `20260818121000_onboarding_events` were applied at 01:08:25 and 01:08:35 UTC, **67 seconds before** the first deploy carrying the app code (01:09:42 UTC). Both tables match their files exactly, with zero grants for `anon`/`authenticated`. The "disables the first session for 100% of new users" scenario never occurred.
+**✅ Migration ordering honoured — confirmed session 27.** Production versions `20260819010825_tutorial_redemptions` and `20260819010835_onboarding_events` were applied at 01:08:25 and 01:08:35 UTC, **67 seconds before** the first deploy carrying the app code (01:09:42 UTC). The earlier app-branch filenames `20260818120000` and `20260818121000` were local draft names, not production history. Both tables match the reconciled files exactly, with zero grants for `anon`/`authenticated`. The "disables the first session for 100% of new users" scenario never occurred.
 
 ### Charge safety (`fix/onboarding-charge-safety`)
 

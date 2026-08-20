@@ -2,20 +2,20 @@
 
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
-**Current checkpoint:** 2026-08-20T22:52Z
+**Current checkpoint:** 2026-08-20T23:42Z
 
 **Production project:** `sikabeqzypvllimyostg`
 
-**Verdict:** **VERIFIED — reviewed post-hardening production and fresh-reset local inventory-v2 captures are byte-identical. Phase 0 remains BLOCKED on separate restore, platform-access, and council gates.**
+**Verdict:** **VERIFIED — tracked post-hardening production and fresh-reset local inventory-v3 artifacts are byte-identical. Phase 0 remains BLOCKED on separate restore, platform-access, and council gates.**
 
 ## Current authoritative result
 
-The tracked artifacts now preserve the reviewed post-hardening captures:
+The tracked artifacts derive from the reviewed post-hardening captures:
 
 - [production inventory](2026-08-20-production-schema-inventory.json), refreshed from ignored capture `.superpowers/sdd/2026-08-20-phase-0-containment/post-hardening-production-inventory.json`;
 - [local inventory](2026-08-20-local-schema-inventory.json), refreshed from ignored capture `.superpowers/sdd/2026-08-20-phase-0-containment/grant-hardening-fix-local-inventory.json`.
 
-The two reviewed source captures are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`. To minimize the tracked diff, both committed copies preserve the prior top-level key order; those two reordered files are byte-identical at SHA-256 `16386F28EE7F40EF2CC69FF8F83497FC246D6DB61FB5C0CF9877DDDA878E0D8F` and semantically identical to the reviewed captures. The dependency-free comparator exits `0` with `Schema inventories match.` Their shared contract-v2 counts are:
+The two reviewed source captures remain byte-identical contract-v2 evidence at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`. Both contain zero application types. The tracked copies preserve their catalog content and key order while advancing only the contract marker to v3, whose added enum/composite/range/base-type coverage is therefore vacuous for this checkpoint. The two tracked files are byte-identical at SHA-256 `8D117BFF7BDE8B42896EC61DE4E4131DE716D9946D9BBD765883CF67B9D1386D`, and the contract-v3 comparator exits `0` with `Schema inventories match.` Their shared counts are:
 
 | Category | Count |
 | --- | ---: |
@@ -58,9 +58,9 @@ These policyless-RLS items are recorded follow-up observations, not production/l
 
 ## Inventory contract and safety
 
-The committed [catalog query](../../../../scripts/phase0/schema-inventory.sql) reads PostgreSQL catalogs only. Contract v2 records stable metadata for public relations, columns, constraints, sequences, indexes, policies, routines, triggers, types, extensions, and schema/object/default grants. It excludes application rows, sequence values, secrets, OIDs, owners/grantors, raw connection information, and foreign option values. Creator identities are represented only through normalized ACL-set fingerprints.
+The committed [catalog query](../../../../scripts/phase0/schema-inventory.sql) reads PostgreSQL catalogs only. Contract v3 records stable metadata for public relations, columns, constraints, sequences, indexes, policies, routines, triggers, types, extensions, and schema/object/default grants. Type coverage preserves enum-label and composite-attribute order and includes behavior-defining range/base-type fields. It excludes application rows, sequence values, secrets, OIDs, owners/grantors, raw connection information, and foreign option values. Creator identities are represented only through normalized ACL-set fingerprints.
 
-The comparator canonicalizes object-key/array order, line endings, and explicitly ignored capture noise. It requires contract version `2` and every required section; invalid/partial snapshots exit `2`, and valid inventories with missing, extra, or changed objects exit `1` with exact fields.
+The comparator canonicalizes object-key order, unordered catalog collections, line endings, and explicitly ignored capture noise while preserving order for `types[].enum_labels` and `types[].composite_attributes`. It requires contract version `3` and every required section; invalid/partial snapshots exit `2`, and valid inventories with missing, extra, or changed objects exit `1` with exact fields.
 
 No linked reset, remote DDL, restore, or production mutation was performed while refreshing this documentation. The two production mutations described here occurred earlier at separately authorized checkpoints and were independently verified.
 

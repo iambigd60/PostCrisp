@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url'
 
 const queryPath = fileURLToPath(new URL('./schema-inventory.sql', import.meta.url))
 
-test('emits inventory contract v2 security and schema object classes', () => {
+test('emits inventory contract v3 security and schema object classes', () => {
   // Catches a parity capture that silently omits reviewed public object classes.
   const sql = readFileSync(queryPath, 'utf8')
 
-  assert.match(sql, /'inventory_contract_version',\s*2/i)
+  assert.match(sql, /'inventory_contract_version',\s*3/i)
   for (const section of [
     'application_schemas',
     'extensions',
