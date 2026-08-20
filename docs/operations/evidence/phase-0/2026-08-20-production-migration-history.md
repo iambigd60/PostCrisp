@@ -53,7 +53,7 @@ For comparison with editor-created local files, normalize CRLF/CR to LF and remo
 
 ## Pending local migration: unused GraphQL extension
 
-The read-only linked migration list at `2026-08-20T21:12Z` still shows the eight production versions above and shows local version `20260820210852` with no remote version. No `db push`, dry-run, repair, or remote DDL was run.
+The read-only linked migration list at `2026-08-20T21:12Z` still showed the eight production versions above and local version `20260820210852` with no remote version. A current linked `db push --dry-run` then exited `0` with `upToDate=false`, `dryRun=true`, exactly `20260820210852_disable_unused_pg_graphql.sql`, and empty seed and role lists. No migration was applied; no repair or remote DDL was run.
 
 `supabase migration new disable_unused_pg_graphql` created `20260820210852_disable_unused_pg_graphql.sql`. Its complete body is:
 
@@ -63,16 +63,15 @@ drop extension if exists pg_graphql;
 
 The file SHA-256 is `096E40E05B747EB141D1EECA8324C6BA5A7A0300AD728B943671B6ECD1E02D89`. It is idempotent and intentionally omits `CASCADE`. A fresh local reset before the migration reproduced exactly one inventory-v2 difference, `extra in local: extensions graphql.pg_graphql`; the post-migration reset and fresh local capture compared equal to the committed production-v2 inventory.
 
-The production inventory already has no `pg_graphql`, so the DDL is expected to be a no-op there; production migration history is still a write and remains unauthorized. At the production checkpoint, an authorized operator must run these commands separately and stop on any unexpected pending item or diff:
+The production inventory already has no `pg_graphql`, so the DDL is expected to be a no-op there; production migration history is still a write and remains unauthorized. The required read-only pre-apply dry run is now recorded. At the remaining production checkpoint, an authorized operator must run these commands separately and stop on any unexpected result:
 
 ```text
-supabase db push --dry-run --linked
 supabase db push --linked
 supabase migration list --linked
 supabase db push --dry-run --linked
 ```
 
-The first dry run must show only `20260820210852_disable_unused_pg_graphql.sql` pending, with no seed or role change. Only after explicit authorization may the apply command run. After apply, require all nine versions paired, the second dry run up to date, a fresh read-only production inventory-v2 capture still at five extensions with no `pg_graphql`, and an exact production/local comparator pass. Do not combine this checkpoint with the separate client-role grant hardening.
+Only after explicit authorization may the apply command run. After apply, require all nine versions paired, the post-apply dry run up to date, a fresh read-only production inventory-v2 capture still at five extensions with no `pg_graphql`, and an exact production/local comparator pass. If the branch or linked state changes before authorization, rerun the dry run and require the same one-migration, empty-seed, empty-role plan. Do not combine this checkpoint with the separate client-role grant hardening.
 
 ## Local-to-production timestamp map
 

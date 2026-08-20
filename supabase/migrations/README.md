@@ -2,7 +2,7 @@
 
 > **Status:** Satisfied in production on 2026-08-19 and reconciled by Phase 0 on 2026-08-20. The versions below already pair with remote history; do not manually reapply or repair them. Use [the Phase 0 database reconciliation runbook](../../docs/operations/phase-0-database-reconciliation.md) for current operator guidance.
 
-`20260820210852_disable_unused_pg_graphql.sql` is intentionally local-only pending explicit production authorization. Do not run `db push` from this branch until the dry-run/apply checkpoint in the [production migration-history evidence](../../docs/operations/evidence/phase-0/2026-08-20-production-migration-history.md) is authorized and reviewed.
+`20260820210852_disable_unused_pg_graphql.sql` is intentionally local-only pending explicit production authorization. The recorded linked dry run lists only this migration with no seeds or roles. Do not run a non-dry-run `db push` from this branch until the apply/post-apply checkpoint in the [production migration-history evidence](../../docs/operations/evidence/phase-0/2026-08-20-production-migration-history.md) is explicitly authorized.
 
 `20260819010825_tutorial_redemptions.sql` and `20260819010835_onboarding_events.sql`
 had to be applied to production **before** the `feat/first-session-redesign`

@@ -106,7 +106,7 @@ These findings remain follow-up work. They do not create a production/local pari
 
 ## Safety record
 
-- Production received only read-only catalog/migration-list queries during these verification waves.
-- No database push, migration repair, linked reset, remote DDL, restore, firewall mutation, push, or merge was performed.
+- Production received only read-only catalog, migration-list, advisor, and migration dry-run queries during these verification waves.
+- No non-dry-run database push, migration repair, linked reset, remote DDL, restore, firewall mutation, push, or merge was performed.
 - The committed JSON contains catalog metadata only; it contains no rows, credentials, tokens, connection strings, or local stack state.
-- The read-only linked migration list shows `20260820210852` local-only. Production authorization is required before even the dry-run/apply checkpoint recorded in the migration evidence.
+- The read-only linked migration list shows `20260820210852` local-only, and the current dry run lists exactly that migration with empty seed and role lists. Production authorization is still required before apply and post-apply verification.
