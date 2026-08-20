@@ -23,14 +23,16 @@ Stop before confirmation. Seeing the action does not authorize creating the targ
 Run the committed metadata-only query twice: once before requesting authorization and again immediately before clone confirmation.
 
 ```text
-supabase db query --linked --file scripts/phase0/restore-source-preflight.sql --output-format json
+node scripts/phase0/capture-restore-source-preflight.mjs --linked
 ```
 
-The query returns enabled outbound-relevant extension names; `pg_cron` catalog/job/active-job counts when installed; `pg_net` request-queue presence/count when installed; total/enabled/disabled subscription counts; total/active/inactive/logical/physical replication-slot counts; conservative non-platform/unclassified counts; foreign-wrapper/server/user-mapping counts; metadata-only function identities that reference outbound facilities; and Vault schema/relation/count. It never returns subscription connection information, slot names, job commands, URLs, Vault payloads, foreign options, secrets, or application rows.
+`restore-source-preflight.sql` is one prepared-statement-compatible read-only command with no transaction or session-setting commands. The credential-free launcher pins Supabase CLI `2.115.0`, applies the reviewed 45,000 ms process deadline and 2,000 ms termination grace, accepts only `--linked`, `--local`, or a validated 20-lowercase-letter `--project-ref`, and rejects partial/non-JSON/unreviewed shapes without returning partial stdout. Its SHA-256 at this review is `23A00B2BD776D556ECFE440EDEF22EFAD64FDAB17073B15E9DC6EBDC84308F38`; recompute it immediately before use.
+
+The query returns enabled outbound-relevant extension names; `pg_cron` catalog/job/active-job counts when installed; `pg_net` request-queue presence/count when installed; total/enabled/disabled subscription counts; total/active/inactive/logical/physical replication-slot counts; conservative non-platform/unclassified counts; foreign-wrapper/server/user-mapping counts; metadata-only function identities that reference outbound facilities; and Vault schema/relation/count. The launcher emits exactly that reviewed object. It never returns subscription connection information, slot names, job commands, URLs, Vault payloads, foreign options, secrets, or application rows.
 
 Catalog semantics are taken from the current PostgreSQL references for [`pg_subscription`](https://www.postgresql.org/docs/current/catalog-pg-subscription.html) and [`pg_replication_slots`](https://www.postgresql.org/docs/current/view-pg-replication-slots.html).
 
-The latest read-only production execution at `2026-08-20T18:35:32.507518Z` found:
+The latest read-only production execution at `2026-08-20T20:39:27.784085Z` found:
 
 - no `pg_cron` catalog or jobs;
 - no `pg_net` request queue;
@@ -120,7 +122,7 @@ Expected elapsed time is 60-90 minutes after authorization: up to 45 minutes for
 2. Reconcile the final proposed region/compute/disk/add-ons with the authorized configuration and recompute the estimate. Abort on any difference or at `>= USD 8.00`.
 3. Create the isolated target. Record only target reference, selected backup timestamp, restore start, non-sensitive configuration/estimate, and health status in the transient workspace.
 4. Wait for healthy status. Do not redirect traffic, attach a domain, connect Vercel, deploy Edge Functions, configure production Auth, or add production secrets.
-5. Before application behavior, rerun `restore-source-preflight.sql` on the target. Any unexpected outbound-capable state is a failure and incident; do not inspect commands/payloads.
+5. Before application behavior, run `node scripts/phase0/capture-restore-source-preflight.mjs --project-ref <clone-ref>` on the target. Any unexpected outbound-capable state is a failure and incident; do not inspect commands/payloads.
 
 ## Validation
 
@@ -140,15 +142,17 @@ The executable query `scripts/phase0/auth-restore-signature.sql` returns only:
 
 - an Auth schema metadata item count and MD5 signature;
 - canonical schema/relation/routine ownership and explicit ACL privilege metadata;
+- view/materialized-view definition hashes, column ACLs, Auth enum labels, and trigger enabled state;
 - policy definitions with deterministically sorted policy-role metadata;
 - routine metadata plus MD5 hashes of definitions normalized only for CRLF/CR line endings;
+- a password-free global-role fingerprint covering role attributes, memberships, and settings scoped to all databases or the current database;
 - presence booleans for the `auth` schema and `auth.users` relation;
 - a transient user aggregate capped at 100,001; and
 - capture timestamp/cap metadata.
 
-Raw owner/ACL/policy-role names and routine definitions are incorporated only into canonical metadata items and are never emitted; the query returns only the aggregate signature. OIDs are excluded because they are restore-unstable. Global role memberships and settings outside the `auth` schema are also excluded; a drift confined to those external surfaces will not be detected by this Auth signature and must be covered by separate schema/role evidence. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, or routine bodies. The SQL is one prepared-statement-compatible read-only command with no transaction or session-setting commands. Its SHA-256 at this review is `F9CCD7C12E905BC142FC8250EA0209CB113E04CB85CD57F45518C9BE5E130338`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
+Raw owner/ACL/policy-role/role/member names, routine/view definitions, enum labels, and role setting strings are incorporated only into canonical items and are never emitted; the query returns only aggregate item counts and MD5 signatures. OIDs are excluded because they are restore-unstable. Role settings for unrelated databases are excluded; all-database and current-database role settings are included. The query reads `pg_roles`, not password-bearing `pg_authid`, and never emits settings or per-item hashes. It returns no identities, rows, email addresses, phone numbers, passwords, tokens, secrets, routine bodies, or raw definitions. The SQL is one prepared-statement-compatible read-only command with no transaction or session-setting commands. Its SHA-256 at this review is `2DE442D4A36C097FDE6909E014E0CABFC1ADA80B8BADAECADF99FFA5C08EEED8`; immediately before use, recompute `Get-FileHash scripts/phase0/auth-restore-signature.sql -Algorithm SHA256` and require the same hash as the reviewed commit.
 
-The comparator requires a positive `metadata_item_count` and the reviewed query's exact `bounded_user_count_cap` of `100001` in every signature capture. All signature-capture caps must also match one another. The four-point ordering result is emitted as `checks.backup_and_capture_chronology_valid`, covering the selected backup timestamp plus source-before-authorization, source-before-clone, and clone captures.
+The comparator requires positive `metadata_item_count` and `global_role_item_count` values, valid Auth/global-role hashes, and the reviewed query's exact `bounded_user_count_cap` of `100001` in every signature capture. Auth and global-role counts/hashes must remain stable across all three captures, and all caps must match. A legacy capture missing the role evidence fails before it can produce `PASS_BOUNDED`. The four-point ordering result is emitted as `checks.backup_and_capture_chronology_valid`, covering the selected backup timestamp plus source-before-authorization, source-before-clone, and clone captures.
 
 Metadata behavior follows the current PostgreSQL catalog and information-function references for [`pg_policy`](https://www.postgresql.org/docs/current/catalog-pg-policy.html), [`pg_proc`](https://www.postgresql.org/docs/current/catalog-pg-proc.html), and [`pg_get_functiondef`](https://www.postgresql.org/docs/current/functions-info.html).
 
@@ -174,11 +178,11 @@ node scripts/phase0/compare-auth-restore-signature.mjs \
 
 Comparison results:
 
-- `PASS_BOUNDED` / exit 0: Auth schema/users relation present, the complete four-point chronology is valid, metadata item count is positive, metadata signatures match, every signature capture uses the reviewed `100001` cap, counts are uncapped, and all three bounded counts match.
-- `FAIL` / exit 1: missing Auth structure, malformed or wrongly typed evidence, invalid hash/count/cap semantics, any violation of `backup <= source-before-authorization <= source-before-clone <= clone`, or metadata-signature mismatch.
+- `PASS_BOUNDED` / exit 0: Auth schema/users relation present, the complete four-point chronology is valid, Auth/global-role item counts are positive, both signature classes match, every signature capture uses the reviewed `100001` cap, counts are uncapped, and all three bounded counts match.
+- `FAIL` / exit 1: missing Auth structure or required role evidence, malformed or wrongly typed evidence, invalid hash/count/cap semantics, any violation of `backup <= source-before-authorization <= source-before-clone <= clone`, or Auth/global-role signature mismatch.
 - `INDETERMINATE` / exit 2: a count reaches the cap or differs. The drill cannot pass without independently authorized backup-time aggregate evidence or a newer backup/retry.
 
-Only the comparator's secrets-free output may be retained: query hash, selected backup/capture timestamps, metadata signature, equality booleans, status, and limitation. Delete raw aggregates after review.
+Only the comparator's secrets-free output may be retained: query hash, selected backup/capture timestamps, aggregate Auth/global-role signatures, equality booleans, status, and limitation. Delete raw captures after review.
 
 The selected backup cannot be queried before restore. Users may be created or deleted between its timestamp and either source capture, and offsetting creates/deletions can leave the same count. Therefore even `PASS_BOUNDED` is a bounded sanity result, not proof of Auth row identity or completeness. Do not claim more.
 

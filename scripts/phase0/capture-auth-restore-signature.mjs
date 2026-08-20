@@ -68,7 +68,24 @@ export function normalizeCliOutput(stdout) {
     throw new Error('Supabase CLI JSON must contain one auth_restore_signature object')
   }
 
-  return JSON.stringify({ auth_restore_signature: signature })
+  const required = [
+    'captured_at',
+    'auth_schema_present',
+    'auth_users_relation_present',
+    'metadata_item_count',
+    'metadata_signature_md5',
+    'global_role_item_count',
+    'global_role_signature_md5',
+    'bounded_user_count',
+    'bounded_user_count_cap',
+    'bounded_user_count_capped',
+  ]
+  if (!required.every(key => Object.hasOwn(signature, key))) {
+    throw new Error('Supabase CLI JSON must contain the reviewed auth signature shape')
+  }
+
+  const reviewedSignature = Object.fromEntries(required.map(key => [key, signature[key]]))
+  return JSON.stringify({ auth_restore_signature: reviewedSignature })
 }
 
 function waitForChildExit(child, timeoutMs) {

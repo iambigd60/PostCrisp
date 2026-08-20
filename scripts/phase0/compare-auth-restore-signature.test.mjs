@@ -16,6 +16,8 @@ function signature(overrides = {}) {
     auth_users_relation_present: true,
     metadata_item_count: 10,
     metadata_signature_md5: '00000000000000000000000000000000',
+    global_role_item_count: 10,
+    global_role_signature_md5: '11111111111111111111111111111111',
     bounded_user_count: 5,
     bounded_user_count_cap: 100001,
     bounded_user_count_capped: false,
@@ -90,6 +92,29 @@ test('fails on auth metadata drift', () => {
   }) })
   assert.equal(result.status, 1)
   assert.equal(JSON.parse(result.stdout).result, 'FAIL')
+})
+
+test('rejects captures that omit required global-role evidence', () => {
+  // Catches the restore gate returning PASS_BOUNDED without role membership/settings evidence.
+  const legacy = signature({ captured_at: '2026-08-20T18:00:00.000Z' })
+  delete legacy.global_role_item_count
+  delete legacy.global_role_signature_md5
+
+  const result = runComparison({ sourceBeforeAuthorization: legacy })
+  assertInvalid(result, 'missing global_role_item_count')
+})
+
+test('fails on global-role membership or settings drift', () => {
+  // Catches role-level security drift being ignored when Auth objects match.
+  const result = runComparison({ clone: signature({
+    captured_at: '2026-08-20T18:02:00.000Z',
+    global_role_signature_md5: '22222222222222222222222222222222',
+  }) })
+
+  assert.equal(result.status, 1)
+  const output = JSON.parse(result.stdout)
+  assert.equal(output.result, 'FAIL')
+  assert.equal(output.checks.global_role_signature_stable, false)
 })
 
 test('rejects boolean fields encoded as strings, including "false"', () => {

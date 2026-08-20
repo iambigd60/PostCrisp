@@ -2,9 +2,6 @@
 -- Read-only, metadata-only output. Never returns job commands, Vault payloads,
 -- foreign-server options, user-mapping options, or application rows.
 
-begin read only;
-set local statement_timeout = '30s';
-
 with relevant_extensions as (
   select e.extname
   from pg_catalog.pg_extension e
@@ -121,5 +118,3 @@ select jsonb_build_object(
   'outbound_reference_functions',
     (select function_identities from outbound_function_references)
 ) as restore_source_preflight;
-
-commit;

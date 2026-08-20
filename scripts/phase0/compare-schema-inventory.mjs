@@ -9,6 +9,40 @@ const ignoredKeys = new Set([
   'owner',
 ]);
 
+const INVENTORY_CONTRACT_VERSION = 2;
+const requiredSections = [
+  'application_schemas',
+  'columns',
+  'constraints',
+  'extensions',
+  'foreign_tables',
+  'functions',
+  'grants',
+  'indexes',
+  'policies',
+  'sequences',
+  'tables',
+  'triggers',
+  'types',
+  'views',
+];
+
+function validateInventoryContract(inventory, label) {
+  if (inventory === null || typeof inventory !== 'object' || Array.isArray(inventory)) {
+    throw new Error(`${label} inventory must be a JSON object`);
+  }
+  if (inventory.inventory_contract_version !== INVENTORY_CONTRACT_VERSION) {
+    throw new Error(
+      `${label} inventory_contract_version must equal ${INVENTORY_CONTRACT_VERSION}`,
+    );
+  }
+  for (const section of requiredSections) {
+    if (!Array.isArray(inventory[section])) {
+      throw new Error(`${label} inventory section ${section} must be an array`);
+    }
+  }
+}
+
 function canonicalize(value) {
   if (Array.isArray(value)) {
     return value
@@ -143,9 +177,18 @@ async function main([productionPath, localPath]) {
     return 2;
   }
 
-  const [production, local] = await Promise.all(
-    [productionPath, localPath].map(async (path) => JSON.parse(await readFile(path, 'utf8'))),
-  );
+  let production;
+  let local;
+  try {
+    [production, local] = await Promise.all(
+      [productionPath, localPath].map(async (path) => JSON.parse(await readFile(path, 'utf8'))),
+    );
+    validateInventoryContract(production, 'production');
+    validateInventoryContract(local, 'local');
+  } catch (error) {
+    process.stderr.write(`Schema inventory contract invalid: ${error.message}\n`);
+    return 2;
+  }
 
   const canonicalProduction = canonicalize(production);
   const canonicalLocal = canonicalize(local);

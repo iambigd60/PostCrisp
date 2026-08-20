@@ -1,7 +1,32 @@
--- Read-only, catalog-only inventory of the public schema.
+-- Read-only, catalog-only inventory of the public application schema and
+-- installed extension state.
 -- Emits one JSON object and intentionally excludes rows, secrets, OIDs,
 -- owners/grantors, timestamps, sequence state, and other environment identities.
-WITH tables AS (
+WITH application_schemas AS (
+  SELECT
+    n.nspname AS name,
+    EXISTS (
+      SELECT 1
+      FROM pg_catalog.pg_depend AS d
+      WHERE d.classid = 'pg_catalog.pg_namespace'::pg_catalog.regclass
+        AND d.objid = n.oid
+        AND d.objsubid = 0
+        AND d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass
+        AND d.deptype = 'e'
+    ) AS extension_owned
+  FROM pg_catalog.pg_namespace AS n
+  WHERE n.nspname = 'public'
+),
+extensions AS (
+  SELECT
+    e.extname AS name,
+    e.extversion AS version,
+    n.nspname AS schema,
+    e.extrelocatable AS relocatable
+  FROM pg_catalog.pg_extension AS e
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = e.extnamespace
+),
+tables AS (
   SELECT
     n.nspname AS schema,
     c.relname AS name,
@@ -40,7 +65,7 @@ columns AS (
   LEFT JOIN pg_catalog.pg_collation AS coll ON coll.oid = a.attcollation
   LEFT JOIN pg_catalog.pg_namespace AS cn ON cn.oid = coll.collnamespace
   WHERE n.nspname = 'public'
-    AND c.relkind IN ('r', 'p')
+    AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
     AND a.attnum > 0
     AND NOT a.attisdropped
 ),
@@ -99,6 +124,111 @@ sequences AS (
   ) AS owned ON true
   WHERE n.nspname = 'public'
 ),
+views AS (
+  SELECT
+    n.nspname AS schema,
+    c.relname AS name,
+    CASE c.relkind WHEN 'm' THEN 'materialized_view' ELSE 'view' END AS kind,
+    c.relpersistence AS persistence,
+    CASE WHEN c.relkind = 'm' THEN c.relispopulated ELSE NULL END AS populated,
+    ARRAY(
+      SELECT option
+      FROM unnest(COALESCE(c.reloptions, ARRAY[]::text[])) AS option
+      ORDER BY option
+    ) AS options,
+    pg_catalog.pg_get_viewdef(c.oid, false) AS definition
+  FROM pg_catalog.pg_class AS c
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relkind IN ('v', 'm')
+),
+foreign_tables AS (
+  SELECT
+    n.nspname AS schema,
+    c.relname AS name,
+    fs.srvname AS server,
+    fdw.fdwname AS wrapper,
+    COALESCE(pg_catalog.array_length(ft.ftoptions, 1), 0) > 0 AS table_options_present,
+    EXISTS (
+      SELECT 1
+      FROM pg_catalog.pg_attribute AS a
+      WHERE a.attrelid = c.oid
+        AND a.attnum > 0
+        AND NOT a.attisdropped
+        AND COALESCE(pg_catalog.array_length(a.attfdwoptions, 1), 0) > 0
+    ) AS column_options_present
+  FROM pg_catalog.pg_foreign_table AS ft
+  JOIN pg_catalog.pg_class AS c ON c.oid = ft.ftrelid
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+  JOIN pg_catalog.pg_foreign_server AS fs ON fs.oid = ft.ftserver
+  JOIN pg_catalog.pg_foreign_data_wrapper AS fdw ON fdw.oid = fs.srvfdw
+  WHERE n.nspname = 'public'
+),
+types AS (
+  SELECT
+    n.nspname AS schema,
+    t.typname AS name,
+    CASE t.typtype
+      WHEN 'b' THEN 'base'
+      WHEN 'c' THEN 'composite'
+      WHEN 'd' THEN 'domain'
+      WHEN 'e' THEN 'enum'
+      WHEN 'm' THEN 'multirange'
+      WHEN 'r' THEN 'range'
+      ELSE t.typtype::text
+    END AS kind,
+    t.typcategory AS category,
+    t.typispreferred AS preferred,
+    t.typcollation <> 0 AS collatable,
+    t.typdelim AS delimiter,
+    CASE WHEN t.typtype = 'd'
+      THEN pg_catalog.format_type(t.typbasetype, t.typtypmod)
+    END AS base_type,
+    CASE WHEN t.typtype = 'd' THEN t.typnotnull END AS domain_not_null,
+    CASE WHEN t.typtype = 'd' THEN t.typdefault END AS domain_default,
+    COALESCE((
+      SELECT jsonb_agg(e.enumlabel ORDER BY e.enumsortorder)
+      FROM pg_catalog.pg_enum AS e
+      WHERE e.enumtypid = t.oid
+    ), '[]'::jsonb) AS enum_labels,
+    COALESCE((
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'name', con.conname,
+          'definition', pg_catalog.pg_get_constraintdef(con.oid, false)
+        )
+        ORDER BY con.conname
+      )
+      FROM pg_catalog.pg_constraint AS con
+      WHERE con.contypid = t.oid
+    ), '[]'::jsonb) AS domain_constraints,
+    CASE WHEN r.rngtypid IS NOT NULL
+      THEN pg_catalog.format_type(r.rngsubtype, NULL)
+    END AS range_subtype,
+    extension.extname AS extension
+  FROM pg_catalog.pg_type AS t
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = t.typnamespace
+  LEFT JOIN pg_catalog.pg_class AS c ON c.oid = t.typrelid
+  LEFT JOIN pg_catalog.pg_range AS r ON r.rngtypid = t.oid OR r.rngmultitypid = t.oid
+  LEFT JOIN LATERAL (
+    SELECT e.extname
+    FROM pg_catalog.pg_depend AS d
+    JOIN pg_catalog.pg_extension AS e ON e.oid = d.refobjid
+    WHERE d.classid = 'pg_catalog.pg_type'::pg_catalog.regclass
+      AND d.objid = t.oid
+      AND d.objsubid = 0
+      AND d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass
+      AND d.deptype = 'e'
+    LIMIT 1
+  ) AS extension ON true
+  WHERE n.nspname = 'public'
+    AND t.typisdefined
+    AND (
+      t.typtype IN ('d', 'e', 'r', 'm')
+      OR (t.typtype = 'c' AND c.relkind = 'c')
+      OR (t.typtype = 'b' AND t.typelem = 0)
+    )
+),
 indexes AS (
   SELECT
     n.nspname AS schema,
@@ -118,7 +248,7 @@ indexes AS (
   JOIN pg_catalog.pg_class AS t ON t.oid = x.indrelid
   JOIN pg_catalog.pg_namespace AS n ON n.oid = t.relnamespace
   WHERE n.nspname = 'public'
-    AND t.relkind IN ('r', 'p')
+    AND t.relkind IN ('r', 'p', 'm')
 ),
 policies AS (
   SELECT
@@ -204,7 +334,13 @@ schema_grants AS (
 ),
 relation_grants AS (
   SELECT
-    CASE c.relkind WHEN 'S' THEN 'SEQUENCE' ELSE 'TABLE' END AS object_type,
+    CASE c.relkind
+      WHEN 'S' THEN 'SEQUENCE'
+      WHEN 'v' THEN 'VIEW'
+      WHEN 'm' THEN 'MATERIALIZED VIEW'
+      WHEN 'f' THEN 'FOREIGN TABLE'
+      ELSE 'TABLE'
+    END AS object_type,
     n.nspname AS schema,
     c.relname AS object,
     NULL::text AS column,
@@ -222,7 +358,7 @@ relation_grants AS (
     ))
   ) AS acl
   WHERE n.nspname = 'public'
-    AND c.relkind IN ('r', 'p', 'S')
+    AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
     AND acl.grantee <> c.relowner
 ),
 column_grants AS (
@@ -241,7 +377,7 @@ column_grants AS (
   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
   CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) AS acl
   WHERE n.nspname = 'public'
-    AND c.relkind IN ('r', 'p')
+    AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
     AND a.attnum > 0
     AND NOT a.attisdropped
     AND a.attacl IS NOT NULL
@@ -331,6 +467,13 @@ grants AS (
   SELECT * FROM default_grants
 )
 SELECT jsonb_build_object(
+  'inventory_contract_version', 2,
+  'application_schemas', COALESCE((
+    SELECT jsonb_agg(to_jsonb(s) ORDER BY s.name) FROM application_schemas AS s
+  ), '[]'::jsonb),
+  'extensions', COALESCE((
+    SELECT jsonb_agg(to_jsonb(e) ORDER BY e.name) FROM extensions AS e
+  ), '[]'::jsonb),
   'tables', COALESCE((
     SELECT jsonb_agg(to_jsonb(t) ORDER BY t.schema, t.name) FROM tables AS t
   ), '[]'::jsonb),
@@ -342,6 +485,15 @@ SELECT jsonb_build_object(
   ), '[]'::jsonb),
   'sequences', COALESCE((
     SELECT jsonb_agg(to_jsonb(s) ORDER BY s.schema, s.name) FROM sequences AS s
+  ), '[]'::jsonb),
+  'views', COALESCE((
+    SELECT jsonb_agg(to_jsonb(v) ORDER BY v.schema, v.name) FROM views AS v
+  ), '[]'::jsonb),
+  'foreign_tables', COALESCE((
+    SELECT jsonb_agg(to_jsonb(f) ORDER BY f.schema, f.name) FROM foreign_tables AS f
+  ), '[]'::jsonb),
+  'types', COALESCE((
+    SELECT jsonb_agg(to_jsonb(t) ORDER BY t.schema, t.name) FROM types AS t
   ), '[]'::jsonb),
   'indexes', COALESCE((
     SELECT jsonb_agg(to_jsonb(i) ORDER BY i.schema, i.table, i.name) FROM indexes AS i

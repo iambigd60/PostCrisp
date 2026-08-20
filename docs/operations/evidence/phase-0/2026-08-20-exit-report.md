@@ -2,37 +2,44 @@
 
 **Gate result:** **BLOCKED — do not start Phase 1.**
 **Recorded:** 2026-08-20 (America/Los_Angeles)
-**Repository verification range:** `c449867..40d9b28`
-**Branch:** `codex/phase-0-containment`
+**Final-review fix-wave base:** `03137e8`
+**Verification state:** working tree on `codex/phase-0-containment`; commit recorded after this evidence update
 
-This refresh replaces the prior Auth-signature CLI-invocation blocker after Task 4 (`40d9b28`) made the query launcher executable and bounded its process-tree timeout. The linked read-only launcher and all focused Auth tests now pass. Phase 0 remains blocked because clean-room verification could not refresh without a local Docker engine and because the required live-control, restore, and independent-council gates remain unresolved.
+The final-review fix wave closes the prepared-statement preflight defect, expands schema/Auth security coverage, and prevents arbitrary Auth capture fields from being retained. It does not make Phase 0 complete. Docker absence blocks the required local inventory-v2 proof, current production grants expose high-blast-radius privileges to client roles, and the live-control/restore/final-independent-review gates remain unresolved.
 
 ## Safety boundary
 
-Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no non-dry-run database push, repair, linked reset, browser launch, push, merge, or Phase 1 work occurred.
+Production remained read-only. No restore or paid resource was created; no Auth, firewall, provider, production schema, or migration-history setting was changed; no non-dry-run database push, repair, linked reset, remote DDL, browser launch, push, merge, or Phase 1 work occurred. Raw linked query output was held only in process memory long enough to validate its reviewed shape/counts and was not persisted.
 
-## Fresh repository evidence
+All eight applied migration versions and captured statement bodies remain unchanged from `03137e8`. No pending hardening migration was created.
 
-All timestamps below are UTC on 2026-08-20. Commands were run from `C:\Projects\postcrisp-phase-0-containment` after `git status --short --branch` showed only `## codex/phase-0-containment`.
+## Production security blocker: client-role grants
+
+Exact historical parity preserves unsafe current production state. The captured grant inventory gives both `anon` and `authenticated` `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` on 16 public tables plus captured default table ACLs. Both roles also have `USAGE`, `SELECT`, and `UPDATE` on `onboarding_events_id_seq` and `tutorial_redemptions_id_seq`; those application-sequence privileges should be service-only.
+
+This is a Phase 0 production security blocker. Separately authorized forward-hardening work must add and deploy a new production migration that revokes the client-role table/default/sequence blast radius, retains required `service_role` access, verifies application behavior, and refreshes production grant/advisor evidence. This branch intentionally does not add an unapplied migration because the linked no-pending invariant and historical fidelity are binding.
+
+## Fresh verification evidence
+
+All timestamps below are UTC on 2026-08-20.
 
 | Start | Command | Exit | Result |
 | --- | --- | ---: | --- |
-| `20:06:54.2150569Z` | `supabase db reset --local` | 1 | Could not connect to Docker Desktop's `dockerDesktopLinuxEngine` named pipe. No reset occurred. |
-| `20:06:55.7692429Z` | `supabase migration list --linked` | 0 | Returned all eight exact local/remote version pairs from `20260707062202` through `20260819010835`. |
-| `20:06:59.1992746Z` | `supabase db push --dry-run --linked` | 0 | `upToDate: true`; no migrations, seeds, or roles pending. Production was not changed. |
-| `20:07:02.4397928Z` | `node --test scripts/phase0/compare-schema-inventory.test.mjs` | 1 | Eight non-database tests passed; three database-backed inventory tests could not connect to the unavailable local database. |
-| `20:07:06.6114047Z` | `node scripts/phase0/compare-schema-inventory.mjs docs/operations/evidence/phase-0/2026-08-20-production-schema-inventory.json docs/operations/evidence/phase-0/2026-08-20-local-schema-inventory.json` | 0 | Committed inventories match. This is not a replacement for a fresh post-reset local capture. |
-| `20:07:06.6815383Z` | `node --test scripts/phase0/auth-restore-signature-query.test.mjs` | 0 | 2 tests passed; the SQL is one prepared-statement-compatible read-only query. |
-| `20:07:06.8084989Z` | `node --test scripts/phase0/capture-auth-restore-signature.test.mjs` | 0 | 9 tests passed, including prompt timeout, partial-output suppression, and Windows process-tree termination. |
-| `20:07:07.5978779Z` | `node --test scripts/phase0/compare-auth-restore-signature.test.mjs` | 0 | 23 comparator tests passed. |
-| `20:07:10.1044291Z` | `node scripts/phase0/capture-auth-restore-signature.mjs --local` | 1 | Local Supabase CLI query could not connect because the Docker engine is unavailable; no capture was retained. |
-| `20:07:12.5559861Z` | `node scripts/phase0/capture-auth-restore-signature.mjs --linked` | 0 | The credential-free launcher completed one linked read-only signature query and emitted only its required JSON contract. Raw output was not persisted in evidence. |
-| `20:07:17.0759518Z` | `npm test -- --run` | 0 | 26 files and 240 tests passed. |
-| `20:07:19.4628055Z` | `npm run typecheck` | 0 | TypeScript completed without errors. |
-| `20:07:38.0705340Z` | `npm run lint` | 0 | Completed with the same four baseline application warnings listed below, plus Next.js/Sentry deprecation notices. |
-| `20:07:41.4719730Z` | `git diff --check c449867..HEAD` | 0 | No whole-branch whitespace errors. |
-| `20:07:41.6345021Z` | `git diff --find-renames --full-index --output=.superpowers/sdd/2026-08-20-phase-0-containment/task-5-review-c449867..40d9b28.diff c449867..HEAD` | 0 | Generated the ignored 1,128,423-byte whole-branch review package; SHA-256 `BE22748705438731CAAFC161763EC9C40839C8551222AD3E9AC4C48AE8B0178A`. |
-| `20:07:41.7313556Z` | `git status --short --branch` | 0 | Clean tracked worktree: `## codex/phase-0-containment`. |
+| `20:42:34.9890544Z` | `node --test` over all seven Phase 0 query/launcher/comparator test files | 1 | 60 tests: 57 passed; only the 3 local-database inventory tests failed because the Docker-backed local database was unavailable. All credential-free/static/unit contracts passed. |
+| `20:37:57.7662633Z` | `supabase db reset --local` | 1 | Docker Desktop's `dockerDesktopLinuxEngine` named pipe was absent; no reset occurred. |
+| `20:37:57Z` | `node scripts/phase0/compare-schema-inventory.mjs <production-v2> <local-v1>` | 2 | Failed closed: `local inventory_contract_version must equal 2`. The historical local artifact is not accepted as current parity proof. |
+| `20:37:57Z` | local Auth and source-preflight launchers | 1 each | Both failed without partial output because no local Supabase database was reachable. |
+| `20:38:21.1450553Z` | linked inventory v2 query plus bounded Auth/preflight launchers | 0 each | Prepared read-only paths executed. Inventory contract `2` returned 1 application schema, 5 extensions, 0 views/materialized views, 0 foreign tables, and 0 public application types. Auth returned the exact 10-key contract with 1,157 Auth metadata items and 68 global-role items. Preflight returned the exact 10-key contract with zero subscriptions, replication slots, and foreign servers. Raw output was not retained. |
+| `20:38:41.9886464Z` | `supabase migration list --linked` | 0 | Returned the same eight local/remote version pairs from `20260707062202` through `20260819010835`. |
+| `20:38:41Z` | `supabase db push --dry-run --linked` | 0 | `upToDate: true`; no migrations, seeds, or roles pending. Production was not changed. |
+| `20:38:41Z` | exact migration evidence verifier and `git diff --exit-code 03137e8 -- supabase/migrations` | 0 each | Seven captured normalized bodies and the composite migration's exact v1 suffix matched; migration files have no fix-wave diff. |
+| `20:42:49.0352549Z` | `npm test -- --run` | 0 | 26 files and 240 tests passed. |
+| `20:42:49Z` | `npm run typecheck` | 0 | TypeScript completed without errors. |
+| `20:42:49Z` | `npm run lint` | 0 | Completed with the same four baseline application warnings below, plus Next.js/Sentry deprecation notices. |
+| `20:41Z` | high-confidence credential-value scan over every changed file | 1 | No matches; `rg` exit 1 means no credential-value pattern matched. Generic reviewed words such as `service_role`, `token`, and `secret_count` were not treated as credential values. |
+| `20:41Z` | stale-claim search over tracked operations evidence | 1 | No old exact-parity, old Auth-role exclusion, old direct-preflight command, or superseded query-hash claim remained. |
+| `20:41Z` | `git diff --check` | 0 | No whitespace errors. |
+| `20:41Z` | production/local inventory JSON parse | 0 | Production is valid contract v2; the valid historical local JSON intentionally has no v2 contract field. |
 
 The four baseline lint warnings are distinct from a clean lint result:
 
@@ -41,11 +48,16 @@ The four baseline lint warnings are distinct from a clean lint result:
 - `src/app/admin/feature-access/page.tsx:44`: missing `load` dependency.
 - `src/components/ui/FeatureGate.tsx:113`: `@next/next/no-img-element`.
 
-The prior multi-command prepared-statement failure is resolved: Task 4 changed the Auth signature to one read-only query, and the fresh query, capture, comparator, and linked-launcher evidence above passed. The unavailable local Docker engine prevents a fresh reset, local launcher execution, and the three database-backed inventory tests; it must be restored before clean-room verification can be refreshed.
+## Contract changes and remaining local blocker
+
+- `restore-source-preflight.sql` is now one read-only prepared statement. Its launcher pins Supabase CLI `2.115.0`, applies the existing 45-second deadline/process-tree termination contract, accepts only linked/local/validated project-ref targets, validates the exact metadata-only shape, and suppresses partial output.
+- Schema inventory contract v2 adds application-schema state, installed extensions, public views/materialized views, foreign tables, and public types. The production v2 snapshot is committed. The local snapshot remains v1, so the comparator exits `2` until Docker is restored and a fresh local v2 capture succeeds.
+- The Auth fingerprint now includes view definitions, column ACLs, enum labels, trigger enabled state, and a password-free aggregate fingerprint of global roles, memberships, and all-database/current-database settings. `PASS_BOUNDED` requires this evidence and stable hashes across captures.
+- Auth launcher normalization reconstructs only the exact 10-key reviewed contract; extra identity/secret-like keys such as `email` and `token` are dropped.
+
+Docker must be restored before running a fresh reset, the three database-backed inventory tests, local Auth/preflight launchers, the local inventory-v2 capture, the default-grant probe, and the production-v2/local-v2 comparator. No fresh local result is claimed.
 
 ## Live-control gate
-
-The resolved Auth invocation does not satisfy the live-control exit gate:
 
 | Control | Exit classification | Required checkpoint |
 | --- | --- | --- |
@@ -54,19 +66,13 @@ The resolved Auth invocation does not satisfy the live-control exit gate:
 | Actual source eligibility and operator-visible **Restore to a New Project** action | `BLOCKED BY ACCESS` | An authenticated Supabase Dashboard operator must inspect the selected backup and final non-sensitive configuration/cost fields, stopping before confirmation. |
 | Isolated restore drill | `REQUIRES AUTHORIZATION` | The drill has not run. It requires safe fresh preflights, a five-billable-hour estimate below USD 8, explicit production-sensitive handling authorization, explicit residual-cost acceptance, validation, deletion, and settled billing evidence. |
 | Supabase leaked-password protection | `NOT ENABLED` | It remains off. Enabling it requires explicit authorization followed by a fresh security-advisor check. |
-| Vercel firewall configuration and production environment-name/runtime linkage | `BLOCKED BY ACCESS` | Provide authenticated read-only Vercel CLI/API access or an already-open authenticated browser session. |
-| Anthropic account spend/rate limits and runtime linkage | `BLOCKED BY ACCESS` | Provide Billing/Admin read-only evidence; do not inspect or reuse runtime keys. |
-| OpenAI account/project spend/rate limits and runtime linkage | `BLOCKED BY ACCESS` | Provide Owner/Admin read-only evidence; do not inspect or reuse runtime keys. |
+| Vercel firewall/configuration/runtime linkage | `BLOCKED BY ACCESS` | Provide authenticated read-only Vercel CLI/API access or an already-open authenticated browser session. |
+| Anthropic/OpenAI spend/rate limits and runtime linkage | `BLOCKED BY ACCESS` | Provide appropriate Billing/Admin read-only evidence; do not inspect or reuse runtime keys. |
 
 ## Independent exit review
 
-The required independent review did not run.
-
-- Immediately before this Task 5 refresh, the controller ran `three-aimigos doctor`; it exited 1 with `Action required`, `Configuration: unavailable`, required Anthropic/OpenAI healthy, and optional xAI authentication required.
-- Per the Three AImigos preflight contract, no `status`, `start`, `init`, `configure`, or repeat `doctor` command was run by this task. No council was dispatched and no Auditor response or verdict exists.
-
-This is an independent-review blocker, not an adverse or favorable review verdict. Phase 0 cannot complete until an eligible independent exit review covers the approved spec, plan, evidence, SQL, scripts, and complete branch diff and returns with no unresolved blocker.
+The Greybeard final review produced the four Important and one Minor findings addressed by this fix wave. The complete post-fix diff has not yet received the required independent approval, and the Three AImigos council gate remains unavailable from the prior failed doctor preflight. No favorable post-fix Auditor/council verdict exists. This remains a blocker rather than an implied approval.
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Restore the local Docker engine and rerun clean-room evidence; then satisfy the exact access/authorization checkpoints above, complete the isolated restore drill and cleanup evidence, and obtain the required independent exit review.
+Phase 0 remains **BLOCKED**. Do not push, merge, change `main`, or begin Phase 1. Restore Docker and complete inventory-v2 local proof; authorize, deploy, and evidence the client-role grant hardening separately; satisfy the exact live-control/restore checkpoints; and obtain independent post-fix approval before reconsidering the gate.

@@ -31,3 +31,17 @@ test('retains the bounded identity-free signature contract', () => {
   assert.match(sql, /'bounded_user_count_capped'/i)
   assert.doesNotMatch(sql, /\b(email|phone|password|token|identity)\b/i)
 })
+
+test('fingerprints every required Auth and global-role security surface', () => {
+  // Catches PASS_BOUNDED omitting security-bearing definitions or role state.
+  const sql = executableSql()
+
+  assert.match(sql, /pg_get_viewdef/i)
+  assert.match(sql, /pg_catalog\.aclexplode\(a\.attacl\)/i)
+  assert.match(sql, /pg_catalog\.pg_enum/i)
+  assert.match(sql, /t\.tgenabled/i)
+  assert.match(sql, /pg_catalog\.pg_auth_members/i)
+  assert.match(sql, /pg_catalog\.pg_db_role_setting/i)
+  assert.match(sql, /'global_role_item_count'/i)
+  assert.match(sql, /'global_role_signature_md5'/i)
+})

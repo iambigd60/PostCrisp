@@ -86,6 +86,8 @@ function readSignature(path, label) {
     'auth_users_relation_present',
     'metadata_item_count',
     'metadata_signature_md5',
+    'global_role_item_count',
+    'global_role_signature_md5',
     'bounded_user_count',
     'bounded_user_count_cap',
     'bounded_user_count_capped',
@@ -101,6 +103,11 @@ function readSignature(path, label) {
   if (typeof value.metadata_signature_md5 !== 'string' ||
       !/^[0-9a-f]{32}$/i.test(value.metadata_signature_md5)) {
     throw new Error(`${label}.metadata_signature_md5 must be 32 hexadecimal characters`)
+  }
+  requirePositiveInteger(value.global_role_item_count, `${label}.global_role_item_count`)
+  if (typeof value.global_role_signature_md5 !== 'string' ||
+      !/^[0-9a-f]{32}$/i.test(value.global_role_signature_md5)) {
+    throw new Error(`${label}.global_role_signature_md5 must be 32 hexadecimal characters`)
   }
   requireNonnegativeInteger(value.bounded_user_count, `${label}.bounded_user_count`)
   if (!Number.isSafeInteger(value.bounded_user_count_cap) || value.bounded_user_count_cap <= 0) {
@@ -121,6 +128,7 @@ function readSignature(path, label) {
   return {
     ...value,
     metadata_signature_md5: value.metadata_signature_md5.toLowerCase(),
+    global_role_signature_md5: value.global_role_signature_md5.toLowerCase(),
     capturedTime,
   }
 }
@@ -186,6 +194,11 @@ try {
       value.metadata_item_count === sourceBeforeAuthorization.metadata_item_count &&
       value.metadata_signature_md5 === sourceBeforeAuthorization.metadata_signature_md5,
   )
+  const globalRoleStable = captures.every(
+    value =>
+      value.global_role_item_count === sourceBeforeAuthorization.global_role_item_count &&
+      value.global_role_signature_md5 === sourceBeforeAuthorization.global_role_signature_md5,
+  )
   const aggregateUncapped = captures.every(value => !value.bounded_user_count_capped)
   const aggregateStable = captures.every(
     value => value.bounded_user_count === sourceBeforeAuthorization.bounded_user_count,
@@ -193,7 +206,7 @@ try {
 
   let result = 'PASS_BOUNDED'
   let exitCode = 0
-  if (!schemaPresent || !metadataStable) {
+  if (!schemaPresent || !metadataStable || !globalRoleStable) {
     result = 'FAIL'
     exitCode = 1
   } else if (!aggregateUncapped || !aggregateStable) {
@@ -207,10 +220,12 @@ try {
     selected_backup_timestamp: new Date(Date.parse(backupTimestamp)).toISOString(),
     capture_timestamps: captures.map(value => value.captured_at),
     metadata_signature_md5: sourceBeforeAuthorization.metadata_signature_md5,
+    global_role_signature_md5: sourceBeforeAuthorization.global_role_signature_md5,
     checks: {
       auth_schema_and_users_relation_present: schemaPresent,
       backup_and_capture_chronology_valid: chronologyValid,
       metadata_signature_stable: metadataStable,
+      global_role_signature_stable: globalRoleStable,
       bounded_aggregate_uncapped: aggregateUncapped,
       bounded_aggregate_stable: aggregateStable,
     },

@@ -45,6 +45,20 @@ with metadata_items as (
   union all
 
   select format(
+    'view|%s|%s|%s|definition_md5=%s',
+    n.nspname,
+    c.relname,
+    c.relkind,
+    md5(replace(replace(pg_catalog.pg_get_viewdef(c.oid, false), E'\r\n', E'\n'), E'\r', E'\n'))
+  )
+  from pg_catalog.pg_class c
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'auth'
+    and c.relkind in ('v', 'm')
+
+  union all
+
+  select format(
     'relation_acl|%s|%s|grantor=%s|grantee=%s|privilege=%s|grantable=%s',
     n.nspname,
     c.relname,
@@ -81,6 +95,41 @@ with metadata_items as (
   union all
 
   select format(
+    'column_acl|%s|%s|%s|grantor=%s|grantee=%s|privilege=%s|grantable=%s',
+    n.nspname,
+    c.relname,
+    a.attname,
+    pg_catalog.pg_get_userbyid(acl.grantor),
+    case when acl.grantee = 0 then 'public' else pg_catalog.pg_get_userbyid(acl.grantee) end,
+    acl.privilege_type,
+    acl.is_grantable
+  )
+  from pg_catalog.pg_attribute a
+  join pg_catalog.pg_class c on c.oid = a.attrelid
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+  cross join lateral pg_catalog.aclexplode(a.attacl) acl
+  where n.nspname = 'auth'
+    and a.attnum > 0
+    and not a.attisdropped
+    and a.attacl is not null
+
+  union all
+
+  select format(
+    'enum|%s|%s|%s|%s',
+    n.nspname,
+    typ.typname,
+    enum.enumsortorder,
+    enum.enumlabel
+  )
+  from pg_catalog.pg_type typ
+  join pg_catalog.pg_namespace n on n.oid = typ.typnamespace
+  join pg_catalog.pg_enum enum on enum.enumtypid = typ.oid
+  where n.nspname = 'auth'
+
+  union all
+
+  select format(
     'constraint|%s|%s|%s|%s',
     c.relname,
     con.conname,
@@ -103,9 +152,10 @@ with metadata_items as (
   union all
 
   select format(
-    'trigger|%s|%s|%s',
+    'trigger|%s|%s|enabled=%s|%s',
     c.relname,
     t.tgname,
+    t.tgenabled,
     pg_catalog.pg_get_triggerdef(t.oid, false)
   )
   from pg_catalog.pg_trigger t
@@ -183,6 +233,54 @@ metadata_signature as (
     md5(coalesce(string_agg(item, E'\n' order by item), '')) as signature_md5
   from metadata_items
 ),
+global_role_items as (
+  select format(
+    'role|%s|super=%s|inherit=%s|createrole=%s|createdb=%s|login=%s|replication=%s|bypassrls=%s|connlimit=%s|validuntil=%s',
+    r.rolname,
+    r.rolsuper,
+    r.rolinherit,
+    r.rolcreaterole,
+    r.rolcreatedb,
+    r.rolcanlogin,
+    r.rolreplication,
+    r.rolbypassrls,
+    r.rolconnlimit,
+    coalesce(r.rolvaliduntil::text, '')
+  ) as item
+  from pg_catalog.pg_roles r
+
+  union all
+
+  select format(
+    'membership|role=%s|member=%s|grantor=%s|admin=%s',
+    pg_catalog.pg_get_userbyid(m.roleid),
+    pg_catalog.pg_get_userbyid(m.member),
+    pg_catalog.pg_get_userbyid(m.grantor),
+    m.admin_option
+  )
+  from pg_catalog.pg_auth_members m
+
+  union all
+
+  select format(
+    'setting|database=%s|role=%s|%s',
+    case when s.setdatabase = 0 then 'all' else 'current' end,
+    case when s.setrole = 0 then 'all' else pg_catalog.pg_get_userbyid(s.setrole) end,
+    setting
+  )
+  from pg_catalog.pg_db_role_setting s
+  cross join lateral unnest(s.setconfig) setting
+  where s.setdatabase = 0
+     or s.setdatabase = (
+       select d.oid from pg_catalog.pg_database d where d.datname = current_database()
+     )
+),
+global_role_signature as (
+  select
+    count(*)::bigint as item_count,
+    md5(coalesce(string_agg(item, E'\n' order by item), '')) as signature_md5
+  from global_role_items
+),
 bounded_users as (
   select case when pg_catalog.to_regclass('auth.users') is not null then
     ((pg_catalog.xpath(
@@ -202,6 +300,8 @@ select jsonb_build_object(
   'auth_users_relation_present', pg_catalog.to_regclass('auth.users') is not null,
   'metadata_item_count', (select item_count from metadata_signature),
   'metadata_signature_md5', (select signature_md5 from metadata_signature),
+  'global_role_item_count', (select item_count from global_role_signature),
+  'global_role_signature_md5', (select signature_md5 from global_role_signature),
   'bounded_user_count', (select bounded_count from bounded_users),
   'bounded_user_count_cap', 100001,
   'bounded_user_count_capped', coalesce((select bounded_count = 100001 from bounded_users), false)

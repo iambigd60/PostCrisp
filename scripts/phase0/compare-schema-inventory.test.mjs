@@ -9,6 +9,28 @@ import { fileURLToPath } from 'node:url';
 const comparatorPath = fileURLToPath(new URL('./compare-schema-inventory.mjs', import.meta.url));
 const inventorySqlPath = fileURLToPath(new URL('./schema-inventory.sql', import.meta.url));
 
+const inventoryContract = {
+  inventory_contract_version: 2,
+  application_schemas: [],
+  columns: [],
+  constraints: [],
+  extensions: [],
+  foreign_tables: [],
+  functions: [],
+  grants: [],
+  indexes: [],
+  policies: [],
+  sequences: [],
+  tables: [],
+  triggers: [],
+  types: [],
+  views: [],
+};
+
+function inventory(overrides) {
+  return { ...inventoryContract, ...overrides };
+}
+
 async function runComparator(production, local) {
   const directory = await mkdtemp(join(tmpdir(), 'postcrisp-schema-parity-'));
   const productionPath = join(directory, 'production.json');
@@ -16,8 +38,8 @@ async function runComparator(production, local) {
 
   try {
     await Promise.all([
-      writeFile(productionPath, `${JSON.stringify(production, null, 2)}\n`),
-      writeFile(localPath, `${JSON.stringify(local, null, 2)}\n`),
+      writeFile(productionPath, `${JSON.stringify(inventory(production), null, 2)}\n`),
+      writeFile(localPath, `${JSON.stringify(inventory(local), null, 2)}\n`),
     ]);
 
     return spawnSync(
@@ -29,6 +51,43 @@ async function runComparator(production, local) {
     await rm(directory, { recursive: true, force: true });
   }
 }
+
+test('rejects an obsolete inventory contract even when both files are identical', async () => {
+  // Catches old snapshots producing a false parity result after coverage expands.
+  const result = await runComparator(
+    { inventory_contract_version: 1 },
+    { inventory_contract_version: 1 },
+  );
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /production inventory_contract_version must equal 2/);
+  assert.equal(result.stdout, '');
+});
+
+test('reports drift in newly covered view, foreign-table, type, extension, and schema state', async () => {
+  // Catches the new sections being present but ignored by the comparator.
+  const production = {
+    application_schemas: [{ name: 'public', extension_owned: false }],
+    extensions: [{ name: 'pgcrypto', version: '1.3', schema: 'extensions' }],
+    views: [{ schema: 'public', name: 'active_profiles', kind: 'view', definition: 'SELECT 1;' }],
+    foreign_tables: [{ schema: 'public', name: 'remote_profiles', server: 'analytics' }],
+    types: [{ schema: 'public', name: 'plan', kind: 'enum', enum_labels: ['free', 'pro'] }],
+  };
+  const local = {
+    application_schemas: [{ name: 'public', extension_owned: true }],
+    extensions: [{ name: 'pgcrypto', version: '1.4', schema: 'extensions' }],
+    views: [{ schema: 'public', name: 'active_profiles', kind: 'view', definition: 'SELECT 2;' }],
+    foreign_tables: [],
+    types: [{ schema: 'public', name: 'plan', kind: 'enum', enum_labels: ['free'] }],
+  };
+
+  const result = await runComparator(production, local);
+
+  assert.equal(result.status, 1);
+  for (const section of ['application_schemas', 'extensions', 'views', 'foreign_tables', 'types']) {
+    assert.match(result.stdout, new RegExp(section));
+  }
+});
 
 function captureLocalInventory() {
   const supabaseArguments = [

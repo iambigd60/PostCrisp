@@ -103,6 +103,8 @@ test('normalizes CLI JSON to one comparator-ready signature object', () => {
       auth_users_relation_present: true,
       metadata_item_count: 1,
       metadata_signature_md5: '00000000000000000000000000000000',
+      global_role_item_count: 1,
+      global_role_signature_md5: '11111111111111111111111111111111',
       bounded_user_count: 0,
       bounded_user_count_cap: 100001,
       bounded_user_count_capped: false,
@@ -116,11 +118,47 @@ test('normalizes CLI JSON to one comparator-ready signature object', () => {
       auth_users_relation_present: true,
       metadata_item_count: 1,
       metadata_signature_md5: '00000000000000000000000000000000',
+      global_role_item_count: 1,
+      global_role_signature_md5: '11111111111111111111111111111111',
       bounded_user_count: 0,
       bounded_user_count_cap: 100001,
       bounded_user_count_capped: false,
     },
   })
+})
+
+test('does not re-emit secret or identity-like extra signature fields', () => {
+  // Catches arbitrary CLI fields bypassing the reviewed output contract.
+  const normalized = normalizeCliOutput(JSON.stringify({
+    auth_restore_signature: {
+      captured_at: '2026-08-20T19:00:00Z',
+      auth_schema_present: true,
+      auth_users_relation_present: true,
+      metadata_item_count: 1,
+      metadata_signature_md5: '00000000000000000000000000000000',
+      global_role_item_count: 1,
+      global_role_signature_md5: '11111111111111111111111111111111',
+      bounded_user_count: 0,
+      bounded_user_count_cap: 100001,
+      bounded_user_count_capped: false,
+      email: 'DO_NOT_LEAK@example.invalid',
+      token: 'DO_NOT_LEAK_TOKEN',
+    },
+  }))
+
+  assert.deepEqual(Object.keys(JSON.parse(normalized).auth_restore_signature), [
+    'captured_at',
+    'auth_schema_present',
+    'auth_users_relation_present',
+    'metadata_item_count',
+    'metadata_signature_md5',
+    'global_role_item_count',
+    'global_role_signature_md5',
+    'bounded_user_count',
+    'bounded_user_count_cap',
+    'bounded_user_count_capped',
+  ])
+  assert.doesNotMatch(normalized, /DO_NOT_LEAK|email|token/)
 })
 
 test('rejects transaction-status lines or a missing signature object', () => {
