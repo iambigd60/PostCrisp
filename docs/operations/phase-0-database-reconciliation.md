@@ -1,6 +1,6 @@
 # Phase 0 database reconciliation runbook
 
-**Status:** Task 3 deterministic schema parity established; Task 4 recovery/platform evidence captured. Phase 0 remains blocked on an authorized restore drill and live Vercel/provider-control access.
+**Status:** Task 3 deterministic schema parity established; Task 4 recovery/platform evidence captured. Phase 0 remains blocked on source/UI restore eligibility, an authorized restore drill, and live Vercel/provider-control access.
 **Recorded:** 2026-08-20 (America/Los_Angeles)
 
 ## Safety record
@@ -88,7 +88,7 @@ The timestamped [platform-control evidence](evidence/phase-0/2026-08-20-platform
 
 - Supabase returned eight completed physical backups, with the latest at `2026-08-20T10:56:15.704Z`. The authenticated organization is Pro, and the observed restore points cover the documented seven-day Pro access window.
 - PITR is explicitly disabled, so no PITR retention window exists. The scheduled physical backups are not directly downloadable; a manual logical dump is a separate unexecuted path.
-- Restore-to-new-project prerequisites are present, but the drill would create a paid project containing production database and Auth data. It is `REQUIRES AUTHORIZATION` under the hard cost ceilings in the [isolated restore drill](phase-0-restore-drill.md), and it has not run.
+- Paid-plan and physical-backup eligibility is verified, but actual source eligibility and the operator-visible **Restore to a New Project** action remain `BLOCKED BY ACCESS`. Execution is `REQUIRES AUTHORIZATION`; the [isolated restore drill](phase-0-restore-drill.md) now requires two fresh outbound/Vault preflights, a conservative final-configuration estimate below the USD 8 abort threshold, explicit residual-billing-risk acceptance, executable Auth validation, and post-deletion billing evidence. It has not run.
 - The live Supabase security advisor reports leaked-password protection disabled. Enabling it is the intended Phase 0 control change, but no Auth setting was changed on this read-only pass.
 - Vercel project identity was verified, but project-specific firewall state remains `BLOCKED BY ACCESS`: the connector does not expose it, the current CLI session is not authenticated, and Chrome was not running. Repository firewall instructions are not live proof.
 - Anthropic and OpenAI are the two real provider adapters configured in code. Their current spend enforcement, alerts, and rate limits—and the Vercel production environment-variable name inventory—remain `BLOCKED BY ACCESS`; no runtime key or secret was inspected or reused.
