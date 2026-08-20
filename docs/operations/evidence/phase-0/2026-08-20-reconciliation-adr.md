@@ -1,0 +1,78 @@
+# ADR: Phase 0 migration reconciliation architecture
+
+**Decision date:** 2026-08-20
+**Status:** Accepted for Task 2 implementation
+**Scope:** repository representation only; production remained read-only
+
+## Context
+
+Production records eight migration versions. The repository has seven migration files whose timestamps have zero overlap with the production versions, and it lacks production's earliest v1 file. Renaming the seven local files and adding the literal v1 statement aligns history, but it does not create a blank database because v1 assumes `public.profiles` already exists.
+
+The repository's current practical baseline is `src/lib/supabase-schema.sql`. That file also contains internal forward references that are harmless when run against the existing production schema but prevent a literal top-to-bottom blank bootstrap: `credit_transactions` references `generations` before its definition, `channels` alters `saved_content` before its definition, and two triggers use `handle_updated_at` before its definition.
+
+## Decision
+
+Select a **composite baseline at the earliest production version**:
+
+- Version `20260707062202` becomes a clearly marked clean-room representation, not a claim that the entire baseline ran historically at that timestamp.
+- It contains the current baseline schema.
+- Immediately after `profiles`, it hoists idempotent definitions for `generations`, `saved_content`, and `handle_updated_at` so the baseline's existing forward references can run on a blank database. Their later `IF NOT EXISTS` / `OR REPLACE` definitions remain in the baseline.
+- It appends the exact production `protect_privileged_profile_columns_v1` statement verbatim after the baseline portion.
+- The other seven migrations retain their SQL and use the production timestamps recorded in the migration-history evidence.
+
+This representation preserves all eight production version identifiers and keeps the literal remote SQL reviewable, while honestly distinguishing local clean-room bootstrap structure from literal historical execution.
+
+The latest-version squashed alternative was not tested: the composite candidate reset cleanly and produced a no-pending linked dry run, so the task's fallback condition was not met. A latest-only squash would also be a worse fit for the requirement to keep all eight production identifiers visible.
+
+## Experimental evidence
+
+All experiment files were disposable and ignored under `.superpowers/sdd/2026-08-20-phase-0-containment/lab/`. No tracked migration was edited.
+
+### Timestamp-aligned history alone
+
+The lab used the exact missing v1 SQL followed by the seven existing migrations under production timestamps. Against a blank local database it failed at the earliest migration because `public.profiles` did not exist. This is the expected proof that timestamp alignment alone is not a bootstrap.
+
+### Composite baseline
+
+The composite lab started successfully, applied all eight production-version files, then completed an explicit blank local reset. Its linked migration list paired every local version with the same remote version, and the linked dry run returned `upToDate: true` with no migrations, seeds, or roles pending.
+
+Supabase startup printed local development credentials. They were transient local defaults and are intentionally omitted from this evidence.
+
+The required secret-pattern scan returned matches because the pattern includes the non-secret database role name. Before this scan record was added, the three new operational documents matched only the two occurrences of the exact migration identifier `service_role_table_grant_lockdown`; this paragraph and the command record are additional self-referential matches. The broader scan also found pre-existing documentation references and the scan command embedded in the approved plan. Manual review found no credential value, token, or connection string in the staged files.
+
+## Exact command record
+
+Commands are shown exactly as invoked from `C:\Projects\postcrisp-phase-0-containment`; `EXIT` is the observed process exit code.
+
+| Command | EXIT | Result |
+| --- | ---: | --- |
+| `supabase --version` | 0 | `2.115.0` |
+| `docker desktop status` | 0 | Docker Desktop reported `running` |
+| `docker version` | 0 | Client/server engine `29.6.1`; Docker Desktop `4.82.0` |
+| `supabase migration list --linked` | 1 | Before local link metadata existed: `LegacyProjectNotLinkedError` |
+| `supabase db push --dry-run --linked` | 1 | Before local link metadata existed: `LegacyProjectNotLinkedError` |
+| `supabase link --project-ref sikabeqzypvllimyostg --yes` | 0 | Wrote ignored local link metadata; no remote mutation |
+| `supabase migration list --linked` | 0 | Current tracked repo showed seven local-only and eight remote-only versions |
+| `supabase db push --dry-run --linked` | 1 | `LegacyDbPushMissingLocalError`; remote versions were absent locally |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\history" start` | 1 | `SQLSTATE 42P01`: `public.profiles` did not exist when v1 reached its trigger statement |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\history" stop --no-backup` | 0 | Disposable history stack stopped without backup |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" start` | 0 | All eight production-version files applied |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" db reset --local` | 0 | Blank local database rebuilt with all eight versions |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" link --project-ref sikabeqzypvllimyostg --yes` | 0 | Wrote ignored lab link metadata; no remote mutation |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" migration list --linked` | 0 | Eight local/remote version pairs matched exactly |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" db push --dry-run --linked` | 0 | Remote database up to date; no pending migrations |
+| `supabase --workdir "C:\Projects\postcrisp-phase-0-containment\.superpowers\sdd\2026-08-20-phase-0-containment\lab\composite" stop --no-backup` | 0 | Disposable composite stack stopped without backup |
+| `npm test -- --run` | 0 | 26 files and 240 tests passed |
+| `npm run typecheck` | 0 | TypeScript completed without errors |
+| `npm run lint` | 0 | Completed with four pre-existing warnings |
+| `git diff --check` | 0 | No unstaged whitespace errors |
+| `git diff --cached --check` | 0 | No staged whitespace errors after correction |
+| `rg -n --hidden "(service_role\|SUPABASE_SERVICE_ROLE_KEY\|postgres(ql)?://\|sbp_[A-Za-z0-9]\|sk_(live\|test)_)" docs/operations docs/superpowers` | 0 | Matches reviewed; no secret value found in staged files |
+
+## Consequences and follow-up
+
+- Task 2 must clearly label the earliest tracked migration as a composite clean-room representation.
+- The hoisted prerequisites are a bootstrap-only ordering accommodation and must be reviewed as part of the earliest migration.
+- The exact v1 statement remains independently preserved in migration-history evidence.
+- The final schema still needs Task 3's deterministic local-versus-production object comparison; a successful reset and an empty migration dry run prove lineage mechanics, not full schema parity.
+- Production migration history was not repaired, hidden, or otherwise mutated.
