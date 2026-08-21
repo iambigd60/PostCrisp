@@ -1,14 +1,14 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-20 (Phase 0 containment evidence refresh)
-**Build status:** `codex/phase-0-containment`; the correction candidate passes a fresh ten-migration reset, both database probes, 69/69 focused tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings. It adds bounded restore-aggregate tooling, strengthens type parity, and refreshes operator guidance without changing production or migration SQL.
+**Last updated:** 2026-08-20 (Phase 0 integrated into `main`; CI green)
+**Build status:** `main`, `origin/main`, `codex/phase-0-containment`, and its remote are synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; branch integration was explicitly approved on 2026-08-20.** Push and merge are authorized, but do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
+**Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
 
 ---
 
-## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-20T22:52Z)
+## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-21T00:04Z)
 
 Verified current state:
 
@@ -18,7 +18,7 @@ Verified current state:
 - exactly 154 grant removals (128 current table, 12 current sequence, 14 `postgres` defaults) and no non-grant drift; fresh forbidden current grants and `postgres` defaults are zero;
 - HIBP leaked-password protection is enabled; security advisor has exactly 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`;
 - linked restore preflight is clean and Auth capture has the reviewed exact 10-key shape with PostgreSQL 17 membership options; no raw identities retained.
-- exact-head whole-branch re-review of correction commit `f53485c` returned `APPROVED` with no Critical, Important, or Minor findings; Phase 0 remains blocked only on the three external gates below.
+- exact-head whole-branch re-review through `0ad498d` returned `APPROVED` with no Critical, Important, or Minor findings; `main` and the feature branch are pushed and synchronized at that commit, and GitHub CI passed. Phase 0 remains blocked only on the three external gates below.
 
 Required before Phase 0 exit and Phase 1:
 
