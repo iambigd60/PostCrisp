@@ -163,10 +163,15 @@ export default function BillingPage() {
           <div className="flex items-center justify-center gap-4">
             <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-zinc-200' : 'text-crisp'}`}>Monthly</span>
             <button
+              type="button"
+              role="switch"
+              aria-checked={billing === 'yearly'}
+              aria-label="Bill yearly"
               onClick={() => setBilling(billing === 'monthly' ? 'yearly' : 'monthly')}
-              className={`relative w-12 h-6 rounded-full transition-colors ${billing === 'yearly' ? 'bg-brand-600' : 'bg-surface-elevated'}`}
+              className={`relative w-12 h-6 flex-shrink-0 rounded-full border border-edge transition-colors ${billing === 'yearly' ? 'bg-brand-600' : 'bg-surface-elevated'}`}
             >
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${billing === 'yearly' ? 'translate-x-7' : 'translate-x-1'}`} />
+              {/* left-0 anchors the knob; without it the button centres it and the slide overshoots the track. */}
+              <span aria-hidden="true" className={`absolute left-0 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${billing === 'yearly' ? 'translate-x-[26px]' : 'translate-x-1'}`} />
             </button>
             <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-zinc-200' : 'text-crisp'}`}>
               Yearly
