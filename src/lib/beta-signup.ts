@@ -11,7 +11,6 @@
  */
 
 import crypto from 'node:crypto'
-import { looksLikeUrl } from '@/lib/social-url'
 
 export const CODE_TTL_MS = 15 * 60 * 1000
 const TOKEN_VERSION = 'v1'
@@ -41,6 +40,29 @@ export type ValidationResult =
   | { ok: true; value: BetaSignupInput }
   | { ok: false; error: string }
 
+/**
+ * True when `value` is a usable http(s) channel link with a dotted hostname.
+ * A bare `www.` prefix is treated as https. Rejects incomplete values such as
+ * "https://" or "www." that would pass a prefix-only check.
+ */
+function isValidChannelUrl(value: string): boolean {
+  let candidate = value.trim()
+  if (/^www\./i.test(candidate)) candidate = `https://${candidate}`
+  let parsed: URL
+  try {
+    parsed = new URL(candidate)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+  // Require a dotted hostname with non-empty labels (e.g. instagram.com).
+  return /^[^.\s]+(\.[^.\s]+)+$/.test(parsed.hostname)
+}
+
+/**
+ * Validate and normalize a raw beta-signup submission. Returns the trimmed
+ * value (email lower-cased) on success, or a user-facing error string.
+ */
 export function validateSignup(raw: Partial<BetaSignupInput>): ValidationResult {
   const name = (raw.name ?? '').trim()
   const email = normalizeEmail(raw.email ?? '')
@@ -52,7 +74,7 @@ export function validateSignup(raw: Partial<BetaSignupInput>): ValidationResult 
   if (!email || email.length > 200 || !EMAIL_RE.test(email)) {
     return { ok: false, error: 'Please enter a valid email address.' }
   }
-  if (!channel || channel.length > 300 || !looksLikeUrl(channel)) {
+  if (!channel || channel.length > 300 || !isValidChannelUrl(channel)) {
     return {
       ok: false,
       error: 'Please enter a valid link to your channel or profile (e.g. https://instagram.com/you).',
@@ -176,16 +198,27 @@ export interface EmailResult {
   error?: string
 }
 
-async function sendResend(payload: Record<string, unknown>): Promise<EmailResult> {
+/**
+ * POST an email via the Resend API. Guards on RESEND_API_KEY (skips when unset),
+ * aborts after 10s so a hung connection can't pin the serverless invocation, and
+ * forwards an optional Idempotency-Key so safe retries don't double-send.
+ */
+async function sendResend(
+  payload: Record<string, unknown>,
+  idempotencyKey?: string,
+): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) return { ok: false, skipped: true, error: 'email_not_configured' }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  }
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      signal: AbortSignal.timeout(10_000),
+      headers,
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
@@ -198,6 +231,7 @@ async function sendResend(payload: Record<string, unknown>): Promise<EmailResult
   }
 }
 
+/** Email the 6-digit verification code to the prospective tester. */
 export function sendVerificationCodeEmail(to: string, code: string): Promise<EmailResult> {
   return sendResend({
     from: 'PostCrisp Beta <noreply@postcrisp.com>',
@@ -212,19 +246,29 @@ export function sendVerificationCodeEmail(to: string, code: string): Promise<Ema
   })
 }
 
-export function sendBetaNotificationEmail(input: BetaSignupInput): Promise<EmailResult> {
+/**
+ * Email the verified signup to the beta inbox. Pass a stable `idempotencyKey`
+ * (e.g. derived from the token) so a duplicate verify doesn't send twice — the
+ * payload must be identical across retries, so it carries no per-call timestamp.
+ */
+export function sendBetaNotificationEmail(
+  input: BetaSignupInput,
+  idempotencyKey?: string,
+): Promise<EmailResult> {
   const to = process.env.BETA_NOTIFICATION_EMAIL ?? 'beta@postcrisp.com'
-  return sendResend({
-    from: 'PostCrisp Beta Signups <noreply@postcrisp.com>',
-    to: [to],
-    reply_to: input.email,
-    subject: `New beta signup: ${input.name}`,
-    text:
-      `A new (email-verified) beta tester signed up:\n\n` +
-      `Name:    ${input.name}\n` +
-      `Email:   ${input.email}\n` +
-      `Channel: ${input.channel}\n` +
-      `When:    ${new Date().toISOString()}\n\n` +
-      `Reply directly to this email to reach them.`,
-  })
+  return sendResend(
+    {
+      from: 'PostCrisp Beta Signups <noreply@postcrisp.com>',
+      to: [to],
+      reply_to: input.email,
+      subject: `New beta signup: ${input.name}`,
+      text:
+        `A new (email-verified) beta tester signed up:\n\n` +
+        `Name:    ${input.name}\n` +
+        `Email:   ${input.email}\n` +
+        `Channel: ${input.channel}\n\n` +
+        `Reply directly to this email to reach them.`,
+    },
+    idempotencyKey,
+  )
 }

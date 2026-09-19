@@ -7,15 +7,21 @@ export const runtime = 'nodejs'
 // POST — verify the emailed code. On success, forwards the (now email-verified)
 // signup to beta@postcrisp.com. Body: { token, code }.
 export async function POST(request: Request) {
-  let body: Record<string, unknown>
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }
+  // Reject null / arrays / non-objects before reading fields (a JSON `null`
+  // parses fine and would throw on property access → an unhandled 500).
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Missing verification details.' }, { status: 400 })
+  }
+  const fields = body as Record<string, unknown>
 
-  const token = typeof body.token === 'string' ? body.token : ''
-  const code = typeof body.code === 'string' ? body.code : ''
+  const token = typeof fields.token === 'string' ? fields.token : ''
+  const code = typeof fields.code === 'string' ? fields.code : ''
   if (!token || !code) {
     return NextResponse.json({ error: 'Missing verification details.' }, { status: 400 })
   }
@@ -34,7 +40,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.error }, { status })
   }
 
-  const notify = await sendBetaNotificationEmail(result.value)
+  // Idempotency key from the token signature: a duplicate verify (double-click
+  // or network retry) reuses the same key + payload, so beta@ isn't emailed twice.
+  const idempotencyKey = `beta-signup/${token.split('.')[1] ?? ''}`.slice(0, 256)
+  const notify = await sendBetaNotificationEmail(result.value, idempotencyKey)
   if (!notify.ok) {
     console.error('[beta-signup] notification email failed:', notify.error)
     return NextResponse.json(
