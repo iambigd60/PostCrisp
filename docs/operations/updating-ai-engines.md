@@ -27,7 +27,7 @@ PostCrisp routes every feature × tier to a provider + model through three table
 - **A whole tier or profile:** select the features, choose the tier(s), pick the model in the bulk bar, apply.
 - **Back to code defaults:** select features and tiers, click bulk reset. The engine then follows `DEFAULT_PROFILE_CONFIG` and `TASK_TIER_PROFILE`.
 
-**Production carries an override for every feature × tier** (set 2026-04-20/23), so changing the code defaults alone changes nothing live. Reset the overrides, or re-apply the new models through the bulk bar.
+**Production overrides were reset on 2026-09-19** (63 rows removed, authorised by Dennis). The engine now follows the code defaults; any cell set in `/admin/ai-config` from here on is a deliberate exception and should be noted here.
 
 ## Provider notes
 
