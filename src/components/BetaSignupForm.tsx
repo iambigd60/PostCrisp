@@ -6,8 +6,8 @@ import { apiFetch, ApiError } from '@/lib/api'
 type Step = 'details' | 'code' | 'done'
 
 const inputClasses =
-  'w-full px-4 py-3 rounded-xl bg-surface-tertiary border border-brand-500/15 text-zinc-100 ' +
-  'placeholder-zinc-500 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/40 transition-colors'
+  'w-full px-4 py-3 rounded-xl bg-surface-tertiary border border-edge text-zinc-100 ' +
+  'placeholder-zinc-500 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/40 transition-colors'
 const labelClasses = 'block text-sm font-medium text-zinc-300 mb-1.5'
 const primaryBtn =
   'w-full inline-flex items-center justify-center px-8 py-3.5 bg-brand-600 hover:bg-brand-500 ' +
@@ -169,7 +169,7 @@ export default function BetaSignupForm() {
           <button type="submit" disabled={submitting} className={primaryBtn}>
             {submitting ? 'Sending code…' : 'Send verification code'}
           </button>
-          <p className="text-xs text-zinc-500 text-center">
+          <p className="text-xs text-crisp text-center">
             We’ll email you a code to confirm your address. No password, no spam.
           </p>
         </>
@@ -200,7 +200,7 @@ export default function BetaSignupForm() {
           <button type="submit" disabled={submitting || code.length !== 6} className={primaryBtn}>
             {submitting ? 'Verifying…' : 'Verify & join the beta'}
           </button>
-          <div className="flex items-center justify-between text-xs text-zinc-500">
+          <div className="flex items-center justify-between text-xs text-crisp">
             <button
               type="button"
               onClick={() => {

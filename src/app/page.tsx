@@ -446,7 +446,7 @@ export default function HomePage() {
       </section>
 
       {/* Join the Beta */}
-      <section id="beta" className="py-20 px-4 sm:px-6 border-t border-brand-500/10 scroll-mt-24">
+      <section id="beta" className="py-20 px-4 sm:px-6 border-t border-edge scroll-mt-24">
         <div className="max-w-xl mx-auto">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-sm font-medium mb-4">
@@ -458,7 +458,7 @@ export default function HomePage() {
               Be one of the first creators to shape PostCrisp. Verify your email and we’ll be in touch with an invite.
             </p>
           </div>
-          <div className="rounded-2xl bg-surface-secondary border border-brand-500/15 p-6 sm:p-8">
+          <div className="rounded-2xl bg-surface-secondary border border-edge p-6 sm:p-8">
             <BetaSignupForm />
           </div>
         </div>
