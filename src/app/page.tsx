@@ -134,7 +134,7 @@ const FAQ = [
   },
   {
     q: "How do I get a refund?",
-    a: "30-day money-back guarantee on all paid plans. Email captain@postcrisp.com and we'll process it no-questions-asked.",
+    a: "30-day money-back guarantee on all paid plans. Email admin@postcrisp.com and we'll process it no-questions-asked.",
   },
   {
     q: "What if I need more credits than my tier allows?",

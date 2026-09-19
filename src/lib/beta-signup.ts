@@ -5,7 +5,7 @@
  * We email them a 6-digit code and hand the browser an opaque, HMAC-signed
  * token that carries the submission plus a MAC of the code. When they enter the
  * code we re-derive the MAC and, on a match, email the verified submission to
- * beta@postcrisp.com. The code MAC is keyed by a server secret, so a holder of
+ * admin@postcrisp.com. The code MAC is keyed by a server secret, so a holder of
  * the token cannot brute-force the code offline; online guessing is bounded by
  * the 15-minute expiry and the edge (Vercel WAF) per-IP limit.
  */
@@ -255,7 +255,7 @@ export function sendBetaNotificationEmail(
   input: BetaSignupInput,
   idempotencyKey?: string,
 ): Promise<EmailResult> {
-  const to = process.env.BETA_NOTIFICATION_EMAIL ?? 'beta@postcrisp.com'
+  const to = process.env.BETA_NOTIFICATION_EMAIL ?? 'admin@postcrisp.com'
   return sendResend(
     {
       from: 'PostCrisp Beta Signups <noreply@postcrisp.com>',

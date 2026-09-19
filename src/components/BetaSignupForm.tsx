@@ -95,7 +95,7 @@ export default function BetaSignupForm() {
         <h3 className="text-xl font-bold text-white mb-2">You’re on the list!</h3>
         <p className="text-zinc-400">
           Thanks, {name.split(' ')[0] || 'creator'} — your email is verified and your request is in.
-          We’ll reach out from <span className="text-zinc-200">beta@postcrisp.com</span> with your invite.
+          We’ll reach out from <span className="text-zinc-200">admin@postcrisp.com</span> with your invite.
         </p>
       </div>
     )

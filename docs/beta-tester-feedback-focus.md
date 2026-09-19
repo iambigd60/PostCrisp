@@ -5,7 +5,7 @@ Welcome — and thanks for testing PostCrisp. You're one of a small number of cr
 ## Where to send feedback
 
 - **In-app**: hit the **Feedback** button (bottom-right of every dashboard page). Notifications come straight to a human.
-- **Reply to your invite email** or write to `beta@postcrisp.com`. A real human reads every reply.
+- **Reply to your invite email** or write to `admin@postcrisp.com`. A real human reads every reply.
 
 ## What we want most
 

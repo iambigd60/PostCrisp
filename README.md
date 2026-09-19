@@ -58,8 +58,8 @@ Optional:
 |---|---|
 | `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry source-map upload metadata |
 | `SENTRY_AUTH_TOKEN` | Enables source-map upload on build |
-| `FEEDBACK_NOTIFICATION_EMAIL` | Override admin notification address (default: captain@postcrisp.com) |
-| `BETA_NOTIFICATION_EMAIL` | Where beta-signup form submissions are emailed (default: beta@postcrisp.com) |
+| `FEEDBACK_NOTIFICATION_EMAIL` | Override admin notification address (default: admin@postcrisp.com) |
+| `BETA_NOTIFICATION_EMAIL` | Where beta-signup form submissions are emailed (default: admin@postcrisp.com) |
 | `BETA_SIGNUP_SECRET` | HMAC key for beta-signup email-verification tokens. Optional — falls back to a domain-separated subkey of `SUPABASE_SERVICE_ROLE_KEY` |
 
 Sentry is gated on `VERCEL_ENV === 'production' || 'preview'` — it intentionally does not capture from local dev.

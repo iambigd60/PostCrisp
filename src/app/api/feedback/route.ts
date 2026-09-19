@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   try {
     const apiKey = process.env.RESEND_API_KEY
     if (apiKey) {
-      const adminEmail = process.env.FEEDBACK_NOTIFICATION_EMAIL ?? 'captain@postcrisp.com'
+      const adminEmail = process.env.FEEDBACK_NOTIFICATION_EMAIL ?? 'admin@postcrisp.com'
       const origin = request.headers.get('origin') ||
         (request.headers.get('host') ? `https://${request.headers.get('host')}` : '')
       const catLabel = category ? category.toUpperCase() : 'GENERAL'

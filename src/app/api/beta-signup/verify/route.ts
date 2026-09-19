@@ -5,7 +5,7 @@ import { betaSigningKey, sendBetaNotificationEmail, verifyToken } from '@/lib/be
 export const runtime = 'nodejs'
 
 // POST — verify the emailed code. On success, forwards the (now email-verified)
-// signup to beta@postcrisp.com. Body: { token, code }.
+// signup to admin@postcrisp.com. Body: { token, code }.
 export async function POST(request: Request) {
   let body: unknown
   try {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          'Your email was verified, but we hit a snag notifying the team. Please email beta@postcrisp.com directly.',
+          'Your email was verified, but we hit a snag notifying the team. Please email admin@postcrisp.com directly.',
       },
       { status: 502 },
     )
