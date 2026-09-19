@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 export interface GettingStartedState {
   channelsAdded: boolean
@@ -66,6 +67,7 @@ const STEPS: Step[] = [
 
 export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStartedCardProps) {
   const [hiding, setHiding] = useState(false)
+  const { confirm, confirmDialog } = useConfirm()
   const completedCount = STEPS.filter((s) => state[s.key]).length
   const allDone = completedCount === STEPS.length
 
@@ -73,7 +75,7 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
   if (dismissed || allDone) return null
 
   const handleDismiss = async () => {
-    if (!window.confirm('Hide this checklist? You can still use every feature from the sidebar.')) return
+    if (!(await confirm({ title: 'Hide this checklist?', message: 'You can still use every feature from the sidebar.', confirmLabel: 'Hide' }))) return
     setHiding(true)
     try {
       await apiFetch('/api/user/preferences', {
@@ -93,6 +95,7 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
 
   return (
     <div className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-4">
+      {confirmDialog}
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

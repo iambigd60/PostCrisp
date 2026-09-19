@@ -58,6 +58,43 @@ describe('tools-meta ↔ CREDITS_PER_TASK', () => {
   })
 })
 
+describe('single registry (audit F03)', () => {
+  it('sidebar has no hand-written tool links', () => {
+    const src = readFileSync(resolve(root, 'src/components/layout/Sidebar.tsx'), 'utf8')
+    for (const tool of ALL_TOOLS) {
+      // Voice Trainer is a deliberate top-level item; every other tool link must come from tools-meta.
+      expect(src.includes(`"${tool.href}"`), `${tool.href} hard-coded in Sidebar`).toBe(false)
+    }
+  })
+
+  it('dashboard reads tool identity from the registry, not a private table', () => {
+    const src = readFileSync(resolve(root, 'src/app/dashboard/page.tsx'), 'utf8')
+    expect(src).not.toMatch(/FEATURE_META/)
+    expect(src).toMatch(/toolByKey/)
+  })
+
+  it('every tool states how long it takes', () => {
+    for (const tool of ALL_TOOLS) expect(tool.duration, tool.key).toMatch(/\d+s$/)
+  })
+})
+
+describe('dismiss and confirm pattern (audit F17)', () => {
+  it('user-facing code never uses window.confirm or a full reload', () => {
+    const files = [
+      'src/app/dashboard/page.tsx',
+      'src/components/GettingStartedCard.tsx',
+      'src/components/NextToolsCard.tsx',
+      'src/components/ChannelsSection.tsx',
+      'src/app/dashboard/voice/page.tsx',
+    ]
+    for (const rel of files) {
+      const src = readFileSync(resolve(root, rel), 'utf8')
+      expect(src, rel).not.toMatch(/window\.confirm/)
+      expect(src, rel).not.toMatch(/location\.reload/)
+    }
+  })
+})
+
 describe('dashboard pages', () => {
   const dir = resolve(root, 'src/app/dashboard')
   const pages = readdirSync(dir, { withFileTypes: true })

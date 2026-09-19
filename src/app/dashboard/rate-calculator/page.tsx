@@ -9,6 +9,7 @@ import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
 import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 interface RateResult {
   currency: string;
@@ -81,12 +82,9 @@ export default function RateCalculatorPage() {
     }
   };
 
-  const copyRateCard = () => {
-    if (!result) return;
-    const text = result.rateCard.map((r) => `${r.contentType}: ${fmt(r.min)} - ${fmt(r.mid)} - ${fmt(r.premium)}`).join("\n");
-    navigator.clipboard.writeText(text);
-    addToast("Rate card copied!", "success");
-  };
+  const rateCardText = result
+    ? result.rateCard.map((r) => `${r.contentType}: ${fmt(r.min)} - ${fmt(r.mid)} - ${fmt(r.premium)}`).join("\n")
+    : "";
 
   return (
     <FeatureGate
@@ -247,7 +245,7 @@ export default function RateCalculatorPage() {
                 <h3 className="text-base font-semibold text-zinc-100">Your full rate card</h3>
                 <p className="text-xs text-crisp">Quote any of these to brands.</p>
               </div>
-              <Button variant="secondary" size="sm" onClick={copyRateCard}>📋 Copy Rate Card</Button>
+              <CopyButton text={rateCardText} label="📋 Copy Rate Card" />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -17,6 +17,7 @@ const TYPE_META: Record<string, { filterLabel: string; badge: string; tone: 'bra
   hashtags:            { filterLabel: '🏷️ Hashtags',          badge: '🏷️ Hashtags',          tone: 'blue'    },
   viral_idea:          { filterLabel: '🚀 Viral Ideas',        badge: '🚀 Viral Idea',         tone: 'emerald' },
   channel_report:      { filterLabel: '🪞 Channel Reports',    badge: '🪞 Channel Report',     tone: 'purple'  },
+  foundation_report:   { filterLabel: '🧬 Foundation Reports', badge: '🧬 Foundation Report',  tone: 'purple'  },
   thumbnail_analysis:  { filterLabel: '🖼️ Thumbnail Analyses', badge: '🖼️ Thumbnail Analysis', tone: 'amber'   },
   cta_optimization:    { filterLabel: '🎯 CTA Optimizations',  badge: '🎯 CTA Optimization',   tone: 'brand'   },
   'first-session-pack': { filterLabel: '📦 Starter Packs',     badge: '📦 Starter Pack',       tone: 'emerald' },

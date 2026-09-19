@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { SkeletonDashboard } from '@/components/ui/Skeleton'
@@ -14,6 +14,7 @@ import { BrandReadinessCard } from '@/components/BrandReadinessCard'
 import { computeBrandReadiness, type BrsResult } from '@/lib/brand-readiness'
 import { ResumeFirstSessionCard } from '@/components/ResumeFirstSessionCard'
 import { shouldOfferResume, type FirstSessionProgress } from '@/lib/first-session-state'
+import { toolByKey } from '@/lib/tools-meta'
 
 interface Profile {
   full_name: string | null
@@ -70,35 +71,6 @@ interface DashboardStats {
   showFoundationCta: boolean
 }
 
-const FEATURE_META: Record<string, { icon: string; label: string; href: string }> = {
-  // Create
-  captions:       { icon: '✍️', label: 'Captions',         href: '/dashboard/generate' },
-  hashtags:       { icon: '🏷️', label: 'Hashtags',         href: '/dashboard/hashtags' },
-  script:         { icon: '🎬', label: 'Scripts',          href: '/dashboard/scripts' },
-  repurpose:      { icon: '♻️', label: 'Repurpose',        href: '/dashboard/repurpose' },
-  blog_to_social: { icon: '📰', label: 'Blog → Social',    href: '/dashboard/blog-to-social' },
-  polls:          { icon: '📊', label: 'Polls',            href: '/dashboard/polls' },
-  dm_template:    { icon: '✉️', label: 'DM Templates',     href: '/dashboard/dm-templates' },
-  comment_reply:  { icon: '💬', label: 'Comment Replies',  href: '/dashboard/comment-replies' },
-  // Optimize
-  posting_times:    { icon: '⏰', label: 'Posting Times',    href: '/dashboard/best-times' },
-  youtube_seo:      { icon: '📺', label: 'YouTube SEO',      href: '/dashboard/youtube-seo' },
-  bio_optimizer:    { icon: '🧬', label: 'Bio Optimizer',    href: '/dashboard/bio-optimizer' },
-  platform_tips:    { icon: '💡', label: 'Platform Tips',    href: '/dashboard/platform-tips' },
-  channel_analysis: { icon: '🪞', label: 'Channel Analysis', href: '/dashboard/channel-analysis' },
-  thumbnail_analyzer: { icon: '🖼️', label: 'Thumbnail Analyzer', href: '/dashboard/thumbnail-analyzer' },
-  cta_optimizer:     { icon: '🎯', label: 'CTA Optimizer',     href: '/dashboard/cta-optimizer' },
-  // Grow
-  viral_ideas:   { icon: '🚀', label: 'Viral Ideas',     href: '/dashboard/viral-ideas' },
-  trend_radar:   { icon: '📡', label: 'Trend Radar',     href: '/dashboard/trends' },
-  sound_tracker: { icon: '🎵', label: 'Sound Tracker',   href: '/dashboard/sounds' },
-  collab_finder: { icon: '🤝', label: 'Collab Finder',   href: '/dashboard/collab-finder' },
-  // Monetize
-  brand_pitch:          { icon: '📧', label: 'Brand Pitch',         href: '/dashboard/brand-pitch' },
-  rate_calculator:      { icon: '💵', label: 'Rate Calculator',     href: '/dashboard/rate-calculator' },
-  competitor_analysis:  { icon: '🔍', label: 'Competitor Analysis', href: '/dashboard/competitor-analysis' },
-}
-
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -126,6 +98,12 @@ function getPreview(gen: Generation): string {
       case 'viral_ideas': {
         const ideas = (d.ideas as Array<{ title: string }>) ?? []
         return ideas[0]?.title || '—'
+      }
+      case 'foundation_analysis':
+      case 'channel_analysis':
+      case 'competitor_analysis': {
+        const assessment = d.overallAssessment as string | undefined
+        return assessment ? trim(assessment) : '—'
       }
       case 'posting_times': {
         const slots = (d.topSlots as Array<{ day: string; time: string }>) ?? []
@@ -388,41 +366,6 @@ function buildSuggestions(stats: DashboardStats): Suggestion[] {
   return out.slice(0, 3)
 }
 
-// Animated typewriter for the daily briefing. Renders progressively to feel
-// 'alive' on page load, then stays static. No loop — runs once per mount.
-function TypedBriefing({ text }: { text: string }) {
-  const [shown, setShown] = useState('')
-  const [done, setDone] = useState(false)
-  const idx = useRef(0)
-
-  useEffect(() => {
-    idx.current = 0
-    setShown('')
-    setDone(false)
-    // Short initial delay so the animation doesn't clash with layout shift.
-    const delay = setTimeout(() => {
-      const interval = setInterval(() => {
-        if (idx.current < text.length) {
-          idx.current++
-          setShown(text.slice(0, idx.current))
-        } else {
-          setDone(true)
-          clearInterval(interval)
-        }
-      }, 18)
-      return () => clearInterval(interval)
-    }, 200)
-    return () => clearTimeout(delay)
-  }, [text])
-
-  return (
-    <>
-      {shown}
-      {!done && <span className="inline-block w-[2px] h-4 bg-brand-400 ml-0.5 align-middle animate-pulse" />}
-    </>
-  )
-}
-
 // Channel avatar with platform-emoji fallback. Tries unavatar.io first;
 // if the image fails to load (CSP block, network error, platform not
 // supported, or the user's handle is wrong), the emoji icon shows instead.
@@ -470,6 +413,7 @@ export default function DashboardPage() {
   // A failed load must never look like an empty account with 0 credits.
   const [loadError, setLoadError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [dismissingCta, setDismissingCta] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -703,11 +647,23 @@ export default function DashboardPage() {
           <div className="flex gap-2">
             <Link href="/dashboard/foundation-analysis" className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400">Run now →</Link>
             <button
+              type="button"
+              disabled={dismissingCta}
               onClick={async () => {
-                await fetch('/api/user/dismiss-foundation-cta', { method: 'POST' })
-                window.location.reload()
+                if (dismissingCta) return
+                setDismissingCta(true)
+                // Hide the card in place; no reload, no lost scroll position.
+                // The server records the dismissal so it stays hidden next visit.
+                setStats((prev) => (prev ? { ...prev, showFoundationCta: false } : prev))
+                try {
+                  await fetch('/api/user/dismiss-foundation-cta', { method: 'POST' })
+                } catch (err) {
+                  console.error('[dashboard] dismiss foundation CTA failed:', err)
+                } finally {
+                  setDismissingCta(false)
+                }
               }}
-              className="px-3 py-2 rounded-lg bg-zinc-700/50 text-zinc-300 text-sm hover:bg-zinc-700"
+              className="px-3 py-2 rounded-lg bg-zinc-700/50 text-zinc-300 text-sm hover:bg-zinc-700 disabled:opacity-50"
             >
               Dismiss
             </button>
@@ -766,7 +722,7 @@ export default function DashboardPage() {
         <div className="flex-1 min-w-0">
           <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Your daily briefing</div>
           <p className="text-sm sm:text-base text-zinc-200 leading-relaxed min-h-[1.5rem]">
-            <TypedBriefing text={briefing} />
+            {briefing}
           </p>
         </div>
       </div>
@@ -801,7 +757,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
           {[
             { icon: '✍️', label: 'This week',   value: stats?.weekGenerations ?? 0,            sub: 'generations' },
-            { icon: '📊', label: 'All time',    value: stats?.totalGenerations ?? 0,           sub: 'generations' },
+            { icon: '📈', label: 'All time',    value: stats?.totalGenerations ?? 0,           sub: 'generations' },
             { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0,                 sub: 'in your library' },
             { icon: '🔥', label: 'Today',       value: profile?.daily_generations_used ?? 0,   sub: 'generations' },
           ].map((stat) => (
@@ -836,7 +792,8 @@ export default function DashboardPage() {
           {stats?.recentGenerations && stats.recentGenerations.length > 0 ? (
             <div className="space-y-2">
               {stats.recentGenerations.map((gen) => {
-                const meta = FEATURE_META[gen.feature] ?? { icon: '✨', label: gen.feature, href: '/dashboard' }
+                const tool = toolByKey(gen.feature)
+                const meta = tool ? { icon: tool.icon, label: tool.label, href: tool.href } : { icon: '✨', label: gen.feature, href: '/dashboard' }
                 const platformMeta = gen.platform ? PLATFORM_META[gen.platform as keyof typeof PLATFORM_META] : null
                 return (
                   <Link

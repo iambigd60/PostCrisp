@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 /**
  * Phase 2 of the onboarding arc. Once the user completes the 5-step tutorial,
@@ -118,13 +119,14 @@ const TOOLS: Tool[] = [
 
 export function NextToolsCard({ state, dismissed, onDismiss }: NextToolsCardProps) {
   const [hiding, setHiding] = useState(false)
+  const { confirm, confirmDialog } = useConfirm()
   const completedCount = TOOLS.filter((t) => state[t.key]).length
   const allDone = completedCount === TOOLS.length
 
   if (dismissed || allDone) return null
 
   const handleDismiss = async () => {
-    if (!window.confirm('Hide this list? Every tool stays available from the sidebar.')) return
+    if (!(await confirm({ title: 'Hide this list?', message: 'Every tool stays available from the sidebar.', confirmLabel: 'Hide' }))) return
     setHiding(true)
     try {
       await apiFetch('/api/user/preferences', {
@@ -143,6 +145,7 @@ export function NextToolsCard({ state, dismissed, onDismiss }: NextToolsCardProp
 
   return (
     <div className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-4">
+      {confirmDialog}
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

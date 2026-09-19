@@ -9,6 +9,7 @@ import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
 import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 interface Result {
   overallAssessment: string;
@@ -67,9 +68,9 @@ export default function ChannelAnalysisPage() {
     } finally { setLoading(false); }
   };
 
-  const handleSaveReport = async () => {
-    if (!result) return;
-    const report = [
+  const buildReport = () => {
+    if (!result) return "";
+    return [
       `# Channel Analysis — ${platform}`,
       `Niche: ${niche}`,
       followerCount && `Followers: ${followerCount}`,
@@ -104,7 +105,11 @@ export default function ChannelAnalysisPage() {
       `## Long-Term Moves`,
       ...result.longTermMoves.map((m, i) => `${i + 1}. [${m.timeframe}] ${m.title} — ${m.action}`),
     ].filter(Boolean).join("\n");
+  };
 
+  const handleSaveReport = async () => {
+    if (!result) return;
+    const report = buildReport();
     try {
       await apiFetch("/api/saved", {
         method: "POST",
@@ -226,6 +231,7 @@ export default function ChannelAnalysisPage() {
             <h2 className="text-lg font-semibold text-zinc-200">Your audit</h2>
             <div className="flex items-center gap-3">
               <EngineBadge />
+              <CopyButton text={buildReport()} label="📋 Copy report" />
               <Button variant="secondary" size="sm" onClick={handleSaveReport}>💾 Save Report</Button>
             </div>
           </div>

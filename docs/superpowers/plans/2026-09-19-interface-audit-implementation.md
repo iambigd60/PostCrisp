@@ -75,9 +75,9 @@ Closes F01, F02, F04, F05, F06. Shipped on `claude/vigilant-hamilton-juu4a5`: `t
 4. **Dashboard error state (F02).** In `dashboard/page.tsx`, the `load()` catch sets an error; render `InlineError` with retry; never render `CreditMeter` or the stat tiles from null stats. Same in `CategoryHub`: capture the query error and show `InlineError` instead of the empty state.
 5. **Current page marker (F06).** `aria-current="page"` and a visible left-edge bar on the active sidebar item.
 
-### Session B — One registry, one tool pattern (~1 day)
+### Session B — One registry, one tool pattern (~1 day) — ✅ DONE 2026-09-19
 
-Closes F03, F12, F13, F15, F17.
+Closes F03, F12, F13, F15, F17. Shipped on `claude/vigilant-hamilton-juu4a5`: sidebar groups and dashboard Recent Content derived from `tools-meta.ts` (`NAV_GROUPS` data and `FEATURE_META` deleted; Foundation, Channel and Competitor Analysis previews added; Dashboard icon 🏠, All-time tile 📈); every tool carries a `duration` hint shown in the cost chip; CTA Optimizer, Thumbnail Analyzer and Voice Trainer use `GenerationLoader` + `InlineError` with retry; Foundation Analysis gets Copy + Save Report (new `foundation_report` library type), Channel Analysis gets Copy, Rate Calculator uses the shared `CopyButton`; daily briefing renders instantly (typewriter and its leaking interval removed); one `useConfirm` dialog replaces all four user-facing `window.confirm` calls and the Foundation CTA dismisses in place without a reload. Guard tests extended in `tools-meta.test.ts`.
 
 1. **Retire the duplicate registries (F03).** Drive `Sidebar` groups and the dashboard's Recent Content from `tools-meta.ts`; delete `NAV_GROUPS` and `FEATURE_META`. Add `foundation_analysis` and any other missing key to the registry. Extend the drift test from Session A so a registry gap fails CI. Give Dashboard, Polls and the All-time tile distinct icons.
 2. **Bring the three outliers onto the house pattern (F12).** CTA Optimizer, Thumbnail Analyzer and Voice Trainer get labelled inputs, `GenerationLoader`, `InlineError` with retry, and the "takes about N s" duration hint. Add the duration hint to every tool that takes more than a few seconds.

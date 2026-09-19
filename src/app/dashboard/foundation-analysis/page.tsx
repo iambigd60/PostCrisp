@@ -10,6 +10,7 @@ import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
 import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 type Sophistication = 'beginner' | 'intermediate' | 'advanced'
 type GrowthGoal = 'followers' | 'engagement' | 'monetization' | 'authority' | 'community'
@@ -96,7 +97,24 @@ export default function FoundationAnalysisPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savingReport, setSavingReport] = useState(false);
   const { addToast } = useToast();
+
+  const handleSaveReport = async () => {
+    if (!result) return;
+    setSavingReport(true);
+    try {
+      await apiFetch("/api/saved", {
+        method: "POST",
+        body: JSON.stringify({ type: "foundation_report", content: buildFoundationReport(result, platform, niche), platform, topic: `Foundation Analysis — ${niche}` }),
+      });
+      addToast("Report saved to your library", "success");
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Failed to save", "error");
+    } finally {
+      setSavingReport(false);
+    }
+  };
 
   const setPillar = (i: number, v: string) => setPillars((prev) => { const next = [...prev] as [string, string, string]; next[i] = v; return next });
   const setSample = (i: number, patch: Partial<SamplePost>) => setSamples((prev) => { const next = [...prev] as [SamplePost, SamplePost, SamplePost]; next[i] = { ...next[i], ...patch }; return next });
@@ -349,7 +367,9 @@ export default function FoundationAnalysisPage() {
         ]} />}
         {error && !loading && <InlineError message={error} onRetry={handleAnalyze} />}
 
-        {result && !loading && <FoundationResult result={result} />}
+        {result && !loading && (
+          <FoundationResult result={result} report={buildFoundationReport(result, platform, niche)} onSave={handleSaveReport} saving={savingReport} />
+        )}
 
         {!result && !loading && !error && (
           <div className="text-center py-8 text-crisp">
@@ -362,7 +382,62 @@ export default function FoundationAnalysisPage() {
   );
 }
 
-function FoundationResult({ result }: { result: Result }) {
+/** Plain-text report of the audit, used by Copy and Save so the 8-credit output can be kept. */
+function buildFoundationReport(result: Result, platform: string, niche: string): string {
+  const cp = result.creatorProfile
+  return [
+    `# Foundation Analysis — ${platform}`,
+    `Niche: ${niche}`,
+    ``,
+    `## Overall Assessment`,
+    result.overallAssessment,
+    ``,
+    `## Strengths`,
+    ...result.strengths.map((x) => `- ${x}`),
+    ``,
+    `## Gaps`,
+    ...result.gaps.map((x) => `- ${x}`),
+    ``,
+    `## Content Mix`,
+    `Observation: ${result.contentMix.observation}`,
+    `Recommendation: ${result.contentMix.recommendation}`,
+    ``,
+    `## Posting Consistency`,
+    `Observation: ${result.postingConsistency.observation}`,
+    `Recommendation: ${result.postingConsistency.recommendation}`,
+    ``,
+    `## Audience Engagement`,
+    `Observation: ${result.audienceEngagement.observation}`,
+    `Recommendation: ${result.audienceEngagement.recommendation}`,
+    ``,
+    `## Missed Opportunities`,
+    ...result.missedOpportunities.map((x) => `- ${x}`),
+    ``,
+    `## Top Post Patterns`,
+    ...result.topPostPatterns.map((x) => `- ${x}`),
+    `Recommended format lean: ${result.recommendedFormatLean}`,
+    ``,
+    `## Repeatable Hook Structures`,
+    ...result.repeatableHookStructures.map((h) => `- ${h.pattern} — e.g. "${h.example}"`),
+    ``,
+    `## Quick Wins (this week)`,
+    ...result.quickWins.map((w, i) => `${i + 1}. ${w.title} (${w.impact} impact) — ${w.action}`),
+    ``,
+    `## Long-Term Moves`,
+    ...result.longTermMoves.map((m, i) => `${i + 1}. [${m.timeframe}] ${m.title} — ${m.action}`),
+    ``,
+    `## Creator Profile`,
+    `Content pillars: ${cp.contentPillars.join(', ')}`,
+    `Voice: ${cp.voiceSignature.adjectives.join(', ')} — "${cp.voiceSignature.examplePhrasing}"`,
+    `Audience: ${cp.audiencePersona.description} (${cp.audiencePersona.sophistication})`,
+    `Growth stage: ${cp.growthStage}`,
+    `Monetization: ${cp.monetizationPosition.stage} — ${cp.monetizationPosition.primaryStreams.join(', ')}`,
+    `Format strengths: ${cp.formatStrengths.join(', ')}`,
+    `Differentiators: ${cp.differentiators.join(', ')}`,
+  ].join("\n")
+}
+
+function FoundationResult({ result, report, onSave, saving }: { result: Result; report: string; onSave: () => void; saving: boolean }) {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Profile-saved banner */}
@@ -374,9 +449,13 @@ function FoundationResult({ result }: { result: Result }) {
         <a href="/dashboard/settings#profile" className="text-xs text-brand-300 hover:text-brand-200">Manage profile →</a>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-zinc-200">Your foundation audit</h2>
-        <EngineBadge />
+        <div className="flex items-center gap-2 flex-wrap">
+          <EngineBadge />
+          <CopyButton text={report} label="📋 Copy report" />
+          <Button variant="secondary" size="sm" onClick={onSave} loading={saving}>💾 Save Report</Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-brand-500/30 bg-brand-900/10 p-5">

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { useToast } from '@/components/ui/Toast'
 import { CreditCost } from "@/components/ui/CreditCost";
+import { GenerationLoader } from '@/components/ui/GenerationLoader'
+import { InlineError } from '@/components/ui/ErrorBoundary'
 
 interface CTAOption {
   cta: string
@@ -96,6 +98,7 @@ export default function CTAOptimizerPage() {
   const [linkUrl, setLinkUrl] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<CTAResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const { addToast } = useToast()
@@ -111,6 +114,7 @@ export default function CTAOptimizerPage() {
     }
     setGenerating(true)
     setResult(null)
+    setError(null)
     setSaved(false)
     try {
       const res = await apiFetch<CTAResult>('/api/cta-optimizer', {
@@ -127,7 +131,7 @@ export default function CTAOptimizerPage() {
       setResult(res)
       addToast('CTA options generated', 'success')
     } catch (err) {
-      addToast(err instanceof ApiError ? err.message : 'Failed to generate', 'error')
+      setError(err instanceof ApiError ? err.message : 'Failed to generate CTAs. Your credits were refunded.')
     } finally {
       setGenerating(false)
     }
@@ -273,6 +277,16 @@ export default function CTAOptimizerPage() {
           </Button>
         </div>
       </div>
+
+      {generating && (
+        <GenerationLoader messages={[
+          'Reading your draft…',
+          'Matching the CTA to your goal…',
+          'Writing three options with reasoning…',
+        ]} />
+      )}
+
+      {error && !generating && <InlineError message={error} onRetry={handleGenerate} />}
 
       {/* Result */}
       {result && !generating && (

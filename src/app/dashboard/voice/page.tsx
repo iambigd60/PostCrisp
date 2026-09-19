@@ -4,6 +4,9 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { CreditCost } from "@/components/ui/CreditCost";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { GenerationLoader } from "@/components/ui/GenerationLoader";
+import { InlineError } from "@/components/ui/ErrorBoundary";
 
 const MIN_SAMPLES = 3;
 const MAX_SAMPLES = 25;
@@ -69,6 +72,8 @@ export default function VoiceTrainerPage() {
   const [profile, setProfile] = useState<VoiceProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
   const [addOpen, setAddOpen] = useState(false);
   const [sampleContent, setSampleContent] = useState("");
   const [sampleLabel, setSampleLabel] = useState("");
@@ -123,7 +128,7 @@ export default function VoiceTrainerPage() {
   };
 
   const handleDeleteSample = async (sampleId: string) => {
-    if (!window.confirm("Remove this sample?")) return;
+    if (!(await confirm({ title: "Remove this sample?", message: "It stops shaping your voice profile the next time you analyze.", confirmLabel: "Remove", danger: true }))) return;
     try {
       await apiFetch(`/api/voice-profile/samples/${sampleId}`, { method: "DELETE" });
       addToast("Sample removed", "success");
@@ -135,19 +140,20 @@ export default function VoiceTrainerPage() {
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
+    setAnalyzeError(null);
     try {
       await apiFetch("/api/voice-profile/analyze", { method: "POST" });
       addToast("Voice profile analyzed", "success");
       await load();
     } catch (err) {
-      addToast(err instanceof ApiError ? err.message : "Analysis failed", "error");
+      setAnalyzeError(err instanceof ApiError ? err.message : "Analysis failed. Your credits were refunded.");
     } finally {
       setAnalyzing(false);
     }
   };
 
   const handleReset = async () => {
-    if (!window.confirm("Delete your entire voice profile? All samples and analysis will be removed.")) return;
+    if (!(await confirm({ title: "Delete your voice profile?", message: "All samples and the analysis will be removed. You can start again from scratch.", confirmLabel: "Delete everything", danger: true }))) return;
     try {
       await apiFetch("/api/voice-profile", { method: "DELETE" });
       addToast("Voice profile cleared", "success");
@@ -174,6 +180,7 @@ export default function VoiceTrainerPage() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -264,6 +271,15 @@ export default function VoiceTrainerPage() {
           </Button>
         </div>
       </div>
+
+      {analyzing && (
+        <GenerationLoader messages={[
+          "Reading your captions…",
+          "Finding the patterns in how you write…",
+          "Naming your voice traits…",
+        ]} />
+      )}
+      {analyzeError && !analyzing && <InlineError message={analyzeError} onRetry={handleAnalyze} />}
 
       {/* Two-column: samples on left, traits on right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

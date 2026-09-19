@@ -4,6 +4,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { toolsForCategory, type ToolCategory } from "@/lib/tools-meta";
 
 interface NavItem {
   href: string;
@@ -21,72 +22,41 @@ interface NavGroup {
 }
 
 // Top-level links (rendered above groups)
-const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: "📊" };
+const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: "🏠" };
 const VOICE_ITEM: NavItem = { href: "/dashboard/voice", label: "Voice Trainer", icon: "🎙️" };
 const TUTORIAL_ITEM: NavItem = { href: "/onboarding", label: "Finish setup", icon: "✨" };
 
-// Grouped feature navigation. Fixed order: Create · Optimize · Grow · Monetize · Library.
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Create",
-    hubHref: "/dashboard/create",
-    items: [
-      { href: "/dashboard/generate",       label: "Captions",         icon: "✍️" },
-      { href: "/dashboard/hashtags",       label: "Hashtags",         icon: "🏷️" },
-      { href: "/dashboard/scripts",        label: "Scripts",          icon: "🎬" },
-      { href: "/dashboard/repurpose",      label: "Repurpose",        icon: "♻️" },
-      { href: "/dashboard/blog-to-social", label: "Blog → Social",    icon: "📰" },
-      { href: "/dashboard/polls",          label: "Polls",            icon: "📊" },
-      { href: "/dashboard/dm-templates",   label: "DM Templates",     icon: "✉️" },
-      { href: "/dashboard/comment-replies",label: "Comment Replies",  icon: "💬" },
-    ],
-  },
-  {
-    label: "Optimize",
-    hubHref: "/dashboard/optimize",
-    items: [
-      { href: "/dashboard/best-times",        label: "Best Times",       icon: "⏰" },
-      { href: "/dashboard/youtube-seo",       label: "YouTube SEO",      icon: "📺" },
-      { href: "/dashboard/bio-optimizer",     label: "Bio Optimizer",    icon: "🧬" },
-      { href: "/dashboard/platform-tips",     label: "Platform Tips",    icon: "💡" },
-      { href: "/dashboard/channel-analysis",  label: "Channel Analysis", icon: "🪞" },
-      { href: "/dashboard/foundation-analysis",label: "Foundation Analysis",icon: "🏛️" },
-      { href: "/dashboard/thumbnail-analyzer",label: "Thumbnail Analyzer",icon: "🖼️" },
-      { href: "/dashboard/cta-optimizer",     label: "CTA Optimizer",    icon: "🎯" },
-    ],
-  },
-  {
-    label: "Grow",
-    hubHref: "/dashboard/grow",
-    items: [
-      { href: "/dashboard/viral-ideas",    label: "Viral Ideas",      icon: "🚀" },
-      { href: "/dashboard/trends",         label: "Trend Radar",      icon: "📡" },
-      { href: "/dashboard/sounds",         label: "Sound Tracker",    icon: "🎵" },
-      { href: "/dashboard/collab-finder",  label: "Collab Finder",    icon: "🤝" },
-    ],
-  },
-  {
-    label: "Monetize",
-    hubHref: "/dashboard/monetize",
-    items: [
-      { href: "/dashboard/brand-pitch",        label: "Brand Pitch",         icon: "📧" },
-      { href: "/dashboard/rate-calculator",    label: "Rate Calculator",     icon: "💵" },
-      { href: "/dashboard/competitor-analysis",label: "Competitor Analysis", icon: "🔍" },
-    ],
-  },
-  {
-    label: "Library",
-    // Library "hub" is the existing /dashboard/saved page — relabeled,
-    // not rebuilt. Settings + Billing live here for proximity but they
-    // aren't really library content; future cleanup may move them to
-    // their own "Account" group.
-    hubHref: "/dashboard/saved",
-    items: [
-      { href: "/dashboard/saved",          label: "Saved Content",    icon: "💾" },
-      { href: "/dashboard/settings",       label: "Settings",         icon: "⚙️" },
-      { href: "/dashboard/billing",        label: "Billing",          icon: "💳" },
-    ],
-  },
+// Tool groups are derived from the canonical registry in tools-meta.ts so the
+// sidebar can never disagree with the hubs or the dashboard about a tool's
+// name, icon or link. Fixed order: Create · Optimize · Grow · Monetize.
+const TOOL_CATEGORIES: { label: string; category: ToolCategory }[] = [
+  { label: "Create",   category: "create" },
+  { label: "Optimize", category: "optimize" },
+  { label: "Grow",     category: "grow" },
+  { label: "Monetize", category: "monetize" },
+];
+
+const LIBRARY_GROUP: NavGroup = {
+  label: "Library",
+  // Library "hub" is the existing /dashboard/saved page — relabeled,
+  // not rebuilt. Settings + Billing live here for proximity but they
+  // aren't really library content; Session C of the interface-audit plan
+  // moves them to an account menu.
+  hubHref: "/dashboard/saved",
+  items: [
+    { href: "/dashboard/saved",    label: "Saved Content", icon: "💾" },
+    { href: "/dashboard/settings", label: "Settings",      icon: "⚙️" },
+    { href: "/dashboard/billing",  label: "Billing",       icon: "💳" },
+  ],
+};
+
+const navGroups: NavGroup[] = [
+  ...TOOL_CATEGORIES.map(({ label, category }) => ({
+    label,
+    hubHref: `/dashboard/${category}`,
+    items: toolsForCategory(category).map((t) => ({ href: t.href, label: t.label, icon: t.icon })),
+  })),
+  LIBRARY_GROUP,
 ];
 
 const GROUPS_STORAGE_KEY = "postcrisp.sidebar.groups";
@@ -100,7 +70,7 @@ export function Sidebar() {
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
   // Which groups are expanded. Default: all expanded (better discoverability).
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    () => new Set(NAV_GROUPS.map((g) => g.label))
+    () => new Set(navGroups.map((g) => g.label))
   );
   const supabase = createClient();
 
@@ -137,7 +107,7 @@ export function Sidebar() {
 
   // Auto-expand the group containing the current active route (never hide where you are)
   useEffect(() => {
-    const activeGroup = NAV_GROUPS.find((g) =>
+    const activeGroup = navGroups.find((g) =>
       g.items.some((item) =>
         item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href)
       )
@@ -251,7 +221,7 @@ export function Sidebar() {
         )}
 
         {/* Grouped feature nav */}
-        {NAV_GROUPS.map((group) => {
+        {navGroups.map((group) => {
           const isOpen = expandedGroups.has(group.label);
           return (
             <div key={group.label}>

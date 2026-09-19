@@ -5,6 +5,8 @@ import { apiFetch, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { CreditCost } from "@/components/ui/CreditCost";
+import { GenerationLoader } from '@/components/ui/GenerationLoader'
+import { InlineError } from '@/components/ui/ErrorBoundary'
 
 interface Improvement {
   priority: 'high' | 'medium' | 'low'
@@ -77,7 +79,7 @@ export default function ThumbnailAnalyzerPage() {
   const [audience, setAudience] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<ThumbnailAnalysisResult | null>(null)
-  const [progressStage, setProgressStage] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -118,17 +120,6 @@ export default function ThumbnailAnalyzerPage() {
       reader.readAsDataURL(f)
     })
 
-  // Cycle progress stages so the user knows the tab isn't dead during the
-  // 15-30s vision call. Resets when analyze completes.
-  const startProgressTicker = () => {
-    setProgressStage(0)
-    const stages = 5
-    const interval = setInterval(() => {
-      setProgressStage((s) => (s >= stages - 1 ? s : s + 1))
-    }, 5000)
-    return () => clearInterval(interval)
-  }
-
   const handleAnalyze = async () => {
     if (!file) {
       addToast('Upload a thumbnail first.', 'error')
@@ -136,8 +127,8 @@ export default function ThumbnailAnalyzerPage() {
     }
     setAnalyzing(true)
     setResult(null)
+    setError(null)
     setSaved(false)
-    const stopTicker = startProgressTicker()
     try {
       const imageBase64 = await fileToBase64(file)
       const res = await apiFetch<ThumbnailAnalysisResult>('/api/thumbnail-analyzer', {
@@ -153,9 +144,8 @@ export default function ThumbnailAnalyzerPage() {
       setResult(res)
       addToast('Thumbnail analyzed', 'success')
     } catch (err) {
-      addToast(err instanceof ApiError ? err.message : 'Analysis failed', 'error')
+      setError(err instanceof ApiError ? err.message : 'Analysis failed. Your credits were refunded.')
     } finally {
-      stopTicker()
       setAnalyzing(false)
     }
   }
@@ -308,23 +298,9 @@ export default function ThumbnailAnalyzerPage() {
       </div>
 
       {/* Progress while analyzing */}
-      {analyzing && (
-        <div className="rounded-xl border border-brand-500/20 bg-surface-secondary p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full border-2 border-brand-500/30 border-t-brand-500 animate-spin flex-shrink-0" />
-            <div className="text-sm text-zinc-200 font-medium flex-1">{stages[progressStage]}</div>
-          </div>
-          <div className="h-1.5 bg-surface-tertiary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-500 ease-out"
-              style={{ width: `${(progressStage + 1) * 18}%` }}
-            />
-          </div>
-          <p className="text-xs text-crisp">
-            Vision analysis usually takes 15–30 seconds.
-          </p>
-        </div>
-      )}
+      {analyzing && <GenerationLoader messages={stages} />}
+
+      {error && !analyzing && <InlineError message={error} onRetry={handleAnalyze} />}
 
       {/* Result */}
       {result && !analyzing && (

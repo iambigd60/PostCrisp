@@ -21,6 +21,8 @@ export interface ToolMeta {
   task: CrispTask
   /** Credits charged per run, read from `CREDITS_PER_TASK[task]`. */
   creditCost: number
+  /** Typical wall-clock time for one run, shown beside the price ("~10s", "30–60s"). */
+  duration: string
   category: ToolCategory
   icon: string
   label: string
@@ -44,6 +46,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'captions',
     task: 'captions',
+    duration: '~10s',
     category: 'create',
     icon: '✍️',
     label: 'Captions',
@@ -54,6 +57,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'hashtags',
     task: 'hashtags',
+    duration: '~10s',
     category: 'create',
     icon: '🏷️',
     label: 'Hashtags',
@@ -64,6 +68,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'script',
     task: 'script',
+    duration: '~15s',
     category: 'create',
     icon: '🎬',
     label: 'Scripts',
@@ -74,6 +79,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'repurpose',
     task: 'repurpose',
+    duration: '~20s',
     category: 'create',
     icon: '♻️',
     label: 'Repurpose',
@@ -84,6 +90,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'blog_to_social',
     task: 'blog-to-social',
+    duration: '~20s',
     category: 'create',
     icon: '📰',
     label: 'Blog → Social',
@@ -94,6 +101,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'polls',
     task: 'polls',
+    duration: '~10s',
     category: 'create',
     icon: '📊',
     label: 'Polls',
@@ -104,6 +112,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'dm_template',
     task: 'dm-template',
+    duration: '~15s',
     category: 'create',
     icon: '✉️',
     label: 'DM Templates',
@@ -114,6 +123,7 @@ export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'comment_reply',
     task: 'comment-reply',
+    duration: '~10s',
     category: 'create',
     icon: '💬',
     label: 'Comment Replies',
@@ -128,6 +138,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'posting_times',
     task: 'posting-times',
+    duration: '~15s',
     category: 'optimize',
     icon: '⏰',
     label: 'Best Times',
@@ -138,6 +149,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'youtube_seo',
     task: 'youtube-seo',
+    duration: '~20s',
     category: 'optimize',
     icon: '📺',
     label: 'YouTube SEO',
@@ -148,6 +160,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'bio_optimizer',
     task: 'bio-optimizer',
+    duration: '~15s',
     category: 'optimize',
     icon: '🧬',
     label: 'Bio Optimizer',
@@ -158,6 +171,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'platform_tips',
     task: 'platform-tips',
+    duration: '~15s',
     category: 'optimize',
     icon: '💡',
     label: 'Platform Tips',
@@ -168,6 +182,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'channel_analysis',
     task: 'channel-analysis',
+    duration: '20–40s',
     category: 'optimize',
     icon: '🪞',
     label: 'Channel Analysis',
@@ -178,6 +193,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'foundation_analysis',
     task: 'foundation-analysis',
+    duration: '30–60s',
     category: 'optimize',
     icon: '🧬',
     label: 'Foundation Analysis',
@@ -188,6 +204,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'thumbnail_analyzer',
     task: 'thumbnail-analyzer',
+    duration: '15–30s',
     category: 'optimize',
     icon: '🖼️',
     label: 'Thumbnail Analyzer',
@@ -198,6 +215,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'cta_optimizer',
     task: 'cta-optimizer',
+    duration: '~15s',
     category: 'optimize',
     icon: '🎯',
     label: 'CTA Optimizer',
@@ -212,6 +230,7 @@ export const GROW_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'viral_ideas',
     task: 'viral-ideas',
+    duration: '~20s',
     category: 'grow',
     icon: '🚀',
     label: 'Viral Ideas',
@@ -222,6 +241,7 @@ export const GROW_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'trend_radar',
     task: 'trend-radar',
+    duration: '~20s',
     category: 'grow',
     icon: '📡',
     label: 'Trend Radar',
@@ -232,6 +252,7 @@ export const GROW_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'sound_tracker',
     task: 'sound-tracker',
+    duration: '~20s',
     category: 'grow',
     icon: '🎵',
     label: 'Sound Tracker',
@@ -242,6 +263,7 @@ export const GROW_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'collab_finder',
     task: 'collab-finder',
+    duration: '~20s',
     category: 'grow',
     icon: '🤝',
     label: 'Collab Finder',
@@ -256,6 +278,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'brand_pitch',
     task: 'brand-pitch',
+    duration: '20–40s',
     category: 'monetize',
     icon: '📧',
     label: 'Brand Pitch',
@@ -266,6 +289,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'rate_calculator',
     task: 'rate-calculator',
+    duration: '20–40s',
     category: 'monetize',
     icon: '💵',
     label: 'Rate Calculator',
@@ -276,6 +300,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'competitor_analysis',
     task: 'competitor-analysis',
+    duration: '20–40s',
     category: 'monetize',
     icon: '🔍',
     label: 'Competitor Analysis',
@@ -305,6 +330,11 @@ export function toolByKey(key: string): ToolMeta | undefined {
 /** Credit cost for a tool by feature key; falls back to 1 for unknown keys. */
 export function creditCostForTool(key: string): number {
   return toolByKey(key)?.creditCost ?? 1
+}
+
+/** Look a tool up by the engine task it runs. */
+export function toolByTask(task: CrispTask): ToolMeta | undefined {
+  return ALL_TOOLS.find((t) => t.task === task)
 }
 
 /** Credit cost for an engine task, for pages that know the task rather than the tool key. */

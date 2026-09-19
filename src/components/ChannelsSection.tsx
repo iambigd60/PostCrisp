@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { CHANNEL_PLATFORMS, PLATFORM_META, type Channel, type ChannelPlatform } from '@/lib/channels'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface ChannelsSectionProps {
   /** Compact mode reduces padding + hides the descriptive help text. Useful inside a settings card. */
@@ -14,6 +15,7 @@ interface ChannelsSectionProps {
 }
 
 export function ChannelsSection({ compact = false, onChange }: ChannelsSectionProps) {
+  const { confirm, confirmDialog } = useConfirm()
   const [channels, setChannels] = useState<Channel[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -88,7 +90,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
   }
 
   const remove = async (id: string, handle: string) => {
-    if (!window.confirm(`Remove ${handle}?`)) return
+    if (!(await confirm({ title: `Remove ${handle}?`, message: 'The channel is removed from your list. Nothing you generated is deleted.', confirmLabel: 'Remove', danger: true }))) return
     try {
       await apiFetch(`/api/channels/${id}`, { method: 'DELETE' })
       addToast('Channel removed', 'success')
@@ -100,6 +102,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       {!compact && (
         <p className="text-sm text-crisp">
           List every account you create content for. PostCrisp uses these to organize your library,

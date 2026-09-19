@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useState, type ReactNode } from "react";
 import type { CrispTask } from "@/lib/crisp-engine-config";
-import { creditCostForTask, SPEND_CONFIRM_THRESHOLD } from "@/lib/tools-meta";
+import { creditCostForTask, toolByTask, SPEND_CONFIRM_THRESHOLD } from "@/lib/tools-meta";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 
@@ -12,12 +12,15 @@ import { Button } from "./Button";
  */
 export function CreditCost({ task, className = "" }: { task: CrispTask; className?: string }) {
   const cost = creditCostForTask(task);
+  const duration = toolByTask(task)?.duration;
+  const label = `${cost} ${cost === 1 ? "credit" : "credits"}`;
   return (
     <span
       className={`inline-flex items-center rounded-md bg-black/20 px-1.5 py-0.5 text-xs font-semibold tracking-wide opacity-90 ${className}`}
-      aria-label={`Costs ${cost} credit${cost === 1 ? "" : "s"}`}
+      aria-label={duration ? `Costs ${label}, takes ${duration}` : `Costs ${label}`}
     >
-      {cost} {cost === 1 ? "credit" : "credits"}
+      {label}
+      {duration && <span className="font-normal opacity-80">&nbsp;·&nbsp;{duration}</span>}
     </span>
   );
 }
