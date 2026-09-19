@@ -323,7 +323,7 @@ function buildNextMove(stats: DashboardStats, suggestions: Suggestion[]): NextMo
   }
   const action = stats.brs.actions[0]
   if (action) {
-    return { id: `brs-${action.href}`, icon: '📈', eyebrow: 'Raise your brand readiness', title: action.label, description: `Worth about ${action.expectedPoints} points on your Brand Readiness score (currently ${stats.brs.score}/100).`, cta: 'Do it', href: action.href }
+    return { id: `brs-${action.href}`, icon: '📈', eyebrow: 'Raise your brand readiness', title: action.label, description: `Worth about ${action.expectedPoints} points on your Brand Readiness score (currently ${stats.brs.score}/100).`, cta: 'Start', href: action.href }
   }
   const TEASE = ['viral_ideas', 'channel_analysis', 'repurpose', 'posting_times']
   const unusedKey = TEASE.find((k) => !stats.featuresUsed.has(k))
@@ -667,8 +667,10 @@ export default function DashboardPage() {
   const briefing = stats ? buildBriefing(stats, firstName) : ''
   const allSuggestions = stats ? buildSuggestions(stats) : []
   const nextMove = stats ? buildNextMove(stats, allSuggestions) : null
-  // The side column never repeats the move the hero already names.
-  const suggestions = allSuggestions.filter((s) => s.id !== nextMove?.id)
+  // The side column never repeats the move the hero already names — by id
+  // or by destination, since two recommenders can reach the same page under
+  // different names ("Train your voice" vs "Train your writing style").
+  const suggestions = allSuggestions.filter((s) => s.id !== nextMove?.id && s.href !== nextMove?.href)
   const setupOpen = Boolean(stats && !stats.gettingStartedDismissed && !stats.offerResume && Object.values(stats.gettingStarted).some((v) => !v))
 
   return (
