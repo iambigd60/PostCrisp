@@ -1,4 +1,9 @@
 import Stripe from 'stripe'
+import { TIER_ALLOWANCE } from './crisp-engine-config'
+
+const STARTER_CREDITS = TIER_ALLOWANCE.starter.credits
+const CREATOR_CREDITS = TIER_ALLOWANCE.creator.credits.toLocaleString('en-US')
+const ELITE_CREDITS = TIER_ALLOWANCE.elite.credits.toLocaleString('en-US')
 
 let _stripe: Stripe | undefined
 
@@ -28,11 +33,11 @@ export const PLANS = {
     dailyLimit: 10,
     engine: 'PostCrisp Engine',
     features: [
-      '10 AI generations per day',
+      `${STARTER_CREDITS} credits a day — a caption costs 1, a brand pitch 5`,
       'All 4 core tools — captions, hashtags, best times, viral ideas',
       'Save up to 25 pieces of content',
     ],
-    missing: ['Unlimited generations', 'Premium AI quality', 'Priority support'],
+    missing: ['Monthly credit allowance', 'Premium AI quality', 'Priority support'],
   },
   creator: {
     name: 'Creator',
@@ -42,7 +47,8 @@ export const PLANS = {
     dailyLimit: Infinity,
     engine: 'PostCrisp Engine Pro',
     features: [
-      'Unlimited AI generations',
+      `${CREATOR_CREDITS} credits a month — about 500 captions, or 100 brand pitches`,
+      'Every tool shows its cost before you run it',
       'PostCrisp Engine Pro — balanced quality',
       'Premium AI on monetization features (brand pitch, rate calc, competitor analysis)',
       'Unlimited saved library',
@@ -52,13 +58,13 @@ export const PLANS = {
   },
   elite: {
     name: 'Elite',
-    tagline: 'Maximum quality, no limits',
+    tagline: 'Maximum quality, most credits',
     monthlyPrice: 79,
     yearlyPrice: 790,
     dailyLimit: Infinity,
     engine: 'PostCrisp Engine Elite',
     features: [
-      'Everything in Creator',
+      `Everything in Creator, with ${ELITE_CREDITS} credits a month`,
       '🧬 Foundation Analysis — your reusable Creator Profile that powers every other tool',
       'PostCrisp Engine Elite — premium quality across every feature',
       'Highest-tier AI on brand pitches, competitor analysis, and media kits',

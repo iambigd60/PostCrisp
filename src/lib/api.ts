@@ -42,7 +42,7 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
       }
 
       if (response.status === 429) {
-        throw new ApiError(429, "Rate limit reached. Upgrade for unlimited access!");
+        throw new ApiError(429, "Too many requests right now. Wait a moment and try again.");
       }
 
       throw new ApiError(response.status, message, errorData);

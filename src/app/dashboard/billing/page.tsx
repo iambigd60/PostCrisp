@@ -10,7 +10,8 @@ import { TIER_LABELS, CREDIT_PACKS, type Tier, type CreditPack } from '@/lib/cri
 type PaidTier = 'creator' | 'elite'
 
 const FEATURES_COMPARE: { label: string; starter: boolean | string; creator: boolean | string; elite: boolean | string }[] = [
-  { label: 'AI generations / day',         starter: '10',           creator: 'Unlimited',    elite: 'Unlimited' },
+  { label: 'Credits',                      starter: '10 / day',     creator: '500 / month',  elite: '2,000 / month' },
+  { label: 'Cost per run',                 starter: '1–8 credits',  creator: '1–8 credits',  elite: '1–8 credits' },
   { label: 'PostCrisp Engine tier',            starter: 'Starter',      creator: 'Pro',          elite: 'Elite' },
   { label: 'Caption generator',            starter: true,           creator: true,           elite: true },
   { label: 'Hashtag finder',               starter: true,           creator: true,           elite: true },

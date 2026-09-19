@@ -33,13 +33,13 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
         </div>
         <h3 className="text-xl font-bold text-zinc-100">You&apos;ve hit today&apos;s limit</h3>
         <p className="text-zinc-400 mt-2 text-sm">
-          Starter includes {FREE_DAILY_LIMIT} AI generations per day. Upgrade to Creator for unlimited access and better AI quality.
+          Starter includes {FREE_DAILY_LIMIT} AI generations per day. Upgrade to Creator for 500 credits a month and better AI quality.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm text-left">
         {[
-          ['Generations / day', '10', 'Unlimited'],
+          ['Credits', '10 / day', '500 / month'],
           ['Save content', '✗', '✓'],
           ['All features', '✓', '✓'],
           ['Priority support', '✗', '✓'],

@@ -176,7 +176,7 @@ function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
       </div>
       <div>
         <p className="text-sm font-medium text-zinc-200">
-          {isPro ? 'Unlimited plan' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
+          {isPro ? 'Creator plan · 500 credits a month' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
         </p>
         <p className="text-xs text-crisp mt-0.5">
           {isPro ? 'All features unlocked' : 'Starter · resets at midnight'}
@@ -249,7 +249,7 @@ export default function DemoDashboardPage() {
           { icon: '✍️', label: 'This week', value: MOCK.weekGenerations, sub: 'generations' },
           { icon: '📊', label: 'All time', value: MOCK.totalGenerations, sub: 'generations' },
           { icon: '💾', label: 'Saved items', value: MOCK.savedCount, sub: 'pieces of content' },
-          { icon: '🔥', label: 'Today', value: MOCK.daily_generations_used, sub: isPro ? 'unlimited' : `of ${FREE_DAILY_LIMIT}` },
+          { icon: '🔥', label: 'Today', value: MOCK.daily_generations_used, sub: isPro ? 'generations' : `of ${FREE_DAILY_LIMIT}` },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-all">
             <span className="text-xl block mb-2">{stat.icon}</span>
