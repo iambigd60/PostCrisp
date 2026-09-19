@@ -15,23 +15,29 @@ export const runtime = 'nodejs'
 // client sends back to /api/beta-signup/verify along with the code.
 // Edge per-IP rate limiting is handled by Vercel WAF — see docs/rate-limiting.md.
 export async function POST(request: Request) {
-  let body: Record<string, unknown>
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }
+  // Reject null / arrays / non-objects before reading fields (a JSON `null`
+  // parses fine and would throw on property access → an unhandled 500).
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+  }
+  const fields = body as Record<string, unknown>
 
   // Honeypot: this hidden field is invisible to humans. Bots that fill it get a
   // fake success and no email is sent.
-  if (typeof body.company === 'string' && body.company.trim() !== '') {
+  if (typeof fields.company === 'string' && fields.company.trim() !== '') {
     return NextResponse.json({ ok: true, token: '' })
   }
 
   const validated = validateSignup({
-    name: body.name as string | undefined,
-    email: body.email as string | undefined,
-    channel: body.channel as string | undefined,
+    name: typeof fields.name === 'string' ? fields.name : undefined,
+    email: typeof fields.email === 'string' ? fields.email : undefined,
+    channel: typeof fields.channel === 'string' ? fields.channel : undefined,
   })
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: 400 })

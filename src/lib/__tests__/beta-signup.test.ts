@@ -37,8 +37,17 @@ describe('validateSignup', () => {
     }
   })
 
-  it('rejects a channel that is not a link', () => {
-    expect(validateSignup({ ...INPUT, channel: 'my instagram' }).ok).toBe(false)
+  it('rejects a channel that is not a usable link', () => {
+    // Incomplete values that pass a prefix-only check must still be rejected.
+    for (const channel of ['my instagram', 'https://', 'www.', 'ftp://example.com', 'https://nodot']) {
+      expect(validateSignup({ ...INPUT, channel }).ok).toBe(false)
+    }
+  })
+
+  it('accepts a full http(s) channel link', () => {
+    for (const channel of ['https://instagram.com/you', 'http://x.com/you', 'www.youtube.com/@you']) {
+      expect(validateSignup({ ...INPUT, channel }).ok).toBe(true)
+    }
   })
 
   it('rejects over-long fields', () => {
@@ -104,8 +113,9 @@ describe('token round-trip', () => {
 
   it('a fresh token for the same input embeds a different random code (offline guess fails)', () => {
     // A holder of the token cannot recompute the MAC without the key, so the
-    // real emailed code is required — a guessed 6-digit code is rejected.
-    const token = makeToken(KEY, INPUT, generateCode())
+    // real emailed code is required — a guessed 6-digit code is rejected. Uses a
+    // fixed code outside the guessed range so the test is deterministic.
+    const token = makeToken(KEY, INPUT, '999999')
     let accepted = 0
     for (let guess = 0; guess < 50; guess++) {
       if (verifyToken(KEY, token, String(guess).padStart(6, '0')).ok) accepted++
