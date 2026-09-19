@@ -41,6 +41,7 @@
   --border-subtle:  rgba(74, 158, 224, 0.08);
   --border-default: rgba(74, 158, 224, 0.15);
   --border-strong:  rgba(74, 158, 224, 0.3);
+  --border-card:    #5C6E80;  /* Steel Edge — 3.2:1 on Deep Steel; Tailwind `border-edge` */
 
   /* Text */
   --text-primary:   #E8ECEF;  /* Hangar White */

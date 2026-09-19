@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface TopSlot {
   day: string;
@@ -102,11 +103,11 @@ export default function BestTimesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Best Times to Post</h1>
-        <p className="text-zinc-500 mt-1">Discover when your audience is most active.</p>
+        <p className="text-crisp mt-1">Discover when your audience is most active.</p>
       </div>
 
       {/* Input form */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         {/* Platform selector */}
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Platform</label>
@@ -158,7 +159,7 @@ export default function BestTimesPage() {
               id="region"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors"
             >
               {AUDIENCE_REGIONS.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
@@ -173,7 +174,7 @@ export default function BestTimesPage() {
               id="niche"
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors"
             >
               {NICHES.map((n) => (
                 <option key={n.id} value={n.id}>{n.label}</option>
@@ -184,6 +185,7 @@ export default function BestTimesPage() {
 
         <Button onClick={fetchData} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Analyzing..." : "⏰ Analyze Best Times"}
+          <CreditCost task="posting-times" />
         </Button>
       </div>
 
@@ -206,7 +208,7 @@ export default function BestTimesPage() {
           </div>
 
           {/* Heatmap chart */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 sm:p-6">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-zinc-200 mb-4">Weekly Engagement Heatmap</h2>
 
             <div className="min-w-[400px] max-w-[880px] mx-auto">
@@ -215,7 +217,7 @@ export default function BestTimesPage() {
                 <span className="w-10 flex-shrink-0" />
                 <div className="flex-1 flex gap-0.5 pl-0.5">
                   {hourLabels.map((label, i) => (
-                    <div key={i} className="flex-1 text-center text-2xs text-zinc-600 min-w-[14px] max-w-[32px]">
+                    <div key={i} className="flex-1 text-center text-2xs text-crisp min-w-[14px] max-w-[32px]">
                       {label}
                     </div>
                   ))}
@@ -225,7 +227,7 @@ export default function BestTimesPage() {
               {/* Heatmap rows */}
               {data.weekData.map((dayData, dayIndex) => (
                 <div key={dayIndex} className="flex items-center gap-0.5 mb-0.5">
-                  <span className="w-10 text-xs text-zinc-500 text-right flex-shrink-0 pr-2">{DAYS[dayIndex]}</span>
+                  <span className="w-10 text-xs text-crisp text-right flex-shrink-0 pr-2">{DAYS[dayIndex]}</span>
                   <div className="flex-1 flex gap-0.5">
                     {dayData.map((value, hourIndex) => (
                       <HeatmapCell key={hourIndex} value={value} hour={hourIndex} />
@@ -235,7 +237,7 @@ export default function BestTimesPage() {
               ))}
 
               {/* Legend */}
-              <div className="flex items-center justify-end gap-2 mt-4 text-xs text-zinc-500">
+              <div className="flex items-center justify-end gap-2 mt-4 text-xs text-crisp">
                 <span>Cold</span>
                 <div className="flex gap-0.5">
                   {[10, 30, 50, 70, 90].map((v) => (
@@ -258,7 +260,7 @@ export default function BestTimesPage() {
               {data.topSlots.map((slot, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-edge bg-surface-secondary"
                 >
                   <div className="w-7 h-7 rounded-full bg-brand-600/20 border border-brand-500/20 flex items-center justify-center text-xs font-bold text-brand-300 flex-shrink-0">
                     {i + 1}
@@ -268,11 +270,11 @@ export default function BestTimesPage() {
                       <span className="text-sm font-medium text-zinc-200">{slot.day}</span>
                       <span className="text-sm text-brand-300">{slot.time}</span>
                     </div>
-                    <p className="text-xs text-zinc-500 mt-0.5 truncate">{slot.reason}</p>
+                    <p className="text-xs text-crisp mt-0.5 truncate">{slot.reason}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="text-sm font-bold text-emerald-400">{slot.score}</div>
-                    <div className="text-xs text-zinc-600">score</div>
+                    <div className="text-xs text-crisp">score</div>
                   </div>
                 </div>
               ))}
@@ -283,7 +285,7 @@ export default function BestTimesPage() {
 
       {/* Empty state */}
       {!data && !loading && !error && (
-        <div className="text-center py-16 text-zinc-500">
+        <div className="text-center py-16 text-crisp">
           <span className="text-4xl block mb-4">⏰</span>
           <p>Configure your platform, audience, and niche above — then click Analyze.</p>
         </div>

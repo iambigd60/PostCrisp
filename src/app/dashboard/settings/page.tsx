@@ -29,10 +29,10 @@ interface Profile {
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+    <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
       <div>
         <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
-        {description && <p className="text-sm text-zinc-500 mt-0.5">{description}</p>}
+        {description && <p className="text-sm text-crisp mt-0.5">{description}</p>}
       </div>
       {children}
     </div>
@@ -361,14 +361,14 @@ export default function SettingsPage() {
     )
   }
 
-  const inputCls = 'w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors'
+  const inputCls = 'w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors'
   const labelCls = 'block text-sm font-medium text-zinc-300 mb-1.5'
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Settings</h1>
-        <p className="text-zinc-500 mt-1">Manage your account and preferences.</p>
+        <p className="text-crisp mt-1">Manage your account and preferences.</p>
       </div>
 
       {/* Profile */}
@@ -377,7 +377,7 @@ export default function SettingsPage() {
           <Initials name={profile?.full_name ?? null} email={profile?.email ?? ''} />
           <div>
             <p className="text-sm font-medium text-zinc-200">{profile?.full_name || 'No name set'}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">{profile?.email}</p>
+            <p className="text-xs text-crisp mt-0.5">{profile?.email}</p>
           </div>
         </div>
 
@@ -401,7 +401,7 @@ export default function SettingsPage() {
             disabled
             className={`${inputCls} opacity-50 cursor-not-allowed`}
           />
-          <p className="text-xs text-zinc-600 mt-1">Email cannot be changed here.</p>
+          <p className="text-xs text-crisp mt-1">Email cannot be changed here.</p>
         </div>
 
         <Button onClick={handleSaveProfile} loading={savingProfile} disabled={!fullName.trim()}>
@@ -420,7 +420,7 @@ export default function SettingsPage() {
           label="Use my Foundation Analysis profile in generations"
         />
         {togglingFoundation && (
-          <p className="text-xs text-zinc-500">Saving…</p>
+          <p className="text-xs text-crisp">Saving…</p>
         )}
 
         {!creatorProfile ? (
@@ -435,14 +435,14 @@ export default function SettingsPage() {
           <>
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Content pillars</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Content pillars</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.content_pillars.length > 0 ? creatorProfile.content_pillars.join(', ') : '—'}
                 </p>
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Voice</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Voice</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.voice_signature.adjectives.length > 0
                     ? creatorProfile.voice_signature.adjectives.join(', ')
@@ -456,23 +456,23 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Audience</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Audience</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.audience_persona.description || '—'}
                   {' '}
-                  <span className="text-zinc-500">
+                  <span className="text-crisp">
                     (sophistication: {creatorProfile.audience_persona.sophistication})
                   </span>
                 </p>
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Growth stage</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Growth stage</p>
                 <p className="text-sm text-zinc-200">{creatorProfile.growth_stage}</p>
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Monetization</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Monetization</p>
                 <p className="text-sm text-zinc-200">{creatorProfile.monetization_position.stage || '—'}</p>
                 {creatorProfile.monetization_position.primaryStreams.length > 0 && (
                   <p className="text-sm text-zinc-400 mt-1">
@@ -482,21 +482,21 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Format strengths</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Format strengths</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.format_strengths.length > 0 ? creatorProfile.format_strengths.join(', ') : '—'}
                 </p>
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Differentiators</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Differentiators</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.differentiators.length > 0 ? creatorProfile.differentiators.join(' · ') : '—'}
                 </p>
               </div>
 
               <div>
-                <p className="text-[11px] uppercase tracking-wide font-medium text-zinc-500">Top blockers</p>
+                <p className="text-[11px] uppercase tracking-wide font-medium text-crisp">Top blockers</p>
                 <p className="text-sm text-zinc-200">
                   {creatorProfile.top_blockers.length > 0 ? creatorProfile.top_blockers.join(' · ') : '—'}
                 </p>
@@ -578,7 +578,7 @@ export default function SettingsPage() {
           />
         </div>
 
-        <div className="space-y-3 pt-1 border-t border-brand-500/10">
+        <div className="space-y-3 pt-1 border-t border-edge">
           <p className="text-sm font-medium text-zinc-300">Notifications</p>
           <Toggle
             checked={emailNotifications}
@@ -619,7 +619,7 @@ export default function SettingsPage() {
                 value={channels[c.key]}
                 onChange={(e) => setChannels({ ...channels, [c.key]: e.target.value })}
                 placeholder={c.placeholder}
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
               />
             </div>
           ))}
@@ -642,7 +642,7 @@ export default function SettingsPage() {
 
         <div className="pt-4 border-t border-red-500/10">
           <h3 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h3>
-          <p className="text-xs text-zinc-500 mb-3">
+          <p className="text-xs text-crisp mb-3">
             Permanently delete your account and all associated data. This cannot be undone.
           </p>
           <Button variant="danger" onClick={() => setShowDelete(true)}>
@@ -657,7 +657,7 @@ export default function SettingsPage() {
         onClose={() => setShowFoundationEdit(false)}
         title="Edit Foundation Profile"
       >
-        <p className="text-xs text-zinc-500 mb-4">
+        <p className="text-xs text-crisp mb-4">
           Comma-separated lists for the simple fields. The three nested fields accept JSON — fix any parse errors before saving.
         </p>
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
@@ -773,7 +773,7 @@ export default function SettingsPage() {
           value={deleteConfirm}
           onChange={(e) => setDeleteConfirm(e.target.value)}
           placeholder="DELETE"
-          className="w-full rounded-lg bg-surface-primary border border-red-500/20 text-zinc-200 placeholder:text-zinc-600 px-4 py-2.5 text-sm focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-colors mb-5 font-mono"
+          className="w-full rounded-lg bg-surface-primary border border-red-500/20 text-zinc-200 placeholder:text-crisp px-4 py-2.5 text-sm focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-colors mb-5 font-mono"
         />
         <div className="flex gap-3 justify-end">
           <Button variant="ghost" onClick={() => { setShowDelete(false); setDeleteConfirm('') }}>

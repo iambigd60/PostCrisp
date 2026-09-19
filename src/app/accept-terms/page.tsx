@@ -92,7 +92,7 @@ function AcceptTermsPageInner() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-brand-500/10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-edge">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-sm shadow-glow">
             ⚡
@@ -101,7 +101,7 @@ function AcceptTermsPageInner() {
             PostCrisp
           </span>
         </div>
-        <span className="text-xs text-zinc-500">Signed in as {profileEmail}</span>
+        <span className="text-xs text-crisp">Signed in as {profileEmail}</span>
       </div>
 
       {/* Content */}
@@ -113,11 +113,11 @@ function AcceptTermsPageInner() {
               📜
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">{ALPHA_AGREEMENT_TITLE}</h1>
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-crisp">
               PostCrisp is in pre-release beta. Before you get access, please read and accept this
               agreement. It keeps what we&apos;re building private while we ship.
             </p>
-            <div className="text-2xs text-zinc-600">
+            <div className="text-2xs text-crisp">
               Version {ALPHA_AGREEMENT_VERSION} · Effective {ALPHA_AGREEMENT_EFFECTIVE_DATE} · Crusher Brands, LLC
             </div>
           </div>
@@ -157,10 +157,10 @@ function AcceptTermsPageInner() {
                 onChange={(e) => setTypedName(e.target.value)}
                 placeholder={profileName || 'e.g. Alex Kim'}
                 maxLength={200}
-                className="w-full rounded-lg bg-surface-primary border border-brand-500/20 text-zinc-100 placeholder:text-zinc-600 px-4 py-3 text-base focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 font-mono"
+                className="w-full rounded-lg bg-surface-primary border border-brand-500/20 text-zinc-100 placeholder:text-crisp px-4 py-3 text-base focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/50 font-mono"
                 autoComplete="name"
               />
-              <p className="text-2xs text-zinc-600 mt-1.5">
+              <p className="text-2xs text-crisp mt-1.5">
                 Typing your name here has the same legal effect as signing a paper contract, under the U.S. ESIGN Act.
               </p>
             </div>
@@ -182,7 +182,7 @@ function AcceptTermsPageInner() {
 
           {/* Submit */}
           <div className="flex items-center justify-between gap-3 pt-2">
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-crisp">
               Declining? Close this tab. No account is created without acceptance.
             </p>
             <Button onClick={handleSubmit} disabled={!canSubmit} loading={submitting} size="lg">

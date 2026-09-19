@@ -74,7 +74,6 @@ export type CrispTask =
   | 'brand-pitch'
   | 'rate-calculator'
   | 'competitor-analysis'
-  | 'media-kit-bio'
   // Self-analysis
   | 'channel-analysis'
   | 'foundation-analysis'   // NEW — Elite-only foundational audit + saved profile
@@ -132,7 +131,6 @@ export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, Power
   'brand-pitch':          { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
   'rate-calculator':      { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
   'competitor-analysis':  { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
-  'media-kit-bio':        { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
   // Channel analysis — users benefit most from premium quality here since
   // it's a strategic self-assessment. Premium even at Creator tier.
   'channel-analysis':     { starter: 'STANDARD', creator: 'PREMIUM', elite: 'PREMIUM' },
@@ -167,7 +165,6 @@ export const TASK_LABELS: Record<CrispTask, string> = {
   'brand-pitch':         'Brand Pitch',
   'rate-calculator':     'Rate Calculator',
   'competitor-analysis': 'Competitor Analysis',
-  'media-kit-bio':       'Media Kit Bio Optimizer',
   'channel-analysis':    'Channel Analysis',
   'foundation-analysis': 'Foundation Analysis',
   'thumbnail-analyzer':  'Thumbnail Analyzer',
@@ -210,7 +207,6 @@ export const CREDITS_PER_TASK: Record<CrispTask, number> = {
   'brand-pitch':          5,
   'rate-calculator':      5,
   'competitor-analysis':  5,
-  'media-kit-bio':        5,
   'channel-analysis':     5,
   'foundation-analysis':  8,
 }

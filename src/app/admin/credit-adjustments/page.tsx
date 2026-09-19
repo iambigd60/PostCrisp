@@ -74,7 +74,7 @@ export default function CreditAdjustmentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Credit Adjustments</h1>
-        <p className="text-zinc-500 mt-1">Grant or revoke credits for any user. All changes audited.</p>
+        <p className="text-crisp mt-1">Grant or revoke credits for any user. All changes audited.</p>
       </div>
 
       {/* Adjustment form */}
@@ -82,31 +82,31 @@ export default function CreditAdjustmentsPage() {
         <h2 className="text-sm font-semibold text-zinc-200">Grant or adjust credits</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">User email</label>
+            <label className="block text-xs text-crisp mb-1">User email</label>
             <input
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
               placeholder="user@example.com"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Amount (+/-)</label>
+            <label className="block text-xs text-crisp mb-1">Amount (+/-)</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g., 100 or -50"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Reason (shown in audit log)</label>
+            <label className="block text-xs text-crisp mb-1">Reason (shown in audit log)</label>
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g., support issue credit"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
@@ -114,14 +114,14 @@ export default function CreditAdjustmentsPage() {
       </div>
 
       {/* Recent transactions */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-        <div className="px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
+        <div className="px-5 py-3 border-b border-edge bg-surface-tertiary">
           <h2 className="text-sm font-semibold text-zinc-200">Recent transactions</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 border-b border-brand-500/10">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp border-b border-edge">
                 <th className="px-4 py-3 font-medium">When</th>
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Type</th>
@@ -130,16 +130,16 @@ export default function CreditAdjustmentsPage() {
                 <th className="px-4 py-3 font-medium">Reason</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-500/5">
+            <tbody className="divide-y divide-edge">
               {loading && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-zinc-500">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-crisp">Loading…</td></tr>
               )}
               {!loading && transactions.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-zinc-500">No transactions yet</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-crisp">No transactions yet</td></tr>
               )}
               {transactions.map((t) => (
                 <tr key={t.id}>
-                  <td className="px-4 py-2.5 text-xs text-zinc-500 whitespace-nowrap">{new Date(t.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-xs text-crisp whitespace-nowrap">{new Date(t.created_at).toLocaleString()}</td>
                   <td className="px-4 py-2.5 text-xs text-zinc-300">
                     {t.profiles?.email ?? t.user_id.slice(0, 8)}
                   </td>
@@ -150,7 +150,7 @@ export default function CreditAdjustmentsPage() {
                     {t.amount > 0 ? '+' : ''}{t.amount}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-zinc-400">{t.balance_after}</td>
-                  <td className="px-4 py-2.5 text-xs text-zinc-500">{t.reason ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-xs text-crisp">{t.reason ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

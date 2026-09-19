@@ -8,6 +8,7 @@ import { FeatureGate } from "@/components/ui/FeatureGate";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
 
 interface Result {
   overallAssessment: string;
@@ -45,6 +46,8 @@ export default function ChannelAnalysisPage() {
   const { addToast } = useToast();
 
   const toggleFocus = (f: string) => setContentFocus((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
+
+  const { confirmSpend, spendDialog } = useSpendConfirm('channel-analysis', 'Channel Analysis')
 
   const handleAnalyze = async () => {
     if (!niche.trim()) { addToast("Enter or select your niche", "warning"); return; }
@@ -129,10 +132,10 @@ export default function ChannelAnalysisPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Channel Analysis</h1>
-        <p className="text-zinc-500 mt-1">An honest audit of your own channel, with quick wins and long-term moves.</p>
+        <p className="text-crisp mt-1">An honest audit of your own channel, with quick wins and long-term moves.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Platform to analyze</label>
           <div className="flex flex-wrap gap-2">
@@ -142,13 +145,13 @@ export default function ChannelAnalysisPage() {
               </button>
             ))}
           </div>
-          <p className="text-xs text-zinc-600 mt-2">💡 We&apos;ll use the URL from your Settings → Channel URLs for this platform if saved.</p>
+          <p className="text-xs text-crisp mt-2">💡 We&apos;ll use the URL from your Settings → Channel URLs for this platform if saved.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Channel handle / URL to analyze <span className="text-zinc-600">(optional — overrides profile)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Channel handle / URL to analyze <span className="text-crisp">(optional — overrides profile)</span></label>
           <input value={analyzeHandle} onChange={(e) => setAnalyzeHandle(e.target.value)} placeholder="e.g., @yourhandle or full URL"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <div>
@@ -160,9 +163,9 @@ export default function ChannelAnalysisPage() {
           </div>
           {useCustomNiche ? (
             <input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g., sourdough for beginners, indie game dev"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
           ) : (
-            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               <option value="">Select a niche…</option>
               {NICHES.map((n) => <option key={n.id} value={n.label}>{n.label}</option>)}
             </select>
@@ -171,13 +174,13 @@ export default function ChannelAnalysisPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Follower count <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Follower count <span className="text-crisp">(optional)</span></label>
             <input value={followerCount} onChange={(e) => setFollowerCount(e.target.value)} placeholder="e.g., 12K"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">How often do you post?</label>
-            <select value={postingCadence} onChange={(e) => setPostingCadence(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={postingCadence} onChange={(e) => setPostingCadence(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               {CADENCES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -193,15 +196,17 @@ export default function ChannelAnalysisPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Current challenges / what&apos;s not working <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Current challenges / what&apos;s not working <span className="text-crisp">(optional)</span></label>
           <textarea rows={3} value={currentChallenges} onChange={(e) => setCurrentChallenges(e.target.value)}
             placeholder="e.g., Reach stalled after 10K followers, Reels aren't hitting, engagement rate dropping..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
-        <Button onClick={handleAnalyze} loading={loading} size="lg" className="w-full sm:w-auto">
+        <Button onClick={() => confirmSpend(handleAnalyze)} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Analyzing..." : "🪞 Analyze My Channel"}
+          <CreditCost task="channel-analysis" />
         </Button>
+        {spendDialog}
       </div>
 
       {loading && <GenerationLoader variant="rocket" messages={[
@@ -254,18 +259,18 @@ export default function ChannelAnalysisPage() {
               { title: "Posting consistency", icon: "📅", data: result.postingConsistency },
               { title: "Audience engagement", icon: "💬", data: result.audienceEngagement },
             ].map((s) => (
-              <div key={s.title} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+              <div key={s.title} className="rounded-xl border border-edge bg-surface-secondary p-5">
                 <h3 className="text-sm font-semibold text-zinc-100 mb-3">{s.icon} {s.title}</h3>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Observation</p>
+                <p className="text-xs text-crisp uppercase tracking-wider mb-1">Observation</p>
                 <p className="text-sm text-zinc-300 mb-3">{s.data.observation}</p>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Recommendation</p>
+                <p className="text-xs text-crisp uppercase tracking-wider mb-1">Recommendation</p>
                 <p className="text-sm text-zinc-200">{s.data.recommendation}</p>
               </div>
             ))}
           </div>
 
           {/* Missed opportunities */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-sm font-semibold text-zinc-100 mb-3">💎 Features you&apos;re probably underusing</h3>
             <ul className="space-y-2">
               {result.missedOpportunities.map((m, i) => <li key={i} className="text-sm text-zinc-300 flex gap-2"><span className="text-brand-400">▸</span>{m}</li>)}
@@ -277,7 +282,7 @@ export default function ChannelAnalysisPage() {
             <h3 className="text-base font-semibold text-zinc-200 mb-3">⚡ Quick wins this week</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {result.quickWins.map((w, i) => (
-                <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
+                <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-brand-300">#{i + 1}</span>
                     <span className={`text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${impactColor[w.impact] ?? ""}`}>{w.impact}</span>
@@ -294,7 +299,7 @@ export default function ChannelAnalysisPage() {
             <h3 className="text-base font-semibold text-zinc-200 mb-3">🎯 Long-term moves</h3>
             <div className="space-y-2">
               {result.longTermMoves.map((m, i) => (
-                <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 flex items-start gap-4">
+                <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-4 flex items-start gap-4">
                   <span className="text-2xs text-brand-300 bg-brand-500/10 px-2 py-1 rounded-full whitespace-nowrap">{m.timeframe}</span>
                   <div className="flex-1">
                     <h4 className="text-sm font-semibold text-zinc-100">{m.title}</h4>
@@ -308,7 +313,7 @@ export default function ChannelAnalysisPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">🪞</span>
           <p>Fill in your profile to get an honest audit of your own channel.</p>
         </div>

@@ -77,13 +77,13 @@ export function FeedbackButton() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-lg font-bold text-zinc-100">Send feedback</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
+                <p className="text-xs text-crisp mt-0.5">
                   Help us make PostCrisp better. Every message reaches the team.
                 </p>
               </div>
               <button
                 onClick={close}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover transition-colors"
                 aria-label="Close"
               >
                 ✕
@@ -102,7 +102,7 @@ export function FeedbackButton() {
                     className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       active
                         ? 'bg-brand-500/15 border border-brand-500/30 text-brand-200'
-                        : 'bg-surface-tertiary border border-brand-500/5 text-zinc-400 hover:text-zinc-200'
+                        : 'bg-surface-tertiary border border-edge text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     <span>{meta.icon}</span>
@@ -125,14 +125,14 @@ export function FeedbackButton() {
               }
               rows={6}
               maxLength={5000}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none"
               autoFocus
             />
             <div className="flex items-center justify-between mt-1.5">
-              <p className="text-2xs text-zinc-600">
+              <p className="text-2xs text-crisp">
                 We capture the page you&apos;re on + your browser automatically — no need to include them.
               </p>
-              <span className="text-2xs text-zinc-600 tabular-nums">{message.length}/5000</span>
+              <span className="text-2xs text-crisp tabular-nums">{message.length}/5000</span>
             </div>
 
             <div className="flex gap-2 mt-5 justify-end">

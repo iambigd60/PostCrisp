@@ -20,10 +20,10 @@ export default function DemoCaptionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Caption Generator</h1>
-        <p className="text-zinc-500 mt-1">Describe your post and let AI craft the perfect caption.</p>
+        <p className="text-crisp mt-1">Describe your post and let AI craft the perfect caption.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label htmlFor="topic" className="block text-sm font-medium text-zinc-300 mb-2">
             What&apos;s your post about?
@@ -33,7 +33,7 @@ export default function DemoCaptionsPage() {
             rows={3}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors resize-none"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors resize-none"
           />
         </div>
 
@@ -87,7 +87,7 @@ export default function DemoCaptionsPage() {
         {MOCK_CAPTIONS.map((caption, i) => (
           <div
             key={i}
-            className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 hover:border-brand-500/20 transition-all group"
+            className="rounded-xl border border-edge bg-surface-secondary p-5 hover:border-brand-400 transition-all group"
           >
             <p className="text-zinc-300 whitespace-pre-wrap mb-4 leading-relaxed">{caption}</p>
             <div className="flex flex-wrap gap-2">

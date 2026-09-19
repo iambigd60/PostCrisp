@@ -7,6 +7,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 const TONES = ["Friendly", "Professional", "Funny", "Grateful", "Educational"];
 const GOALS = ["Build Relationship", "Drive Engagement", "Answer Question", "Redirect to DM", "Promote Content"];
@@ -39,22 +40,22 @@ export default function CommentRepliesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Comment Reply Generator</h1>
-        <p className="text-zinc-500 mt-1">Engage every comment with replies that actually sound like you.</p>
+        <p className="text-crisp mt-1">Engage every comment with replies that actually sound like you.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Incoming comment *</label>
           <textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)}
             placeholder="Paste what the commenter wrote..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">What was your post about? <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">What was your post about? <span className="text-crisp">(optional)</span></label>
           <input value={postContext} onChange={(e) => setPostContext(e.target.value)}
             placeholder="Brief context about the post"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -78,6 +79,7 @@ export default function CommentRepliesPage() {
 
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Writing..." : "💬 Generate Replies"}
+          <CreditCost task="comment-reply" />
         </Button>
       </div>
 
@@ -95,7 +97,7 @@ export default function CommentRepliesPage() {
             { label: "Medium", icon: "💬", text: replies.medium, tone: "text-brand-300" },
             { label: "Detailed", icon: "📝", text: replies.detailed, tone: "text-amber-300" },
           ].map((r) => (
-            <div key={r.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+            <div key={r.label} className="rounded-xl border border-edge bg-surface-secondary p-5">
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-semibold ${r.tone}`}>{r.icon} {r.label}</span>
                 <CopyButton text={r.text} />
@@ -111,7 +113,7 @@ export default function CommentRepliesPage() {
       )}
 
       {!replies && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">💬</span>
           <p>Paste an incoming comment to get three reply options.</p>
         </div>

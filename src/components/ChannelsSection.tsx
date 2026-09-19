@@ -101,7 +101,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
   return (
     <div className="space-y-4">
       {!compact && (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-crisp">
           List every account you create content for. PostCrisp uses these to organize your library,
           preselect the right platform in tools, and personalize your dashboard.
         </p>
@@ -125,7 +125,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
             return (
               <div
                 key={c.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-brand-500/10 bg-surface-tertiary/40 p-3 hover:border-brand-500/20 transition-colors"
+                className="flex items-center justify-between gap-3 rounded-lg border border-edge bg-surface-tertiary/40 p-3 hover:border-brand-400 transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${meta.chip.split(' ').slice(0, 2).join(' ')}`}>
@@ -138,13 +138,13 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
                         {meta.label}
                       </span>
                     </div>
-                    {c.label && <div className="text-xs text-zinc-500 truncate">{c.label}</div>}
+                    {c.label && <div className="text-xs text-crisp truncate">{c.label}</div>}
                     {c.url && (
                       <a
                         href={c.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-2xs text-zinc-600 hover:text-brand-300 truncate block"
+                        className="text-2xs text-crisp hover:text-brand-300 truncate block"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {c.url}
@@ -155,13 +155,13 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
                 <div className="flex gap-1 flex-shrink-0">
                   <button
                     onClick={() => startEdit(c)}
-                    className="text-xs text-zinc-500 hover:text-brand-300 px-2 py-1"
+                    className="text-xs text-crisp hover:text-brand-300 px-2 py-1"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => remove(c.id, c.handle)}
-                    className="text-xs text-zinc-500 hover:text-red-400 px-2 py-1"
+                    className="text-xs text-crisp hover:text-red-400 px-2 py-1"
                   >
                     Remove
                   </button>
@@ -180,7 +180,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as ChannelPlatform)}
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
               >
                 {CHANNEL_PLATFORMS.map((p) => (
                   <option key={p} value={p}>{PLATFORM_META[p].icon} {PLATFORM_META[p].label}</option>
@@ -197,7 +197,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
                 onChange={(e) => setHandle(e.target.value)}
                 placeholder="@alex.main"
                 maxLength={120}
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
                 autoFocus
               />
             </div>
@@ -211,7 +211,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Main account, BTS clips…"
                 maxLength={80}
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
               />
             </div>
             <div>
@@ -222,7 +222,7 @@ export function ChannelsSection({ compact = false, onChange }: ChannelsSectionPr
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://…"
                 maxLength={500}
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400 font-mono"
               />
             </div>
           </div>

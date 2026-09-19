@@ -7,6 +7,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Template { subject?: string; body: string }
 
@@ -72,10 +73,10 @@ export default function DMTemplatesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">DM Template Library</h1>
-        <p className="text-zinc-500 mt-1">Pre-built templates personalized to your situation.</p>
+        <p className="text-crisp mt-1">Pre-built templates personalized to your situation.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-zinc-300">Scenario</label>
@@ -98,32 +99,33 @@ export default function DMTemplatesPage() {
           {useCustom && (
             <textarea rows={3} value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="Describe your DM scenario..."
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
           )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Recipient <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Recipient <span className="text-crisp">(optional)</span></label>
             <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="e.g., @lululemon, John (PR manager)"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Your niche</label>
             <input value={yourNiche} onChange={(e) => setYourNiche(e.target.value)} placeholder="e.g., yoga for busy moms"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Specific details <span className="text-zinc-600">(optional but improves personalization)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Specific details <span className="text-crisp">(optional but improves personalization)</span></label>
           <textarea rows={3} value={specificDetails} onChange={(e) => setSpecificDetails(e.target.value)}
             placeholder="Any specifics — dates, follower counts, past collabs, product references..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Writing..." : "✉️ Generate DM"}
+          <CreditCost task="dm-template" />
         </Button>
       </div>
 
@@ -136,15 +138,15 @@ export default function DMTemplatesPage() {
             <h2 className="text-lg font-semibold text-zinc-200">Your DM</h2>
             <EngineBadge />
           </div>
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             {template.subject && (
-              <div className="mb-3 pb-3 border-b border-brand-500/5">
-                <p className="text-xs text-zinc-500 mb-1">Subject</p>
+              <div className="mb-3 pb-3 border-b border-edge">
+                <p className="text-xs text-crisp mb-1">Subject</p>
                 <p className="text-sm font-medium text-zinc-200">{template.subject}</p>
               </div>
             )}
             <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{template.body}</p>
-            <div className="flex gap-2 mt-4 pt-3 border-t border-brand-500/5">
+            <div className="flex gap-2 mt-4 pt-3 border-t border-edge">
               <CopyButton text={fullText(template)} />
               <Button variant="secondary" size="sm" onClick={handleSave}>💾 Save</Button>
               <Button variant="secondary" size="sm" onClick={handleGenerate}>🔄 Regenerate</Button>
@@ -154,7 +156,7 @@ export default function DMTemplatesPage() {
       )}
 
       {!template && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">✉️</span>
           <p>Pick a scenario and customize the details to get a DM that&apos;s ready to copy-paste.</p>
         </div>

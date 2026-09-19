@@ -8,6 +8,7 @@ import { FeatureGate } from "@/components/ui/FeatureGate";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
 
 interface PitchResult {
   formal: { subject: string; body: string };
@@ -45,6 +46,8 @@ export default function BrandPitchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
+
+  const { confirmSpend, spendDialog } = useSpendConfirm('brand-pitch', 'Brand Pitch')
 
   const handleGenerate = async () => {
     if (!brandName.trim() || !brandIndustry.trim() || !yourNiche.trim()) {
@@ -103,10 +106,10 @@ export default function BrandPitchPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Brand Pitch Generator</h1>
-        <p className="text-zinc-500 mt-1">Craft personalized outreach pitches that actually get replies.</p>
+        <p className="text-crisp mt-1">Craft personalized outreach pitches that actually get replies.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Brand name *</label>
@@ -114,7 +117,7 @@ export default function BrandPitchPage() {
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
               placeholder="e.g., Gymshark"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
@@ -123,7 +126,7 @@ export default function BrandPitchPage() {
               value={brandIndustry}
               onChange={(e) => setBrandIndustry(e.target.value)}
               placeholder="e.g., fitness apparel"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
@@ -134,37 +137,37 @@ export default function BrandPitchPage() {
             value={yourNiche}
             onChange={(e) => setYourNiche(e.target.value)}
             placeholder="e.g., home workouts for busy parents"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Your audience <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Your audience <span className="text-crisp">(optional)</span></label>
           <input
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             placeholder="e.g., 25-40 year old women in North America"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Follower count <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Follower count <span className="text-crisp">(optional)</span></label>
             <input
               value={followerCount}
               onChange={(e) => setFollowerCount(e.target.value)}
               placeholder="e.g., 45K on Instagram"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Avg. engagement rate <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Avg. engagement rate <span className="text-crisp">(optional)</span></label>
             <input
               value={engagementRate}
               onChange={(e) => setEngagementRate(e.target.value)}
               placeholder="e.g., 4.2%"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
@@ -189,29 +192,31 @@ export default function BrandPitchPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">What makes you different <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">What makes you different <span className="text-crisp">(optional)</span></label>
           <textarea
             rows={2}
             value={uniqueValue}
             onChange={(e) => setUniqueValue(e.target.value)}
             placeholder="e.g., My content gets 3x the average comment rate in this niche because..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Budget expectation <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Budget expectation <span className="text-crisp">(optional)</span></label>
           <input
             value={budgetExpectation}
             onChange={(e) => setBudgetExpectation(e.target.value)}
             placeholder="e.g., $500-1,500 per sponsored post, or 'open to discussion'"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
           />
         </div>
 
-        <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
+        <Button onClick={() => confirmSpend(handleGenerate)} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Generating..." : "📧 Generate Pitch"}
+          <CreditCost task="brand-pitch" />
         </Button>
+        {spendDialog}
       </div>
 
       {loading && <GenerationLoader variant="rocket" messages={LOADING_MESSAGES} />}
@@ -224,18 +229,18 @@ export default function BrandPitchPage() {
           </div>
 
           {/* Formal pitch */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-semibold text-zinc-100">Formal pitch</h3>
-                <p className="text-xs text-zinc-500">Email-style. Best for corporate brands.</p>
+                <p className="text-xs text-crisp">Email-style. Best for corporate brands.</p>
               </div>
               <span className="text-xs text-brand-400 bg-brand-500/10 px-2 py-1 rounded-full">👔 Professional</span>
             </div>
             <div className="rounded-lg bg-surface-tertiary p-4 space-y-2 mb-4">
-              <p className="text-xs text-zinc-500">Subject</p>
+              <p className="text-xs text-crisp">Subject</p>
               <p className="text-sm font-medium text-zinc-200">{result.formal.subject}</p>
-              <p className="text-xs text-zinc-500 pt-2">Body</p>
+              <p className="text-xs text-crisp pt-2">Body</p>
               <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{result.formal.body}</p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -245,18 +250,18 @@ export default function BrandPitchPage() {
           </div>
 
           {/* Casual pitch */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-semibold text-zinc-100">Casual pitch</h3>
-                <p className="text-xs text-zinc-500">Conversational. Best for DTC brands and startups.</p>
+                <p className="text-xs text-crisp">Conversational. Best for DTC brands and startups.</p>
               </div>
               <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">😎 Conversational</span>
             </div>
             <div className="rounded-lg bg-surface-tertiary p-4 space-y-2 mb-4">
-              <p className="text-xs text-zinc-500">Subject / opener</p>
+              <p className="text-xs text-crisp">Subject / opener</p>
               <p className="text-sm font-medium text-zinc-200">{result.casual.subject}</p>
-              <p className="text-xs text-zinc-500 pt-2">Body</p>
+              <p className="text-xs text-crisp pt-2">Body</p>
               <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{result.casual.body}</p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -279,7 +284,7 @@ export default function BrandPitchPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">📧</span>
           <p>Fill in the details above to generate a pitch tailored to the brand.</p>
         </div>

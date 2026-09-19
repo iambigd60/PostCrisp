@@ -9,6 +9,7 @@ import { FeatureGate } from "@/components/ui/FeatureGate";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
 
 interface Result {
   contentStrategy: string;
@@ -49,6 +50,8 @@ export default function CompetitorAnalysisPage() {
   const toggleFocus = (area: string) => {
     setFocusAreas((prev) => prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]);
   };
+
+  const { confirmSpend, spendDialog } = useSpendConfirm('competitor-analysis', 'Competitor Analysis')
 
   const handleAnalyze = async () => {
     if (!competitor.trim() || !yourNiche.trim()) {
@@ -123,17 +126,17 @@ export default function CompetitorAnalysisPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Competitor Analysis</h1>
-        <p className="text-zinc-500 mt-1">Study what&apos;s working for others in your space — ethically.</p>
+        <p className="text-crisp mt-1">Study what&apos;s working for others in your space — ethically.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Competitor handle or name *</label>
           <input
             value={competitor}
             onChange={(e) => setCompetitor(e.target.value)}
             placeholder="e.g., @aliabdaal or 'Morning Brew'"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
           />
         </div>
 
@@ -162,7 +165,7 @@ export default function CompetitorAnalysisPage() {
           <select
             value={yourNiche}
             onChange={(e) => setYourNiche(e.target.value)}
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
           >
             <option value="">Select a niche…</option>
             {NICHES.map((n) => <option key={n.id} value={n.label}>{n.label}</option>)}
@@ -188,9 +191,11 @@ export default function CompetitorAnalysisPage() {
           </div>
         </div>
 
-        <Button onClick={handleAnalyze} loading={loading} size="lg" className="w-full sm:w-auto">
+        <Button onClick={() => confirmSpend(handleAnalyze)} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Analyzing..." : "🔍 Analyze Competitor"}
+          <CreditCost task="competitor-analysis" />
         </Button>
+        {spendDialog}
       </div>
 
       {loading && <GenerationLoader messages={LOADING_MESSAGES} />}
@@ -247,9 +252,9 @@ export default function CompetitorAnalysisPage() {
           <Section title="💡 Content ideas inspired by (not copied from) their strategy">
             <div className="space-y-3">
               {result.contentIdeas.map((idea, i) => (
-                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-brand-500/5">
+                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-edge">
                   <p className="text-sm font-medium text-zinc-200">{idea.title}</p>
-                  <p className="text-xs text-zinc-500 mt-1">{idea.why}</p>
+                  <p className="text-xs text-crisp mt-1">{idea.why}</p>
                   <CopyButton text={idea.title} className="mt-2" />
                 </div>
               ))}
@@ -259,7 +264,7 @@ export default function CompetitorAnalysisPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">🔍</span>
           <p>Enter a competitor above to get a strategic breakdown.</p>
         </div>
@@ -270,7 +275,7 @@ export default function CompetitorAnalysisPage() {
 }
 
 function Section({ title, children, color = "brand", highlighted = false }: { title: string; children: React.ReactNode; color?: "brand" | "emerald" | "amber"; highlighted?: boolean }) {
-  const borderColor = color === "emerald" ? "border-emerald-500/20" : color === "amber" ? "border-amber-500/20" : "border-brand-500/10";
+  const borderColor = color === "emerald" ? "border-emerald-500/20" : color === "amber" ? "border-amber-500/20" : "border-edge";
   return (
     <div className={`rounded-xl border ${borderColor} ${highlighted ? "bg-brand-900/10" : "bg-surface-secondary"} p-5`}>
       <h3 className="text-sm font-semibold text-zinc-200 mb-3">{title}</h3>

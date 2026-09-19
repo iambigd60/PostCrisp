@@ -42,16 +42,16 @@ export default function DemoHashtagsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Hashtag Finder</h1>
-        <p className="text-zinc-500 mt-1">Search for trending hashtags with engagement scores.</p>
+        <p className="text-crisp mt-1">Search for trending hashtags with engagement scores.</p>
       </div>
 
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">🔍</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-crisp">🔍</span>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-xl bg-surface-secondary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors min-h-[48px]"
+          className="w-full rounded-xl bg-surface-secondary border border-edge text-zinc-200 placeholder:text-crisp pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors min-h-[48px]"
         />
       </div>
 
@@ -70,11 +70,11 @@ export default function DemoHashtagsPage() {
           {MOCK_HASHTAGS.map((h) => (
             <div
               key={h.tag}
-              className="flex items-center justify-between rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all group"
+              className="flex items-center justify-between rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-all group"
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-brand-300 truncate">{h.tag}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{h.posts} posts</p>
+                <p className="text-xs text-crisp mt-0.5">{h.posts} posts</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                 <span className={`text-xs font-bold px-2 py-1 rounded-lg ${scoreColor(h.score)}`}>

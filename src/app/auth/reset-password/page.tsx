@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
   if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-primary px-4">
-        <p className="text-zinc-500 text-sm">Verifying recovery link…</p>
+        <p className="text-crisp text-sm">Verifying recovery link…</p>
       </div>
     )
   }

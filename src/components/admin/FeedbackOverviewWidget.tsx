@@ -79,7 +79,7 @@ export function FeedbackOverviewWidget() {
               </span>
             )}
           </h3>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-crisp mt-1">
             {newCount === 0 && !loading
               ? 'All caught up — nothing new.'
               : `Latest submissions from testers.`}
@@ -93,7 +93,7 @@ export function FeedbackOverviewWidget() {
       {loading && <div className="h-20 rounded-lg bg-surface-tertiary/50 animate-pulse" />}
 
       {!loading && latest && latest.length === 0 && (
-        <div className="rounded-lg bg-surface-tertiary/30 p-6 text-center text-xs text-zinc-500">
+        <div className="rounded-lg bg-surface-tertiary/30 p-6 text-center text-xs text-crisp">
           No feedback yet. When testers submit, it&apos;ll show up here.
         </div>
       )}
@@ -108,10 +108,10 @@ export function FeedbackOverviewWidget() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   {f.category && <span className="text-xs">{CATEGORY_ICON[f.category]}</span>}
-                  <span className="text-xs text-zinc-500 truncate">
+                  <span className="text-xs text-crisp truncate">
                     {f.user?.email ?? '(anonymous)'}
                   </span>
-                  <span className="text-xs text-zinc-600 flex-shrink-0">· {relativeTime(f.created_at)}</span>
+                  <span className="text-xs text-crisp flex-shrink-0">· {relativeTime(f.created_at)}</span>
                 </div>
                 <p className="text-sm text-zinc-200 line-clamp-2">{f.message}</p>
               </div>

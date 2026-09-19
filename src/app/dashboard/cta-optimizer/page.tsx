@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { useToast } from '@/components/ui/Toast'
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface CTAOption {
   cta: string
@@ -158,14 +159,14 @@ export default function CTAOptimizerPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">CTA Optimizer</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           Drop in a caption, post, or script. Pick a goal. Get a recommended CTA + 4 alternatives, scored against
           {" "}<span className="text-zinc-400">platform conventions</span> and your{" "}<span className="text-zinc-400">stated outcome</span>.
         </p>
       </div>
 
       {/* Input form */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">
             Source content <span className="text-red-400">*</span>
@@ -176,9 +177,9 @@ export default function CTAOptimizerPage() {
             rows={6}
             maxLength={8000}
             placeholder="Paste the caption, post, video script, or email you want to add a CTA to..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
           />
-          <div className="text-2xs text-zinc-600 mt-1 text-right">
+          <div className="text-2xs text-crisp mt-1 text-right">
             {content.length.toLocaleString()} / 8,000 chars
           </div>
         </div>
@@ -208,13 +209,13 @@ export default function CTAOptimizerPage() {
             <select
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             >
               {GOALS.map((g) => (
                 <option key={g.id} value={g.id}>{g.label}</option>
               ))}
             </select>
-            <p className="text-2xs text-zinc-600 mt-1">
+            <p className="text-2xs text-crisp mt-1">
               {GOALS.find((g) => g.id === goal)?.hint}
             </p>
           </div>
@@ -231,7 +232,7 @@ export default function CTAOptimizerPage() {
               onChange={(e) => setGoalDetail(e.target.value)}
               placeholder="e.g. get prospects to book a discovery call"
               maxLength={200}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         )}
@@ -239,7 +240,7 @@ export default function CTAOptimizerPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Audience <span className="text-zinc-600 normal-case">(optional)</span>
+              Audience <span className="text-crisp normal-case">(optional)</span>
             </label>
             <input
               type="text"
@@ -247,12 +248,12 @@ export default function CTAOptimizerPage() {
               onChange={(e) => setAudience(e.target.value)}
               placeholder="e.g. solopreneurs in their first year"
               maxLength={200}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Destination link <span className="text-zinc-600 normal-case">(optional)</span>
+              Destination link <span className="text-crisp normal-case">(optional)</span>
             </label>
             <input
               type="text"
@@ -260,14 +261,15 @@ export default function CTAOptimizerPage() {
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://your-link.com"
               maxLength={500}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
 
         <div className="flex justify-end">
           <Button onClick={handleGenerate} loading={generating} disabled={!content.trim() || generating} size="lg">
-            Generate CTAs · 2 credits
+            Generate CTAs
+            <CreditCost task="cta-optimizer" />
           </Button>
         </div>
       </div>
@@ -286,12 +288,12 @@ export default function CTAOptimizerPage() {
                 <span className={`text-xs font-bold tabular-nums ${scoreColor(result.recommended.matchScore)}`}>
                   {result.recommended.matchScore}/10
                 </span>
-                <span className="text-2xs text-zinc-500 uppercase tracking-wider">{result.recommended.placement}</span>
+                <span className="text-2xs text-crisp uppercase tracking-wider">{result.recommended.placement}</span>
               </div>
               <CopyButton text={result.recommended.cta} label="Copy" />
             </div>
             <p className="text-base text-zinc-100 leading-relaxed font-medium">&ldquo;{result.recommended.cta}&rdquo;</p>
-            <p className="text-xs text-zinc-500 leading-relaxed">{result.recommended.reasoning}</p>
+            <p className="text-xs text-crisp leading-relaxed">{result.recommended.reasoning}</p>
           </div>
 
           {/* Alternatives */}
@@ -299,7 +301,7 @@ export default function CTAOptimizerPage() {
             <h2 className="text-sm font-semibold text-zinc-300 mb-3">Alternative angles</h2>
             <div className="space-y-2">
               {result.alternatives.map((alt, i) => (
-                <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 space-y-2">
+                <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-4 space-y-2">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${liftBadge(alt.expectedLift)}`}>
@@ -308,12 +310,12 @@ export default function CTAOptimizerPage() {
                       <span className={`text-xs font-bold tabular-nums ${scoreColor(alt.matchScore)}`}>
                         {alt.matchScore}/10
                       </span>
-                      <span className="text-2xs text-zinc-500 uppercase tracking-wider">{alt.placement}</span>
+                      <span className="text-2xs text-crisp uppercase tracking-wider">{alt.placement}</span>
                     </div>
                     <CopyButton text={alt.cta} label="Copy" />
                   </div>
                   <p className="text-sm text-zinc-200 leading-relaxed">&ldquo;{alt.cta}&rdquo;</p>
-                  <p className="text-2xs text-zinc-500 leading-relaxed">{alt.reasoning}</p>
+                  <p className="text-2xs text-crisp leading-relaxed">{alt.reasoning}</p>
                 </div>
               ))}
             </div>
@@ -321,13 +323,13 @@ export default function CTAOptimizerPage() {
 
           {/* Patterns */}
           {result.patterns.length > 0 && (
-            <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+            <div className="rounded-xl border border-edge bg-surface-secondary p-5">
               <h2 className="text-sm font-semibold text-zinc-300 mb-3">Patterns to keep in your toolkit</h2>
               <ul className="space-y-2.5">
                 {result.patterns.map((p, i) => (
                   <li key={i} className="text-sm text-zinc-300 leading-relaxed">
                     <span className="font-semibold text-zinc-200">{p.name}</span>
-                    <span className="text-zinc-500"> — {p.description}</span>
+                    <span className="text-crisp"> — {p.description}</span>
                   </li>
                 ))}
               </ul>
@@ -364,7 +366,7 @@ export default function CTAOptimizerPage() {
                 setResult(null)
                 setSaved(false)
               }}
-              className="text-sm text-zinc-500 hover:text-zinc-300"
+              className="text-sm text-crisp hover:text-zinc-300"
             >
               Generate for different content →
             </button>

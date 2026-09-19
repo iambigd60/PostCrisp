@@ -81,25 +81,25 @@ export function OwnStage({
       </Button>
 
       <div className="pt-4 space-y-3">
-        <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500">
+        <div className="text-2xs font-bold uppercase tracking-wider text-crisp">
           Want the next one to sound more like you?
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link
             href="/dashboard/voice"
-            className="rounded-xl border border-brand-500/15 bg-surface-secondary p-4 hover:border-brand-500/40 transition-colors"
+            className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-500/40 transition-colors"
           >
             <div className="text-sm font-semibold text-zinc-200">🎙️ Train your voice</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-crisp mt-1">
               Paste 2-3 captions you&apos;ve written. Every generation after that matches your style.
             </p>
           </Link>
           <Link
             href="/dashboard/settings"
-            className="rounded-xl border border-brand-500/15 bg-surface-secondary p-4 hover:border-brand-500/40 transition-colors"
+            className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-500/40 transition-colors"
           >
             <div className="text-sm font-semibold text-zinc-200">🧭 Add your channels</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-crisp mt-1">
               Tune everything to the platforms you actually post on.
             </p>
           </Link>

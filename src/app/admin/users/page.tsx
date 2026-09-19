@@ -88,35 +88,35 @@ export default function UsersListPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Users</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           {data ? `${data.total.toLocaleString()} total users` : "Loading…"}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 space-y-3">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 space-y-3">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by email…"
-            className="flex-1 rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+            className="flex-1 rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-2 text-sm focus:outline-none focus:border-brand-400"
           />
           <Button size="sm" type="submit">Search</Button>
         </form>
         <div className="flex flex-wrap gap-3 items-center">
-          <select value={tier} onChange={(e) => { setTier(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
+          <select value={tier} onChange={(e) => { setTier(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400">
             <option value="all">All tiers</option>
             <option value="free">Starter</option>
             <option value="creator">Creator</option>
             <option value="elite">Elite</option>
           </select>
-          <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
+          <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400">
             <option value="all">All roles</option>
             <option value="user">Users</option>
             <option value="admin">Admins</option>
           </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400">
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="credits">Highest credits</option>
@@ -131,11 +131,11 @@ export default function UsersListPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-tertiary">
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp">
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Tier</th>
                 <th className="px-4 py-3 font-medium">Role</th>
@@ -145,12 +145,12 @@ export default function UsersListPage() {
                 <th className="px-4 py-3 font-medium text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-500/5">
+            <tbody className="divide-y divide-edge">
               {loading && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-zinc-500">Loading…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-crisp">Loading…</td></tr>
               )}
               {!loading && data && data.users.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-zinc-500">No users match these filters</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-crisp">No users match these filters</td></tr>
               )}
               {!loading && data?.users.map((u) => {
                 const tierId = tierFromDbValue(u.subscription_tier);
@@ -167,7 +167,7 @@ export default function UsersListPage() {
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm text-zinc-200 truncate">{u.full_name ?? "—"}</span>
-                          <span className="text-xs text-zinc-500 truncate">{u.email}</span>
+                          <span className="text-xs text-crisp truncate">{u.email}</span>
                         </div>
                       </div>
                     </td>
@@ -180,12 +180,12 @@ export default function UsersListPage() {
                       {u.role === "admin" ? (
                         <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20">🛡️ admin</span>
                       ) : (
-                        <span className="text-2xs text-zinc-500">user</span>
+                        <span className="text-2xs text-crisp">user</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono text-zinc-300">{u.credits_balance.toLocaleString()}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-zinc-400">{u.generations_this_month.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-xs text-zinc-500 whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-2.5 text-xs text-crisp whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-2.5 text-right">
                       <Link href={`/admin/users/${u.id}`} className="text-xs text-brand-400 hover:text-brand-300 font-medium">
                         Manage →
@@ -202,7 +202,7 @@ export default function UsersListPage() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-crisp">
             Page {data.page} of {data.totalPages}
           </div>
           <div className="flex gap-2">

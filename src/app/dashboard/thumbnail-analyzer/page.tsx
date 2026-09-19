@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { apiFetch, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Improvement {
   priority: 'high' | 'medium' | 'low'
@@ -194,13 +195,13 @@ export default function ThumbnailAnalyzerPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Thumbnail Analyzer</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           Upload a thumbnail or hero image. We critique the click-stopping power and tell you exactly what to change.
         </p>
       </div>
 
       {/* Upload area */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <input
           ref={inputRef}
           type="file"
@@ -218,7 +219,7 @@ export default function ThumbnailAnalyzerPage() {
           >
             <div className="text-3xl mb-2">🖼️</div>
             <div className="text-sm font-semibold text-zinc-200">Click to upload or drag and drop</div>
-            <div className="text-xs text-zinc-500 mt-1">JPEG, PNG, WebP, or GIF · Max 5 MB</div>
+            <div className="text-xs text-crisp mt-1">JPEG, PNG, WebP, or GIF · Max 5 MB</div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -226,7 +227,7 @@ export default function ThumbnailAnalyzerPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewUrl} alt="Thumbnail preview" className="max-h-[400px] w-full object-contain" />
             </div>
-            <div className="flex items-center justify-between text-xs text-zinc-500">
+            <div className="flex items-center justify-between text-xs text-crisp">
               <span>
                 {file?.name} · {file ? (file.size / 1024).toFixed(0) : '0'} KB · {file?.type.split('/')[1].toUpperCase()}
               </span>
@@ -237,7 +238,7 @@ export default function ThumbnailAnalyzerPage() {
                   setFile(null)
                   setResult(null)
                 }}
-                className="text-zinc-500 hover:text-zinc-300"
+                className="text-crisp hover:text-zinc-300"
               >
                 Replace
               </button>
@@ -263,7 +264,7 @@ export default function ThumbnailAnalyzerPage() {
               </button>
             ))}
           </div>
-          <p className="text-2xs text-zinc-600 mt-2">
+          <p className="text-2xs text-crisp mt-2">
             {PLATFORMS.find((p) => p.id === platform)?.hint}
           </p>
         </div>
@@ -272,7 +273,7 @@ export default function ThumbnailAnalyzerPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Topic <span className="text-zinc-600 normal-case">(optional)</span>
+              Topic <span className="text-crisp normal-case">(optional)</span>
             </label>
             <input
               type="text"
@@ -280,12 +281,12 @@ export default function ThumbnailAnalyzerPage() {
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g. how I made $10k in a month"
               maxLength={200}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Audience <span className="text-zinc-600 normal-case">(optional)</span>
+              Audience <span className="text-crisp normal-case">(optional)</span>
             </label>
             <input
               type="text"
@@ -293,14 +294,15 @@ export default function ThumbnailAnalyzerPage() {
               onChange={(e) => setAudience(e.target.value)}
               placeholder="e.g. solopreneurs, gym beginners"
               maxLength={200}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
 
         <div className="flex justify-end">
           <Button onClick={handleAnalyze} loading={analyzing} disabled={!file || analyzing} size="lg">
-            Analyze thumbnail · 4 credits
+            Analyze thumbnail
+            <CreditCost task="thumbnail-analyzer" />
           </Button>
         </div>
       </div>
@@ -318,7 +320,7 @@ export default function ThumbnailAnalyzerPage() {
               style={{ width: `${(progressStage + 1) * 18}%` }}
             />
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-crisp">
             Vision analysis usually takes 15–30 seconds.
           </p>
         </div>
@@ -341,7 +343,7 @@ export default function ThumbnailAnalyzerPage() {
                   }`}>
                     {result.clickPrediction.score}
                   </span>
-                  <span className="text-zinc-500 text-sm">/ 10</span>
+                  <span className="text-crisp text-sm">/ 10</span>
                 </div>
               </div>
               <div className="flex-1 text-sm text-zinc-200 leading-relaxed pt-2">
@@ -382,7 +384,7 @@ export default function ThumbnailAnalyzerPage() {
                         </span>
                         <span className="font-semibold text-zinc-200">{imp.change}</span>
                       </div>
-                      <p className="text-xs text-zinc-500 ml-[4.5rem]">{imp.why}</p>
+                      <p className="text-xs text-crisp ml-[4.5rem]">{imp.why}</p>
                     </li>
                   )
                 })}
@@ -399,16 +401,16 @@ export default function ThumbnailAnalyzerPage() {
               ['Color contrast', result.colorContrast],
               ['Platform fit', result.platformFit],
             ] as const).map(([title, body]) => (
-              <div key={title} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-                <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5">{title}</div>
+              <div key={title} className="rounded-xl border border-edge bg-surface-secondary p-4">
+                <div className="text-2xs font-bold uppercase tracking-wider text-crisp mb-1.5">{title}</div>
                 <p className="text-sm text-zinc-300 leading-relaxed">{body}</p>
               </div>
             ))}
 
             {/* Text legibility — combine score + issues */}
-            <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
+            <div className="rounded-xl border border-edge bg-surface-secondary p-4">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500">Text legibility</div>
+                <div className="text-2xs font-bold uppercase tracking-wider text-crisp">Text legibility</div>
                 <span className={`text-xs font-bold tabular-nums ${
                   result.textLegibility.score >= 8 ? 'text-emerald-300' :
                   result.textLegibility.score >= 6 ? 'text-brand-300' :
@@ -451,7 +453,7 @@ export default function ThumbnailAnalyzerPage() {
                 setPreviewUrl(null)
                 setFile(null)
               }}
-              className="text-sm text-zinc-500 hover:text-zinc-300"
+              className="text-sm text-crisp hover:text-zinc-300"
             >
               Analyze another thumbnail →
             </button>

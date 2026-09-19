@@ -143,13 +143,13 @@ export default function OnboardingPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-zinc-500">Loading…</div>
+      <div className="min-h-screen flex items-center justify-center text-crisp">Loading…</div>
     )
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-brand-500/10">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-edge">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-sm shadow-glow">
             ⚡
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
                 className={`text-xs px-2.5 py-1 rounded-full border ${
                   s === stage
                     ? 'bg-brand-500/10 text-brand-200 border-brand-500/40'
-                    : 'text-zinc-600 border-brand-500/5'
+                    : 'text-crisp border-edge'
                 }`}
               >
                 {STAGE_LABELS[s]}

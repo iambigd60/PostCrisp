@@ -105,17 +105,17 @@ export default function AdminFeedbackPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Feedback</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           {data ? `${data.total.toLocaleString()} total — ${stats.new} new on this page` : "Loading…"}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 flex flex-wrap gap-3 items-center">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 flex flex-wrap gap-3 items-center">
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as Status | "all"); setPage(1); }}
-          className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40"
+          className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400"
         >
           <option value="all">All statuses</option>
           <option value="new">New</option>
@@ -125,7 +125,7 @@ export default function AdminFeedbackPage() {
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value as Category | "all"); setPage(1); }}
-          className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40"
+          className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400"
         >
           <option value="all">All categories</option>
           <option value="bug">🐛 Bugs</option>
@@ -136,9 +136,9 @@ export default function AdminFeedbackPage() {
 
       {/* Entries */}
       <div className="space-y-3">
-        {loading && <p className="text-zinc-500 text-center py-10">Loading…</p>}
+        {loading && <p className="text-crisp text-center py-10">Loading…</p>}
         {!loading && data && data.feedback.length === 0 && (
-          <p className="text-zinc-500 text-center py-10">No feedback matching these filters.</p>
+          <p className="text-crisp text-center py-10">No feedback matching these filters.</p>
         )}
         {!loading && data?.feedback.map((f) => {
           const statusMeta = STATUS_META[f.status];
@@ -147,7 +147,7 @@ export default function AdminFeedbackPage() {
           const notesDirty = notes !== (f.admin_notes ?? "");
 
           return (
-            <div key={f.id} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 space-y-4">
+            <div key={f.id} className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusMeta.color}`}>
@@ -158,11 +158,11 @@ export default function AdminFeedbackPage() {
                       {catMeta.icon} {catMeta.label}
                     </span>
                   )}
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-crisp">
                     {f.user?.email ?? "(anonymous)"} · {relativeTime(f.created_at)}
                   </span>
                   {f.url && (
-                    <span className="text-xs text-zinc-600 font-mono">{f.url}</span>
+                    <span className="text-xs text-crisp font-mono">{f.url}</span>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -187,7 +187,7 @@ export default function AdminFeedbackPage() {
               <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">{f.message}</p>
 
               <details className="text-xs">
-                <summary className="text-zinc-500 cursor-pointer hover:text-zinc-300">
+                <summary className="text-crisp cursor-pointer hover:text-zinc-300">
                   {f.admin_notes ? "Admin notes + details" : "Add admin notes + details"}
                 </summary>
                 <div className="mt-2 space-y-2">
@@ -196,7 +196,7 @@ export default function AdminFeedbackPage() {
                     onChange={(e) => setNotesDraft({ ...notesDraft, [f.id]: e.target.value })}
                     placeholder="Private admin notes (not shown to user)"
                     rows={2}
-                    className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-xs focus:outline-none focus:border-brand-500/40 resize-none"
+                    className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-xs focus:outline-none focus:border-brand-400 resize-none"
                   />
                   {notesDirty && (
                     <Button size="sm" variant="secondary" onClick={() => updateEntry(f.id, { admin_notes: notes })}>
@@ -204,7 +204,7 @@ export default function AdminFeedbackPage() {
                     </Button>
                   )}
                   {f.user_agent && (
-                    <p className="text-2xs text-zinc-600 font-mono break-all">UA: {f.user_agent}</p>
+                    <p className="text-2xs text-crisp font-mono break-all">UA: {f.user_agent}</p>
                   )}
                 </div>
               </details>
@@ -216,7 +216,7 @@ export default function AdminFeedbackPage() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-crisp">
             Page {data.page} of {data.totalPages}
           </div>
           <div className="flex gap-2">

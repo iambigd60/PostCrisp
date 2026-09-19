@@ -65,20 +65,20 @@ export default function AdminAccessControlPage() {
   };
 
   if (!data) {
-    return <div className="text-zinc-500">Loading…</div>;
+    return <div className="text-crisp">Loading…</div>;
   }
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Access Control</h1>
-        <p className="text-zinc-500 mt-1">Control who can sign up and log in. Changes take effect immediately.</p>
+        <p className="text-crisp mt-1">Control who can sign up and log in. Changes take effect immediately.</p>
       </div>
 
       {/* Signup mode */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-6">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-6">
         <h2 className="text-sm font-semibold text-zinc-200 mb-1">Signup mode</h2>
-        <p className="text-xs text-zinc-500 mb-4">Choose how new users get into PostCrisp.</p>
+        <p className="text-xs text-crisp mb-4">Choose how new users get into PostCrisp.</p>
 
         <div className="space-y-3">
           {(Object.keys(MODE_META) as SignupMode[]).map((m) => {
@@ -90,7 +90,7 @@ export default function AdminAccessControlPage() {
                 className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
                   selected
                     ? "bg-surface-tertiary border-brand-500/40"
-                    : "border-brand-500/10 hover:border-brand-500/20"
+                    : "border-edge hover:border-brand-400"
                 }`}
               >
                 <input
@@ -103,7 +103,7 @@ export default function AdminAccessControlPage() {
                 />
                 <div>
                   <div className={`text-sm font-semibold ${meta.color}`}>{meta.label}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">{meta.description}</div>
+                  <div className="text-xs text-crisp mt-0.5">{meta.description}</div>
                 </div>
               </label>
             );
@@ -125,9 +125,9 @@ export default function AdminAccessControlPage() {
               value={inviteCode}
               onChange={(e) => onChange(() => setInviteCode(e.target.value))}
               placeholder="Leave blank to require single-use codes only"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-2 text-sm focus:outline-none focus:border-brand-400 font-mono"
             />
-            <p className="text-xs text-zinc-600 mt-1.5">
+            <p className="text-xs text-crisp mt-1.5">
               Optional. A single shared code anyone can paste — fine for in-person events, but not for beta testers who might share it. Single-use codes always work in addition to this.
             </p>
           </div>
@@ -135,11 +135,11 @@ export default function AdminAccessControlPage() {
       </div>
 
       {/* Login toggle */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-6">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-zinc-200 mb-1">Existing user logins</h2>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-crisp">
               When disabled, existing users see a maintenance message on the login page. Admin accounts (role = admin) always bypass this.
             </p>
           </div>
@@ -169,7 +169,7 @@ export default function AdminAccessControlPage() {
 
       {/* Save */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-crisp">
           {dirty ? "Unsaved changes" : "All changes saved"}
         </p>
         <Button onClick={save} disabled={!dirty || saving} loading={saving}>

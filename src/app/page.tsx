@@ -230,14 +230,14 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="py-12 px-4 sm:px-6 border-y border-brand-500/10">
+      <section className="py-12 px-4 sm:px-6 border-y border-edge">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
           {STATS.map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
                 {stat.value}
               </div>
-              <div className="text-sm text-zinc-500 mt-1">{stat.label}</div>
+              <div className="text-sm text-crisp mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -262,7 +262,7 @@ export default function HomePage() {
             {FEATURE_CATEGORIES.map((feature) => (
               <div
                 key={feature.title}
-                className="group relative rounded-2xl bg-surface-secondary border border-brand-500/10 p-6 sm:p-8 hover:border-brand-500/25 transition-all hover:shadow-glow cursor-default"
+                className="group relative rounded-2xl bg-surface-secondary border border-edge p-6 sm:p-8 hover:border-brand-400 transition-all hover:shadow-glow cursor-default"
               >
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform`}>
                   {feature.icon}
@@ -281,7 +281,7 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 border-t border-brand-500/10">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 border-t border-edge">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -292,7 +292,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {HOW_IT_WORKS.map((s) => (
-              <div key={s.step} className="rounded-2xl bg-surface-secondary border border-brand-500/10 p-6 relative">
+              <div key={s.step} className="rounded-2xl bg-surface-secondary border border-edge p-6 relative">
                 <div className="absolute -top-3 -left-3 w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center font-extrabold text-white shadow-glow">
                   {s.step}
                 </div>
@@ -306,7 +306,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 border-t border-brand-500/10">
+      <section id="pricing" className="py-20 px-4 sm:px-6 border-t border-edge">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -355,32 +355,32 @@ export default function HomePage() {
           </div>
 
           {/* Credit packs */}
-          <div className="mt-10 rounded-2xl border border-brand-500/10 bg-surface-secondary p-6 sm:p-8">
+          <div className="mt-10 rounded-2xl border border-edge bg-surface-secondary p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
               <div>
                 <h3 className="text-lg font-bold text-zinc-100">Need more credits?</h3>
-                <p className="text-sm text-zinc-500 mt-0.5">One-time top-up packs. Never expire. Stack on any tier.</p>
+                <p className="text-sm text-crisp mt-0.5">One-time top-up packs. Never expire. Stack on any tier.</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {CREDIT_PACKS.map((pack) => (
-                <div key={pack.id} className="rounded-lg bg-surface-tertiary border border-brand-500/5 p-4 text-center">
+                <div key={pack.id} className="rounded-lg bg-surface-tertiary border border-edge p-4 text-center">
                   <div className="text-xl sm:text-2xl font-extrabold text-zinc-100">{pack.credits}</div>
-                  <div className="text-2xs text-zinc-500">credits</div>
+                  <div className="text-2xs text-crisp">credits</div>
                   <div className="text-sm font-bold text-brand-300 mt-2">${pack.priceDollars}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-center text-xs text-zinc-600 mt-6">
+          <p className="text-center text-xs text-crisp mt-6">
             Cancel anytime · No contracts · 30-day money-back guarantee
           </p>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-4 sm:px-6 border-t border-brand-500/10">
+      <section className="py-20 px-4 sm:px-6 border-t border-edge">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -394,14 +394,14 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="rounded-2xl bg-surface-secondary border border-brand-500/10 p-6">
+              <div key={i} className="rounded-2xl bg-surface-secondary border border-edge p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold`}>
                     {t.avatar}
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-zinc-200">{t.name}</div>
-                    <div className="text-xs text-zinc-500">{t.handle}</div>
+                    <div className="text-xs text-crisp">{t.handle}</div>
                   </div>
                 </div>
                 <p className="text-sm text-zinc-300 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
@@ -412,7 +412,7 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 px-4 sm:px-6 border-t border-brand-500/10">
+      <section id="faq" className="py-20 px-4 sm:px-6 border-t border-edge">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -425,7 +425,7 @@ export default function HomePage() {
             {FAQ.map((item, i) => (
               <details
                 key={i}
-                className="group rounded-xl border border-brand-500/10 bg-surface-secondary open:border-brand-500/25 transition-colors"
+                className="group rounded-xl border border-edge bg-surface-secondary open:border-brand-400 transition-colors"
               >
                 <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none select-none">
                   <span className="text-sm sm:text-base font-semibold text-zinc-200">{item.q}</span>
@@ -468,8 +468,8 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-brand-500/10 py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
+      <footer className="border-t border-edge py-8 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-crisp">
           <div className="flex items-center gap-3">
             <Image
               src="/postcrisp-logo-header.png"
@@ -511,7 +511,7 @@ function PricingCard({ name, tagline, price, highlight, premium, badge, features
     ? "border-amber-500/40 bg-gradient-to-b from-amber-900/20 to-surface-secondary"
     : highlight
     ? "border-brand-500/40 bg-gradient-to-b from-brand-900/20 to-surface-secondary"
-    : "border-brand-500/10 bg-surface-secondary";
+    : "border-edge bg-surface-secondary";
   const checkColor = premium ? "text-amber-400" : highlight ? "text-brand-400" : "text-emerald-400";
   const cta_classes = premium
     ? "bg-amber-600 hover:bg-amber-500 text-white hover:shadow-glow"
@@ -527,10 +527,10 @@ function PricingCard({ name, tagline, price, highlight, premium, badge, features
         </div>
       )}
       <h3 className="text-lg font-bold text-zinc-100">{name}</h3>
-      <p className="text-xs text-zinc-500 mt-0.5">{tagline}</p>
+      <p className="text-xs text-crisp mt-0.5">{tagline}</p>
       <div className="mt-3 flex items-end gap-1">
         <span className="text-3xl font-extrabold text-zinc-100">${price}</span>
-        <span className="text-zinc-500 mb-1">/ mo</span>
+        <span className="text-crisp mb-1">/ mo</span>
       </div>
       <ul className="space-y-2 mb-6 mt-5 flex-1">
         {features.slice(0, 5).map((f) => (

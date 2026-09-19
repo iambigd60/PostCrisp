@@ -13,7 +13,7 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-300">Daily limit reached</p>
-          <p className="text-xs text-zinc-500 mt-0.5">You&apos;ve used all {FREE_DAILY_LIMIT} free generations today.</p>
+          <p className="text-xs text-crisp mt-0.5">You&apos;ve used all {FREE_DAILY_LIMIT} free generations today.</p>
         </div>
         <Link
           href="/dashboard/billing"
@@ -45,9 +45,9 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
           ['Priority support', '✗', '✓'],
         ].map(([feature, free, pro]) => (
           <div key={feature} className="contents">
-            <div className="col-span-2 grid grid-cols-3 items-center gap-2 py-2 border-b border-brand-500/10">
-              <span className="text-zinc-500">{feature}</span>
-              <span className="text-center text-zinc-500">{free}</span>
+            <div className="col-span-2 grid grid-cols-3 items-center gap-2 py-2 border-b border-edge">
+              <span className="text-crisp">{feature}</span>
+              <span className="text-center text-crisp">{free}</span>
               <span className="text-center text-brand-400 font-medium">{pro}</span>
             </div>
           </div>
@@ -61,7 +61,7 @@ export function UpgradePrompt({ compact = false }: UpgradePromptProps) {
         >
           Upgrade to Creator — $19/mo
         </Link>
-        <p className="text-xs text-zinc-600 self-center">Resets at midnight</p>
+        <p className="text-xs text-crisp self-center">Resets at midnight</p>
       </div>
     </div>
   )

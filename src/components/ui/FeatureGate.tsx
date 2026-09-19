@@ -109,7 +109,7 @@ export function FeatureGate({ feature, featureLabel, featureIcon, featureTagline
           )}
 
           {previewSnapshotUrl && (
-            <div className="mb-6 rounded-xl border border-brand-500/10 overflow-hidden">
+            <div className="mb-6 rounded-xl border border-edge overflow-hidden">
               <img
                 src={previewSnapshotUrl}
                 alt={`${featureLabel} preview`}
@@ -134,7 +134,7 @@ export function FeatureGate({ feature, featureLabel, featureIcon, featureTagline
             </Link>
           </div>
 
-          <p className="text-xs text-zinc-500 text-center mt-4">
+          <p className="text-xs text-crisp text-center mt-4">
             Cancel anytime · 30-day money-back guarantee
           </p>
         </div>

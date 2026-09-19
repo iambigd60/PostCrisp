@@ -104,24 +104,24 @@ export default function AdminAuditPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Audit Log</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           {data ? `${data.total.toLocaleString()} admin action${data.total === 1 ? "" : "s"}` : "Loading…"}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 space-y-3">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 space-y-3">
         <form onSubmit={handleEmailSubmit} className="flex gap-2">
           <input
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
             placeholder="Search by target user email…"
-            className="flex-1 rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+            className="flex-1 rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-2 text-sm focus:outline-none focus:border-brand-400"
           />
           <Button size="sm" type="submit">Search</Button>
         </form>
         <div className="flex flex-wrap gap-3 items-center">
-          <select value={action} onChange={(e) => { setAction(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
+          <select value={action} onChange={(e) => { setAction(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400">
             <option value="all">All actions</option>
             <option value="tier_change">Tier changes</option>
             <option value="role_change">Role changes</option>
@@ -135,7 +135,7 @@ export default function AdminAuditPage() {
             <option value="access_control_change">Access control</option>
             <option value="note">Notes</option>
           </select>
-          <select value={windowDays} onChange={(e) => { setWindowDays(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40">
+          <select value={windowDays} onChange={(e) => { setWindowDays(e.target.value); setPage(1); }} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400">
             <option value="1">Last 24 hours</option>
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -151,11 +151,11 @@ export default function AdminAuditPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-tertiary">
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp">
                 <th className="px-4 py-3 font-medium">When</th>
                 <th className="px-4 py-3 font-medium">Action</th>
                 <th className="px-4 py-3 font-medium">Actor</th>
@@ -164,18 +164,18 @@ export default function AdminAuditPage() {
                 <th className="px-4 py-3 font-medium">Reason</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-500/5">
+            <tbody className="divide-y divide-edge">
               {loading && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-zinc-500">Loading…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-crisp">Loading…</td></tr>
               )}
               {!loading && data && data.actions.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-zinc-500">No admin actions match these filters</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-crisp">No admin actions match these filters</td></tr>
               )}
               {!loading && data?.actions.map((a) => {
                 const meta = metaFor(a.action);
                 return (
                   <tr key={a.id} className="hover:bg-surface-tertiary/30 transition-colors">
-                    <td className="px-4 py-2.5 text-xs text-zinc-500 whitespace-nowrap" title={new Date(a.created_at).toLocaleString()}>
+                    <td className="px-4 py-2.5 text-xs text-crisp whitespace-nowrap" title={new Date(a.created_at).toLocaleString()}>
                       {relativeTime(a.created_at)}
                     </td>
                     <td className="px-4 py-2.5">
@@ -193,13 +193,13 @@ export default function AdminAuditPage() {
                     </td>
                     <td className="px-4 py-2.5 text-xs font-mono text-zinc-400 whitespace-nowrap">
                       {a.from_value != null && a.to_value != null
-                        ? <><span className="text-zinc-500">{a.from_value}</span> → <span className="text-zinc-200">{a.to_value}</span></>
+                        ? <><span className="text-crisp">{a.from_value}</span> → <span className="text-zinc-200">{a.to_value}</span></>
                         : a.to_value != null
                           ? <span className="text-zinc-200">{a.to_value}</span>
-                          : <span className="text-zinc-600">—</span>}
+                          : <span className="text-crisp">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-zinc-400 max-w-xs truncate" title={a.reason ?? undefined}>
-                      {a.reason ?? <span className="text-zinc-600 italic">no reason given</span>}
+                      {a.reason ?? <span className="text-crisp italic">no reason given</span>}
                     </td>
                   </tr>
                 );
@@ -212,7 +212,7 @@ export default function AdminAuditPage() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-crisp">
             Page {data.page} of {data.totalPages}
           </div>
           <div className="flex gap-2">

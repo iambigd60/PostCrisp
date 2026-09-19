@@ -65,7 +65,7 @@ export function AskStage({
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
             placeholder="e.g. food creators in Las Vegas, AI tooling for solopreneurs"
-            className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-brand-500/50"
+            className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 placeholder:text-crisp focus:outline-none focus:border-brand-400"
           />
         </div>
 
@@ -78,7 +78,7 @@ export function AskStage({
               id="platform"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
-              className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 focus:outline-none focus:border-brand-500/50"
+              className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 focus:outline-none focus:border-brand-400"
             >
               {PLATFORMS.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -96,7 +96,7 @@ export function AskStage({
               id="tone"
               value={tone}
               onChange={(e) => setTone(e.target.value)}
-              className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 focus:outline-none focus:border-brand-500/50"
+              className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 focus:outline-none focus:border-brand-400"
             >
               {TONES.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -109,23 +109,23 @@ export function AskStage({
 
         <div>
           <label htmlFor="handle" className="block text-sm font-semibold text-zinc-300 mb-1.5">
-            Your handle <span className="font-normal text-zinc-500">— optional</span>
+            Your handle <span className="font-normal text-crisp">— optional</span>
           </label>
           <input
             id="handle"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             placeholder="@yourhandle"
-            className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-brand-500/50"
+            className="w-full rounded-xl border border-brand-500/20 bg-surface-secondary px-4 py-3 text-zinc-100 placeholder:text-crisp focus:outline-none focus:border-brand-400"
           />
-          <p className="text-xs text-zinc-500 mt-1.5">
+          <p className="text-xs text-crisp mt-1.5">
             Skip it — you can connect channels later and everything still works.
           </p>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <button onClick={onLater} className="text-sm text-zinc-500 hover:text-zinc-300">
+        <button onClick={onLater} className="text-sm text-crisp hover:text-zinc-300">
           Finish later
         </button>
         <Button

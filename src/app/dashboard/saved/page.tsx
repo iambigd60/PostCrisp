@@ -89,7 +89,7 @@ export default function SavedPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Saved Content</h1>
-        <p className="text-zinc-500 mt-1">Your saved captions, hashtag sets, and viral ideas.</p>
+        <p className="text-crisp mt-1">Your saved captions, hashtag sets, and viral ideas.</p>
       </div>
 
       {/* Filter tabs */}
@@ -111,7 +111,7 @@ export default function SavedPage() {
               }`}
             >
               <span>{label}</span>
-              <span className="text-2xs text-zinc-500 bg-surface-tertiary px-1.5 py-0.5 rounded-full">{count}</span>
+              <span className="text-2xs text-crisp bg-surface-tertiary px-1.5 py-0.5 rounded-full">{count}</span>
             </button>
           );
         })}
@@ -129,13 +129,13 @@ export default function SavedPage() {
           {filtered.map((item) => (
             <div
               key={item.id}
-              className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 hover:border-brand-500/20 transition-all group"
+              className="rounded-xl border border-edge bg-surface-secondary p-5 hover:border-brand-400 transition-all group"
             >
               <div className="flex items-start justify-between mb-3">
                 <span className={`text-xs font-medium px-2 py-1 rounded-lg ${TONE_CLASS[TYPE_META[item.type]?.tone ?? 'emerald']}`}>
                   {TYPE_META[item.type]?.badge ?? `📄 ${item.type}`}
                 </span>
-                <span className="text-xs text-zinc-600">
+                <span className="text-xs text-crisp">
                   {new Date(item.createdAt).toLocaleDateString()}
                 </span>
               </div>
@@ -181,7 +181,7 @@ export default function SavedPage() {
       )}
 
       {!loading && !error && filtered.length === 0 && items.length > 0 && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-3xl block mb-3">🔍</span>
           <p>No {filter === "caption" ? "captions" : filter === "hashtags" ? "hashtag sets" : "viral ideas"} saved yet.</p>
         </div>

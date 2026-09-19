@@ -92,7 +92,7 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
   const pct = Math.round((completedCount / STEPS.length) * 100)
 
   return (
-    <div className="rounded-xl border border-brand-500/15 bg-surface-secondary p-5 space-y-4">
+    <div className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -101,14 +101,14 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
               {completedCount} of {STEPS.length}
             </span>
           </div>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-crisp mt-0.5">
             Five moves to get the most out of PostCrisp. Takes about ten minutes total.
           </p>
         </div>
         <button
           onClick={handleDismiss}
           disabled={hiding}
-          className="text-xs text-zinc-500 hover:text-zinc-300 flex-shrink-0"
+          className="text-xs text-crisp hover:text-zinc-300 flex-shrink-0"
           title="Hide this checklist permanently"
         >
           Hide
@@ -134,14 +134,14 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
               className={`flex items-start gap-3 p-3 rounded-lg border transition-all group ${
                 done
                   ? 'border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10'
-                  : 'border-brand-500/10 bg-surface-tertiary/40 hover:border-brand-500/25 hover:bg-surface-tertiary/70'
+                  : 'border-edge bg-surface-tertiary/40 hover:border-brand-400 hover:bg-surface-tertiary/70'
               }`}
             >
               <div
                 className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 transition-colors ${
                   done
                     ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-surface-primary text-zinc-500 border border-brand-500/20'
+                    : 'bg-surface-primary text-crisp border border-brand-500/20'
                 }`}
               >
                 {done ? '✓' : step.icon}
@@ -150,10 +150,10 @@ export function GettingStartedCard({ state, dismissed, onDismiss }: GettingStart
                 <div className={`text-sm font-semibold ${done ? 'text-emerald-300 line-through decoration-emerald-500/30' : 'text-zinc-200'}`}>
                   {step.label}
                 </div>
-                <div className="text-xs text-zinc-500 mt-0.5">{step.description}</div>
+                <div className="text-xs text-crisp mt-0.5">{step.description}</div>
               </div>
               {!done && (
-                <span className="text-zinc-500 group-hover:text-brand-400 text-sm flex-shrink-0 mt-1 transition-colors">
+                <span className="text-crisp group-hover:text-brand-400 text-sm flex-shrink-0 mt-1 transition-colors">
                   →
                 </span>
               )}

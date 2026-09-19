@@ -33,12 +33,12 @@ export function BrandReadinessCard({ result }: Props) {
   const grade = GRADE_COLOR[result.grade]
 
   return (
-    <div className="rounded-xl border border-brand-500/15 bg-surface-secondary p-5 sm:p-6 space-y-5">
+    <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
       {/* Header — score + grade */}
       <div className="flex items-start gap-5">
         <div className={`flex-shrink-0 w-20 h-20 rounded-2xl flex flex-col items-center justify-center border ${grade.border} ${grade.bg}`}>
           <div className={`text-3xl font-bold leading-none ${grade.text}`}>{result.grade}</div>
-          <div className="text-2xs uppercase tracking-wider text-zinc-500 mt-1.5 tabular-nums">
+          <div className="text-2xs uppercase tracking-wider text-crisp mt-1.5 tabular-nums">
             {result.score}/100
           </div>
         </div>
@@ -49,7 +49,7 @@ export function BrandReadinessCard({ result }: Props) {
               {GRADE_HEADLINE[result.grade]}
             </span>
           </div>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+          <p className="text-xs text-crisp mt-1 leading-relaxed">
             How brand-ready you look right now. Higher score = stronger pitches, faster wins, more reasons brands say yes.
           </p>
         </div>
@@ -63,12 +63,12 @@ export function BrandReadinessCard({ result }: Props) {
             <Link
               key={dim.key}
               href={dim.href}
-              className="rounded-lg border border-brand-500/10 bg-surface-tertiary/40 hover:border-brand-500/25 hover:bg-surface-tertiary/70 p-3 transition-all"
+              className="rounded-lg border border-edge bg-surface-tertiary/40 hover:border-brand-400 hover:bg-surface-tertiary/70 p-3 transition-all"
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-xs font-semibold text-zinc-200">{dim.label}</div>
-                <span className="text-2xs text-zinc-500 tabular-nums font-semibold">
-                  {dim.score}<span className="text-zinc-600">/{dim.max}</span>
+                <span className="text-2xs text-crisp tabular-nums font-semibold">
+                  {dim.score}<span className="text-crisp">/{dim.max}</span>
                 </span>
               </div>
               <div className="h-1.5 bg-surface-primary rounded-full overflow-hidden mb-1.5">
@@ -77,7 +77,7 @@ export function BrandReadinessCard({ result }: Props) {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-2xs text-zinc-500 leading-snug">{dim.reason}</p>
+              <p className="text-2xs text-crisp leading-snug">{dim.reason}</p>
             </Link>
           )
         })}
@@ -85,7 +85,7 @@ export function BrandReadinessCard({ result }: Props) {
 
       {/* Top actions to raise the score */}
       {result.actions.length > 0 && (
-        <div className="rounded-lg border border-brand-500/15 bg-brand-500/5 p-4">
+        <div className="rounded-lg border border-edge bg-brand-500/5 p-4">
           <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-2">
             Highest-leverage moves to raise your score
           </div>
@@ -94,7 +94,7 @@ export function BrandReadinessCard({ result }: Props) {
               <Link
                 key={i}
                 href={action.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-primary/60 hover:bg-surface-primary border border-transparent hover:border-brand-500/30 transition-all group"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-primary/60 hover:bg-surface-primary border border-transparent hover:border-brand-400 transition-all group"
               >
                 <span
                   className={`text-2xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 ${
@@ -106,7 +106,7 @@ export function BrandReadinessCard({ result }: Props) {
                   +{action.expectedPoints}
                 </span>
                 <span className="text-sm text-zinc-200 flex-1 truncate">{action.label}</span>
-                <span className="text-zinc-500 group-hover:text-brand-400 text-sm flex-shrink-0 transition-colors">
+                <span className="text-crisp group-hover:text-brand-400 text-sm flex-shrink-0 transition-colors">
                   →
                 </span>
               </Link>

@@ -54,7 +54,7 @@ export function CopyButton({ text, label = "Copy", className = "", variant = "de
       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all min-h-[36px] ${
         copied
           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 scale-95"
-          : "bg-surface-elevated hover:bg-surface-hover text-zinc-400 hover:text-zinc-200 border border-brand-500/10"
+          : "bg-surface-elevated hover:bg-surface-hover text-zinc-400 hover:text-zinc-200 border border-edge"
       } ${className}`}
     >
       {copied ? "Copied ✓" : label}

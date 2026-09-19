@@ -48,7 +48,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           <h3 className="text-lg font-semibold text-zinc-100">{title}</h3>
           <button
             onClick={onClose}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover transition-colors"
             aria-label="Close"
           >
             ✕

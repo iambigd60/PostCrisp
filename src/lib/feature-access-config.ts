@@ -35,7 +35,6 @@ export const DEFAULT_MIN_TIER: Record<CrispTask, Tier> = {
   'brand-pitch':         'creator',
   'rate-calculator':     'creator',
   'competitor-analysis': 'creator',
-  'media-kit-bio':       'creator',
   // Self-analysis — Creator+
   'channel-analysis':    'creator',
   // Foundation Analysis — Elite-only by default

@@ -7,6 +7,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Post { platform: string; type: string; sourceSection: string; content: string; hashtags?: string[] }
 
@@ -62,16 +63,16 @@ export default function BlogToSocialPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Blog → Social</h1>
-        <p className="text-zinc-500 mt-1">Extract standalone social posts from any long-form article.</p>
+        <p className="text-crisp mt-1">Extract standalone social posts from any long-form article.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Blog content *</label>
           <textarea rows={8} value={blog} onChange={(e) => setBlog(e.target.value)}
             placeholder="Paste blog article, newsletter, or long-form post..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-y" />
-          <p className="text-xs text-zinc-600 mt-1">{blog.length.toLocaleString()} characters</p>
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-y" />
+          <p className="text-xs text-crisp mt-1">{blog.length.toLocaleString()} characters</p>
         </div>
 
         <div>
@@ -80,7 +81,7 @@ export default function BlogToSocialPage() {
             <span className="text-sm font-mono text-brand-300">{count}</span>
           </div>
           <input type="range" min={3} max={10} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full accent-brand-500" />
-          <div className="flex justify-between text-2xs text-zinc-600 mt-1"><span>3</span><span>10</span></div>
+          <div className="flex justify-between text-2xs text-crisp mt-1"><span>3</span><span>10</span></div>
         </div>
 
         <div>
@@ -103,6 +104,7 @@ export default function BlogToSocialPage() {
 
         <Button onClick={handleConvert} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Extracting..." : "📰 Convert to Social"}
+          <CreditCost task="blog-to-social" />
         </Button>
       </div>
 
@@ -117,15 +119,15 @@ export default function BlogToSocialPage() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {posts.map((post, i) => (
-              <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 space-y-3">
+              <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-zinc-400 bg-surface-tertiary px-2 py-0.5 rounded-full">{post.platform}</span>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${typeColor[post.type] ?? "bg-zinc-500/10 text-zinc-300"}`}>{post.type}</span>
-                  <span className="text-xs text-zinc-600 ml-auto truncate max-w-[50%]">from: {post.sourceSection}</span>
+                  <span className="text-xs text-crisp ml-auto truncate max-w-[50%]">from: {post.sourceSection}</span>
                 </div>
                 <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{post.content}</p>
                 {post.hashtags && post.hashtags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-brand-500/5">
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-edge">
                     {post.hashtags.map((h) => <span key={h} className="text-xs text-brand-300 bg-brand-500/10 px-2 py-0.5 rounded-full">{h}</span>)}
                   </div>
                 )}
@@ -140,7 +142,7 @@ export default function BlogToSocialPage() {
       )}
 
       {posts.length === 0 && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">📰</span>
           <p>Paste a blog post above to mine it for social-ready posts.</p>
         </div>

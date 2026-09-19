@@ -8,6 +8,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface BioOption {
   text: string;
@@ -60,15 +61,15 @@ export default function BioOptimizerPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Bio Optimizer</h1>
-        <p className="text-zinc-500 mt-1">A better bio in 30 seconds, per platform.</p>
+        <p className="text-crisp mt-1">A better bio in 30 seconds, per platform.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Current bio <span className="text-zinc-600">(optional — helps us compare)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Current bio <span className="text-crisp">(optional — helps us compare)</span></label>
           <textarea rows={2} value={currentBio} onChange={(e) => setCurrentBio(e.target.value)}
             placeholder="Paste your current bio..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
         <div>
@@ -86,7 +87,7 @@ export default function BioOptimizerPage() {
           <label className="block text-sm font-medium text-zinc-300 mb-2">Your niche *</label>
           <input value={niche} onChange={(e) => setNiche(e.target.value)}
             placeholder="e.g., personal finance for Gen Z"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <div>
@@ -109,6 +110,7 @@ export default function BioOptimizerPage() {
 
         <Button onClick={handleOptimize} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Optimizing..." : "🧬 Optimize Bio"}
+          <CreditCost task="bio-optimizer" />
         </Button>
       </div>
 
@@ -120,19 +122,19 @@ export default function BioOptimizerPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-zinc-200">5 bio options</h2>
-              <p className="text-xs text-zinc-500">{platform} limit: {charLimit} characters</p>
+              <p className="text-xs text-crisp">{platform} limit: {charLimit} characters</p>
             </div>
             <EngineBadge />
           </div>
           {options.map((o, i) => {
             const over = o.charCount > charLimit;
             return (
-              <div key={i} className={`rounded-xl border p-5 ${over ? "border-red-500/30 bg-red-500/5" : "border-brand-500/10 bg-surface-secondary"}`}>
+              <div key={i} className={`rounded-xl border p-5 ${over ? "border-red-500/30 bg-red-500/5" : "border-edge bg-surface-secondary"}`}>
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <span className="text-xs font-semibold text-brand-300">#{i + 1}</span>
                   <span className="text-xs font-medium text-zinc-400 bg-surface-tertiary px-2 py-0.5 rounded-full">{o.approach}</span>
                   <span className={`text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${ctaColor[o.ctaStrength] ?? "text-zinc-400"}`}>{o.ctaStrength} CTA</span>
-                  <span className="text-xs text-zinc-500">{o.emojiCount} emoji</span>
+                  <span className="text-xs text-crisp">{o.emojiCount} emoji</span>
                   <span className={`ml-auto text-xs font-mono ${over ? "text-red-400" : o.charCount > charLimit * 0.9 ? "text-amber-400" : "text-emerald-400"}`}>
                     {o.charCount} / {charLimit}
                   </span>
@@ -140,7 +142,7 @@ export default function BioOptimizerPage() {
                 <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed mb-3">{o.text}</p>
                 {o.keywords.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {o.keywords.map((k) => <span key={k} className="text-2xs text-zinc-500 bg-surface-tertiary px-2 py-0.5 rounded-full">{k}</span>)}
+                    {o.keywords.map((k) => <span key={k} className="text-2xs text-crisp bg-surface-tertiary px-2 py-0.5 rounded-full">{k}</span>)}
                   </div>
                 )}
                 <CopyButton text={o.text} />
@@ -151,7 +153,7 @@ export default function BioOptimizerPage() {
       )}
 
       {options.length === 0 && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">🧬</span>
           <p>Pick a platform and niche to get 5 bio options with different angles.</p>
         </div>

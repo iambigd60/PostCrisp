@@ -219,7 +219,7 @@ export default function AIConfigPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">AI Engine Config</h1>
-          <p className="text-zinc-500 mt-1">Loading…</p>
+          <p className="text-crisp mt-1">Loading…</p>
         </div>
       </div>
     );
@@ -229,7 +229,7 @@ export default function AIConfigPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">AI Engine Config</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           Route each feature × tier to a provider + model.
         </p>
       </div>
@@ -258,7 +258,7 @@ export default function AIConfigPage() {
 
             <div className="h-5 w-px bg-zinc-700 mx-1" />
 
-            <span className="text-xs text-zinc-500">Apply to tiers:</span>
+            <span className="text-xs text-crisp">Apply to tiers:</span>
             <div className="flex gap-1">
               {CONFIGURABLE_TIERS.map((t) => (
                 <button
@@ -267,7 +267,7 @@ export default function AIConfigPage() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                     bulkTiers.has(t)
                       ? tierHeader[t]
-                      : "bg-surface-tertiary text-zinc-500 border-transparent hover:text-zinc-300"
+                      : "bg-surface-tertiary text-crisp border-transparent hover:text-zinc-300"
                   }`}
                 >
                   {TIER_LABELS[t]}
@@ -278,11 +278,11 @@ export default function AIConfigPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-zinc-500">Provider</label>
+              <label className="text-xs text-crisp">Provider</label>
               <select
                 value={bulkProvider}
                 onChange={(e) => setBulkProvider(e.target.value as ProviderId)}
-                className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40 transition-colors"
+                className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400 transition-colors"
               >
                 {SUPPORTED_PROVIDERS.map((p) => (
                   <option key={p} value={p}>{p}</option>
@@ -291,11 +291,11 @@ export default function AIConfigPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs text-zinc-500">Model</label>
+              <label className="text-xs text-crisp">Model</label>
               <select
                 value={bulkModel}
                 onChange={(e) => setBulkModel(e.target.value)}
-                className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40 transition-colors min-w-[220px]"
+                className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400 transition-colors min-w-[220px]"
               >
                 {(MODEL_CATALOG[bulkProvider] ?? []).map((m) => (
                   <option key={m.id} value={m.id}>{m.label}{m.notes ? ` — ${m.notes}` : ""}</option>
@@ -319,9 +319,9 @@ export default function AIConfigPage() {
       )}
 
       {/* Grid: header row + per-task rows */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
         {/* Header row */}
-        <div className="grid grid-cols-[32px_1.5fr_1fr_1fr_1fr] gap-0 bg-surface-tertiary border-b border-brand-500/10">
+        <div className="grid grid-cols-[32px_1.5fr_1fr_1fr_1fr] gap-0 bg-surface-tertiary border-b border-edge">
           <div className="px-3 py-3 flex items-center">
             <input
               type="checkbox"
@@ -332,11 +332,11 @@ export default function AIConfigPage() {
               aria-label="Select all"
             />
           </div>
-          <div className="px-3 py-3 text-xs uppercase tracking-wider text-zinc-500 font-medium">Feature</div>
+          <div className="px-3 py-3 text-xs uppercase tracking-wider text-crisp font-medium">Feature</div>
           {CONFIGURABLE_TIERS.map((tier) => (
             <div
               key={tier}
-              className={`px-3 py-3 text-xs uppercase tracking-wider font-medium border-l border-brand-500/10 text-center ${tierHeader[tier].replace('bg-', 'text-').split(' ').filter(c => c.startsWith('text-')).join(' ')}`}
+              className={`px-3 py-3 text-xs uppercase tracking-wider font-medium border-l border-edge text-center ${tierHeader[tier].replace('bg-', 'text-').split(' ').filter(c => c.startsWith('text-')).join(' ')}`}
             >
               {TIER_LABELS[tier]}
             </div>
@@ -344,7 +344,7 @@ export default function AIConfigPage() {
         </div>
 
         {/* Data rows */}
-        <div className="divide-y divide-brand-500/5">
+        <div className="divide-y divide-edge">
           {items.map((item) => {
             const isRowSelected = selected.has(item.task);
             return (
@@ -363,7 +363,7 @@ export default function AIConfigPage() {
                 </div>
                 <div className="px-3 py-3 flex flex-col justify-center">
                   <span className="text-sm font-medium text-zinc-200">{TASK_LABELS[item.task]}</span>
-                  <span className="text-2xs text-zinc-600 font-mono">{item.task}</span>
+                  <span className="text-2xs text-crisp font-mono">{item.task}</span>
                 </div>
                 {CONFIGURABLE_TIERS.map((tier) => {
                   const cell = item.tiers[tier];
@@ -376,7 +376,7 @@ export default function AIConfigPage() {
                   return (
                     <div
                       key={tier}
-                      className={`px-2 py-2 border-l border-brand-500/10 flex flex-col gap-1.5 ${hasOverride ? tierAccent[tier] : ""}`}
+                      className={`px-2 py-2 border-l border-edge flex flex-col gap-1.5 ${hasOverride ? tierAccent[tier] : ""}`}
                     >
                       <span className={`self-start text-2xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${profileBadge[cell.defaultProfile]}`}>
                         {cell.defaultProfile}
@@ -384,7 +384,7 @@ export default function AIConfigPage() {
                       <select
                         value={eff.provider}
                         onChange={(e) => updatePending(item.task, tier, { provider: e.target.value as ProviderId, model: MODEL_CATALOG[e.target.value as ProviderId]?.[0]?.id })}
-                        className="w-full rounded bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-2 py-1 text-2xs focus:outline-none focus:border-brand-500/40"
+                        className="w-full rounded bg-surface-tertiary border border-edge text-zinc-200 px-2 py-1 text-2xs focus:outline-none focus:border-brand-400"
                       >
                         {SUPPORTED_PROVIDERS.map((p) => (
                           <option key={p} value={p}>{p}</option>
@@ -393,7 +393,7 @@ export default function AIConfigPage() {
                       <select
                         value={eff.model}
                         onChange={(e) => updatePending(item.task, tier, { model: e.target.value })}
-                        className="w-full rounded bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-2 py-1 text-2xs focus:outline-none focus:border-brand-500/40"
+                        className="w-full rounded bg-surface-tertiary border border-edge text-zinc-200 px-2 py-1 text-2xs focus:outline-none focus:border-brand-400"
                       >
                         {modelsForProvider.map((m) => (
                           <option key={m.id} value={m.id}>{m.label}</option>
@@ -414,7 +414,7 @@ export default function AIConfigPage() {
                           </Button>
                         )}
                         {!hasOverride && !dirty && (
-                          <span className="text-2xs text-zinc-600 px-1">default</span>
+                          <span className="text-2xs text-crisp px-1">default</span>
                         )}
                       </div>
                     </div>

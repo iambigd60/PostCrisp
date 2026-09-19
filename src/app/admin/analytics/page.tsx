@@ -64,10 +64,10 @@ const tierColor: Record<Tier, string> = {
 
 function KpiTile({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-      <div className="text-xs uppercase tracking-wider text-zinc-500">{label}</div>
+    <div className="rounded-xl border border-edge bg-surface-secondary p-4">
+      <div className="text-xs uppercase tracking-wider text-crisp">{label}</div>
       <div className="text-2xl font-bold text-zinc-100 mt-1">{value}</div>
-      {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-crisp mt-1">{sub}</div>}
     </div>
   );
 }
@@ -102,13 +102,13 @@ function DailyBarChart({ data }: { data: { date: string; count: number }[] }) {
           const day = new Date(d.date).getUTCDate();
           const showLabel = day === 1 || day % 7 === 0;
           return (
-            <div key={d.date} className="flex-1 text-[10px] text-center text-zinc-600">
+            <div key={d.date} className="flex-1 text-[10px] text-center text-crisp">
               {showLabel ? day : ""}
             </div>
           );
         })}
       </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] text-zinc-600">
+      <div className="mt-3 flex items-center justify-between text-[10px] text-crisp">
         <span>Peak: {max.toLocaleString()} gens</span>
         <span>Total: {data.reduce((a, b) => a + b.count, 0).toLocaleString()}</span>
       </div>
@@ -146,11 +146,11 @@ export default function AdminAnalyticsPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Analytics</h1>
-          <p className="text-zinc-500 mt-1">Loading…</p>
+          <p className="text-crisp mt-1">Loading…</p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-xl bg-surface-secondary border border-brand-500/10 animate-pulse" />
+            <div key={i} className="h-24 rounded-xl bg-surface-secondary border border-edge animate-pulse" />
           ))}
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function AdminAnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Analytics</h1>
-        <p className="text-zinc-500 mt-1">Last {data.window.days} days</p>
+        <p className="text-crisp mt-1">Last {data.window.days} days</p>
       </div>
 
       {/* KPI tiles */}
@@ -183,7 +183,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Tier distribution */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4">
         <h2 className="text-sm font-semibold text-zinc-200 mb-3">Tier distribution</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {(Object.keys(kpi.tierCounts) as Tier[]).map((t) => (
@@ -197,15 +197,15 @@ export default function AdminAnalyticsPage() {
 
       {/* Daily chart + feature breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">Generations per day</h2>
           <DailyBarChart data={daily} />
         </div>
 
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">Feature breakdown</h2>
           {featureBreakdown.length === 0 ? (
-            <p className="text-sm text-zinc-500">No generations yet in this window.</p>
+            <p className="text-sm text-crisp">No generations yet in this window.</p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {featureBreakdown.map((f) => {
@@ -218,7 +218,7 @@ export default function AdminAnalyticsPage() {
                         <span className="mr-1.5">{meta.icon}</span>
                         {meta.label}
                       </span>
-                      <span className="text-zinc-500 font-mono">
+                      <span className="text-crisp font-mono">
                         {f.count.toLocaleString()} gens · {compactNumber(f.tokens)} tk · <span className="text-amber-400/80">{formatUsd(f.estCostUsd)}</span>
                       </span>
                     </div>
@@ -237,20 +237,20 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Top users by tokens */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-        <div className="px-5 py-4 border-b border-brand-500/10 flex items-end justify-between">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
+        <div className="px-5 py-4 border-b border-edge flex items-end justify-between">
           <div>
             <h2 className="text-sm font-semibold text-zinc-200">Top users by token consumption</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Last {data.window.days} days — spot your power users and cost drivers</p>
+            <p className="text-xs text-crisp mt-0.5">Last {data.window.days} days — spot your power users and cost drivers</p>
           </div>
-          <p className="text-xs text-zinc-600 italic">Cost est. via current Creator-tier routing</p>
+          <p className="text-xs text-crisp italic">Cost est. via current Creator-tier routing</p>
         </div>
         {topUsers.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-zinc-500">No usage yet.</p>
+          <p className="px-5 py-10 text-center text-sm text-crisp">No usage yet.</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-surface-tertiary">
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp">
                 <th className="px-4 py-2.5 font-medium">#</th>
                 <th className="px-4 py-2.5 font-medium">User</th>
                 <th className="px-4 py-2.5 font-medium">Tier</th>
@@ -260,16 +260,16 @@ export default function AdminAnalyticsPage() {
                 <th className="px-4 py-2.5 font-medium text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-500/5">
+            <tbody className="divide-y divide-edge">
               {topUsers.map((u, i) => {
                 const pct = (u.tokens / maxUserTokens) * 100;
                 return (
                   <tr key={u.user_id} className="hover:bg-surface-tertiary/30 transition-colors">
-                    <td className="px-4 py-2.5 text-zinc-500 font-mono text-xs">{i + 1}</td>
+                    <td className="px-4 py-2.5 text-crisp font-mono text-xs">{i + 1}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-col">
                         <span className="text-zinc-200 truncate">{u.full_name ?? "—"}</span>
-                        <span className="text-xs text-zinc-500 truncate">{u.email}</span>
+                        <span className="text-xs text-crisp truncate">{u.email}</span>
                       </div>
                     </td>
                     <td className="px-4 py-2.5">

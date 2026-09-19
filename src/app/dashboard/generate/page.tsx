@@ -9,6 +9,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 type GenerateRequest = {
   topic: string;
@@ -148,11 +149,11 @@ export default function GeneratePage() {
       )}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Caption Generator</h1>
-        <p className="text-zinc-500 mt-1">Describe your post and let AI craft the perfect caption.</p>
+        <p className="text-crisp mt-1">Describe your post and let AI craft the perfect caption.</p>
       </div>
 
       {/* Input form */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         {/* Topic textarea */}
         <div>
           <label htmlFor="topic" className="block text-sm font-medium text-zinc-300 mb-2">
@@ -164,7 +165,7 @@ export default function GeneratePage() {
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g., Launching our new product, a sunset photo, fitness motivation..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors resize-none"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors resize-none"
           />
         </div>
 
@@ -234,7 +235,7 @@ export default function GeneratePage() {
         {/* Audience input */}
         <div>
           <label htmlFor="audience" className="block text-sm font-medium text-zinc-300 mb-2">
-            Target audience <span className="text-zinc-600">(optional)</span>
+            Target audience <span className="text-crisp">(optional)</span>
           </label>
           <input
             id="audience"
@@ -242,19 +243,20 @@ export default function GeneratePage() {
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             placeholder="e.g., first-time homebuyers, busy moms, indie game devs"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors"
           />
         </div>
 
         {/* Generate button */}
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Generating..." : "✨ Generate Captions"}
+          <CreditCost task="captions" />
         </Button>
       </div>
 
       {/* Loading state */}
       {loading && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary">
+        <div className="rounded-xl border border-edge bg-surface-secondary">
           <GenerationLoader messages={GENERATION_MESSAGES} />
         </div>
       )}
@@ -276,7 +278,7 @@ export default function GeneratePage() {
             return (
               <div
                 key={`${i}-${caption.slice(0, 20)}`}
-                className={`rounded-xl border border-brand-500/10 bg-surface-secondary p-5 hover:border-brand-500/20 transition-all group ${isRegenerating ? "opacity-60" : ""}`}
+                className={`rounded-xl border border-edge bg-surface-secondary p-5 hover:border-brand-400 transition-all group ${isRegenerating ? "opacity-60" : ""}`}
               >
                 <p className="text-zinc-300 whitespace-pre-wrap mb-3 leading-relaxed">{caption}</p>
                 <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -303,6 +305,7 @@ export default function GeneratePage() {
           <div className="pt-2">
             <Button onClick={handleGenerateMore} loading={loadingMore} variant="secondary" size="md" className="w-full sm:w-auto">
               {loadingMore ? "Generating more..." : "✨ Generate 5 more"}
+              <CreditCost task="captions" />
             </Button>
           </div>
         </div>
@@ -310,7 +313,7 @@ export default function GeneratePage() {
 
       {/* Empty state when no results yet */}
       {!loading && !error && captions.length === 0 && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">✍️</span>
           <p>Describe your post above and hit Generate to get started!</p>
         </div>

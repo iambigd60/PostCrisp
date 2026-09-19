@@ -8,6 +8,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Result {
   partnerProfiles: { description: string; whyItWorks: string }[];
@@ -54,21 +55,21 @@ export default function CollabFinderPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Collaboration Finder</h1>
-        <p className="text-zinc-500 mt-1">Strategy, outreach, and content ideas for creator partnerships.</p>
+        <p className="text-crisp mt-1">Strategy, outreach, and content ideas for creator partnerships.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Your niche *</label>
-            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               <option value="">Select a niche…</option>
               {NICHES.map((n) => <option key={n.id} value={n.label}>{n.label}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Your follower range</label>
-            <select value={followerRange} onChange={(e) => setFollowerRange(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={followerRange} onChange={(e) => setFollowerRange(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               {FOLLOWER_RANGES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
@@ -105,6 +106,7 @@ export default function CollabFinderPage() {
 
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Building strategy..." : "🤝 Build Collab Strategy"}
+          <CreditCost task="collab-finder" />
         </Button>
       </div>
 
@@ -116,20 +118,20 @@ export default function CollabFinderPage() {
           <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold text-zinc-200">Your collab playbook</h2><EngineBadge /></div>
 
           {/* Partner profiles */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">👥 Types of creators to target</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {result.partnerProfiles.map((p, i) => (
-                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-brand-500/5">
+                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-edge">
                   <p className="text-sm font-medium text-zinc-200 mb-1">{p.description}</p>
-                  <p className="text-xs text-zinc-500">💡 {p.whyItWorks}</p>
+                  <p className="text-xs text-crisp">💡 {p.whyItWorks}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* How to find */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">🔍 How to find them</h3>
             <ol className="space-y-2">
               {result.howToFind.map((h, i) => <li key={i} className="flex gap-3 text-sm text-zinc-300"><span className="text-brand-400 font-bold">{i + 1}.</span><span className="flex-1">{h}</span></li>)}
@@ -142,15 +144,15 @@ export default function CollabFinderPage() {
               <h3 className="text-base font-semibold text-zinc-100">✉️ Outreach template</h3>
               <CopyButton text={result.outreachTemplate} />
             </div>
-            <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono bg-surface-tertiary rounded-lg p-4 border border-brand-500/5 leading-relaxed">{result.outreachTemplate}</pre>
+            <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono bg-surface-tertiary rounded-lg p-4 border border-edge leading-relaxed">{result.outreachTemplate}</pre>
           </div>
 
           {/* Content ideas */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">💡 Content collab ideas</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {result.contentIdeas.map((idea, i) => (
-                <div key={i} className="rounded-lg bg-surface-tertiary p-3 text-sm text-zinc-300 border border-brand-500/5">
+                <div key={i} className="rounded-lg bg-surface-tertiary p-3 text-sm text-zinc-300 border border-edge">
                   {idea}
                 </div>
               ))}
@@ -184,7 +186,7 @@ export default function CollabFinderPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">🤝</span>
           <p>Fill in your profile to get a complete collab strategy.</p>
         </div>

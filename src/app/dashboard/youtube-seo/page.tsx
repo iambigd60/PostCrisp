@@ -7,6 +7,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Result {
   titles: { text: string; charCount: number; keywordPlacement: string }[];
@@ -49,39 +50,40 @@ export default function YouTubeSEOPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">YouTube SEO</h1>
-        <p className="text-zinc-500 mt-1">Rank higher on YouTube search and suggested videos.</p>
+        <p className="text-crisp mt-1">Rank higher on YouTube search and suggested videos.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Video topic / title idea *</label>
           <textarea rows={2} value={topic} onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g., How to edit reels in CapCut like a pro"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Target keywords <span className="text-zinc-600">(optional, comma-separated)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Target keywords <span className="text-crisp">(optional, comma-separated)</span></label>
           <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="capcut tutorial, reels editing, video editing"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Competitor URL <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Competitor URL <span className="text-crisp">(optional)</span></label>
             <input value={competitorUrl} onChange={(e) => setCompetitorUrl(e.target.value)} placeholder="youtube.com/watch?v=..."
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
           </div>
         </div>
 
         <Button onClick={handleOptimize} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Optimizing..." : "📺 Optimize for YouTube"}
+          <CreditCost task="youtube-seo" />
         </Button>
       </div>
 
@@ -97,21 +99,21 @@ export default function YouTubeSEOPage() {
             <div className={`text-4xl sm:text-5xl font-extrabold ${scoreColor}`}>{result.seoScore}</div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-zinc-200">Estimated SEO score</p>
-              <p className="text-xs text-zinc-500">Based on title, description, tags, and keyword placement</p>
+              <p className="text-xs text-crisp">Based on title, description, tags, and keyword placement</p>
             </div>
           </div>
 
           {/* Titles */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">📝 Title suggestions</h3>
             <div className="space-y-2">
               {result.titles.map((t, i) => (
-                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-brand-500/5">
+                <div key={i} className="rounded-lg bg-surface-tertiary p-3 border border-edge">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm text-zinc-200 font-medium flex-1">{t.text}</p>
                     <CopyButton text={t.text} variant="icon" />
                   </div>
-                  <div className="flex items-center gap-3 mt-1.5 text-2xs text-zinc-500">
+                  <div className="flex items-center gap-3 mt-1.5 text-2xs text-crisp">
                     <span className={t.charCount > 60 ? "text-amber-400" : "text-emerald-400"}>{t.charCount} chars</span>
                     <span>·</span>
                     <span>{t.keywordPlacement}</span>
@@ -122,18 +124,18 @@ export default function YouTubeSEOPage() {
           </div>
 
           {/* Description */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-semibold text-zinc-100">📄 Optimized description</h3>
               <CopyButton text={result.description} />
             </div>
-            <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono bg-surface-tertiary rounded-lg p-4 border border-brand-500/5 leading-relaxed">{result.description}</pre>
+            <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono bg-surface-tertiary rounded-lg p-4 border border-edge leading-relaxed">{result.description}</pre>
           </div>
 
           {/* Tags */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-zinc-100">🏷️ Tags <span className="text-xs text-zinc-500 font-normal">({result.tags.length})</span></h3>
+              <h3 className="text-base font-semibold text-zinc-100">🏷️ Tags <span className="text-xs text-crisp font-normal">({result.tags.length})</span></h3>
               <CopyButton text={result.tags.join(", ")} label="Copy as CSV" />
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -144,7 +146,7 @@ export default function YouTubeSEOPage() {
           </div>
 
           {/* Thumbnail text */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">🎨 Thumbnail text ideas</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {result.thumbnailText.map((t, i) => (
@@ -170,7 +172,7 @@ export default function YouTubeSEOPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">📺</span>
           <p>Enter a video topic to get titles, description, tags, and thumbnail text.</p>
         </div>

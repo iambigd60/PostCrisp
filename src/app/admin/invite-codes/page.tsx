@@ -117,7 +117,7 @@ export default function AdminInviteCodesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Invite Codes</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           Single-use codes for signup when access control is in invite-only mode. Each code works once and is consumed on signup.
         </p>
       </div>
@@ -125,8 +125,8 @@ export default function AdminInviteCodesPage() {
       {/* Stats */}
       {data && (
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
-            <div className="text-xs uppercase tracking-wider text-zinc-500">Total</div>
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
+            <div className="text-xs uppercase tracking-wider text-crisp">Total</div>
             <div className="text-2xl font-bold text-zinc-100 mt-1">{data.stats.total}</div>
           </div>
           <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
@@ -134,16 +134,16 @@ export default function AdminInviteCodesPage() {
             <div className="text-2xl font-bold text-emerald-200 mt-1">{data.stats.available}</div>
           </div>
           <div className="rounded-xl border border-zinc-500/10 bg-surface-secondary p-5">
-            <div className="text-xs uppercase tracking-wider text-zinc-500">Used</div>
+            <div className="text-xs uppercase tracking-wider text-crisp">Used</div>
             <div className="text-2xl font-bold text-zinc-300 mt-1">{data.stats.used}</div>
           </div>
         </div>
       )}
 
       {/* Generate batch */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-6">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-6">
         <h2 className="text-sm font-semibold text-zinc-200 mb-1">Generate codes</h2>
-        <p className="text-xs text-zinc-500 mb-4">Random 8-character codes. Display format <code className="text-brand-300">XXXX-XXXX</code> for legibility — testers can paste with or without the dash.</p>
+        <p className="text-xs text-crisp mb-4">Random 8-character codes. Display format <code className="text-brand-300">XXXX-XXXX</code> for legibility — testers can paste with or without the dash.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_auto] gap-3">
           <div>
@@ -154,7 +154,7 @@ export default function AdminInviteCodesPage() {
               max={100}
               value={count}
               onChange={(e) => setCount(Number(e.target.value))}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
@@ -164,7 +164,7 @@ export default function AdminInviteCodesPage() {
               value={batchNotes}
               onChange={(e) => setBatchNotes(e.target.value)}
               placeholder="e.g. Twitter beta wave 2026-04"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div className="flex items-end">
@@ -198,7 +198,7 @@ export default function AdminInviteCodesPage() {
                 }`}
               >
                 <span>{label}</span>
-                <span className="text-2xs text-zinc-500 bg-surface-tertiary px-1.5 py-0.5 rounded-full">{count}</span>
+                <span className="text-2xs text-crisp bg-surface-tertiary px-1.5 py-0.5 rounded-full">{count}</span>
               </button>
             );
           })}
@@ -210,10 +210,10 @@ export default function AdminInviteCodesPage() {
       </div>
 
       {/* List */}
-      {loading && <div className="text-zinc-500 text-sm">Loading…</div>}
+      {loading && <div className="text-crisp text-sm">Loading…</div>}
 
       {!loading && filtered.length === 0 && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-8 text-center text-zinc-500 text-sm">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-8 text-center text-crisp text-sm">
           {filter === "all" && "No invite codes yet — generate a batch above."}
           {filter === "available" && "No unused codes. Generate more above."}
           {filter === "used" && "No codes have been claimed yet."}
@@ -221,10 +221,10 @@ export default function AdminInviteCodesPage() {
       )}
 
       {!loading && filtered.length > 0 && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
+        <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 border-b border-brand-500/10">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp border-b border-edge">
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 hidden md:table-cell">Notes</th>
@@ -237,7 +237,7 @@ export default function AdminInviteCodesPage() {
               {filtered.map((item) => {
                 const used = item.used_at !== null;
                 return (
-                  <tr key={item.code} className="border-b border-brand-500/5 last:border-b-0">
+                  <tr key={item.code} className="border-b border-edge last:border-b-0">
                     <td className="px-4 py-3 font-mono text-brand-300">{formatCode(item.code)}</td>
                     <td className="px-4 py-3">
                       {used ? (
@@ -247,8 +247,8 @@ export default function AdminInviteCodesPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-zinc-400 text-xs">{item.notes ?? "—"}</td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-zinc-500 text-xs">{formatDate(item.created_at)}</td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-zinc-500 text-xs">
+                    <td className="px-4 py-3 hidden lg:table-cell text-crisp text-xs">{formatDate(item.created_at)}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell text-crisp text-xs">
                       {item.used_at ? formatDate(item.used_at) : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -280,7 +280,7 @@ export default function AdminInviteCodesPage() {
       )}
 
       {/* Help block */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 text-xs text-zinc-400">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 text-xs text-zinc-400">
         <strong className="block text-zinc-200 mb-1">How testers use a code</strong>
         On <code className="text-brand-300">/signup</code> when access control is in <em>invite-only</em> mode, they paste the 8-character code (with or without the dash). Codes are case-insensitive on input. Once a tester signs up, the code is consumed and can&apos;t be reused.
       </div>

@@ -6,7 +6,7 @@ export default function AdminOverviewPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Admin</h1>
-        <p className="text-zinc-500 mt-1">Internal controls for running PostCrisp.</p>
+        <p className="text-crisp mt-1">Internal controls for running PostCrisp.</p>
       </div>
 
       {/* Feedback at-a-glance — what needs your attention */}
@@ -21,7 +21,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">⚙️</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">AI Engine Config</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 Route each feature × tier to a provider + model. Swap Anthropic ↔ OpenAI, change tiers, roll back bad models.
               </p>
             </div>
@@ -37,7 +37,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">🔐</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Feature Access</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 Control which tier unlocks each feature. Move Brand Pitch to Elite-only, disable experimental tools, adjust as you grow.
               </p>
             </div>
@@ -53,7 +53,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">👥</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">User Management</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 Search users, change tier &amp; role, grant credits, disable accounts. Full audit log of admin actions.
               </p>
             </div>
@@ -61,12 +61,12 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
 
-        <div className="p-5 rounded-xl border border-brand-500/10 bg-surface-secondary/50 opacity-60 cursor-not-allowed">
+        <div className="p-5 rounded-xl border border-edge bg-surface-secondary/50 opacity-60 cursor-not-allowed">
           <div className="flex items-start gap-3">
             <span className="text-2xl opacity-50">💳</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-400">Billing Admin</h3>
-              <p className="text-sm text-zinc-600 mt-1">Stripe overview, refunds, coupons. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
+              <p className="text-sm text-crisp mt-1">Stripe overview, refunds, coupons. <span className="text-zinc-700">Post-launch Phase 2.</span></p>
             </div>
           </div>
         </div>
@@ -79,7 +79,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">📈</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Analytics</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 DAU/MAU, MRR estimate, feature popularity, token consumption, and top users by usage — 30-day window.
               </p>
             </div>
@@ -95,7 +95,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">📋</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Audit Log</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 Every admin action — tier changes, disables, credit grants — with actor, reason, and timestamps. Filter by action type, target user, or time range.
               </p>
             </div>
@@ -111,7 +111,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">🚪</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Access Control</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 Toggle signups between open / invite-only / closed, and temporarily disable logins for everyone except admins. Useful for alpha rollouts, capacity limits, and maintenance windows.
               </p>
             </div>
@@ -127,7 +127,7 @@ export default function AdminOverviewPage() {
             <span className="text-2xl">💬</span>
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Feedback</h3>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-crisp mt-1">
                 In-app bug reports, feature ideas, and general feedback from testers and users. Triage by status (new / in progress / resolved), filter by category, attach private admin notes.
               </p>
             </div>

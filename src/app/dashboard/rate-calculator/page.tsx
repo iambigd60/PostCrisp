@@ -8,6 +8,7 @@ import { FeatureGate } from "@/components/ui/FeatureGate";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost, useSpendConfirm } from "@/components/ui/CreditCost";
 
 interface RateResult {
   currency: string;
@@ -59,6 +60,8 @@ export default function RateCalculatorPage() {
 
   const selectedNicheLabel = NICHES.find((n) => n.id === niche)?.label ?? "general";
 
+  const { confirmSpend, spendDialog } = useSpendConfirm('rate-calculator', 'Rate Calculator')
+
   const handleCalc = async () => {
     if (!followerCount.trim()) { addToast("Enter your follower count", "warning"); return; }
     setLoading(true); setError(null); setResult(null);
@@ -101,10 +104,10 @@ export default function RateCalculatorPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Rate Calculator</h1>
-        <p className="text-zinc-500 mt-1">Know what to charge. Every time.</p>
+        <p className="text-crisp mt-1">Know what to charge. Every time.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Platform</label>
           <div className="flex flex-wrap gap-2">
@@ -132,16 +135,16 @@ export default function RateCalculatorPage() {
               value={followerCount}
               onChange={(e) => setFollowerCount(e.target.value)}
               placeholder="e.g., 45000 or 45K"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Engagement rate <span className="text-zinc-600">(optional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Engagement rate <span className="text-crisp">(optional)</span></label>
             <input
               value={engagementRate}
               onChange={(e) => setEngagementRate(e.target.value)}
               placeholder="e.g., 4.2%"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
@@ -152,7 +155,7 @@ export default function RateCalculatorPage() {
             <select
               value={contentType}
               onChange={(e) => setContentType(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             >
               {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -162,7 +165,7 @@ export default function RateCalculatorPage() {
             <select
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             >
               {NICHES.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
@@ -175,7 +178,7 @@ export default function RateCalculatorPage() {
             <select
               value={usageRights}
               onChange={(e) => setUsageRights(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             >
               {USAGE_RIGHTS.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
             </select>
@@ -187,14 +190,16 @@ export default function RateCalculatorPage() {
               min={1}
               value={deliverables}
               onChange={(e) => setDeliverables(e.target.value)}
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           </div>
         </div>
 
-        <Button onClick={handleCalc} loading={loading} size="lg" className="w-full sm:w-auto">
+        <Button onClick={() => confirmSpend(handleCalc)} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Calculating..." : "💵 Calculate Rate"}
+          <CreditCost task="rate-calculator" />
         </Button>
+        {spendDialog}
       </div>
 
       {loading && <GenerationLoader messages={LOADING_MESSAGES} />}
@@ -215,19 +220,19 @@ export default function RateCalculatorPage() {
               ].map((r) => (
                 <div key={r.label} className="text-center">
                   <div className={`text-2xl sm:text-3xl font-extrabold ${r.tone}`}>{fmt(r.value)}</div>
-                  <div className="text-2xs text-zinc-500 mt-1">{r.label}</div>
+                  <div className="text-2xs text-crisp mt-1">{r.label}</div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-zinc-500 mt-4 italic">{result.comparison}</p>
+            <p className="text-xs text-crisp mt-4 italic">{result.comparison}</p>
           </div>
 
           {/* Breakdown */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <h3 className="text-base font-semibold text-zinc-100 mb-3">How we got there</h3>
             <div className="space-y-2">
               {result.breakdown.map((row) => (
-                <div key={row.label} className="flex items-center justify-between text-sm border-b border-brand-500/5 pb-2 last:border-b-0">
+                <div key={row.label} className="flex items-center justify-between text-sm border-b border-edge pb-2 last:border-b-0">
                   <span className="text-zinc-400">{row.label}</span>
                   <span className="font-mono text-zinc-200">{row.value}</span>
                 </div>
@@ -236,18 +241,18 @@ export default function RateCalculatorPage() {
           </div>
 
           {/* Rate card */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+          <div className="rounded-xl border border-edge bg-surface-secondary p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-zinc-100">Your full rate card</h3>
-                <p className="text-xs text-zinc-500">Quote any of these to brands.</p>
+                <p className="text-xs text-crisp">Quote any of these to brands.</p>
               </div>
               <Button variant="secondary" size="sm" onClick={copyRateCard}>📋 Copy Rate Card</Button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 border-b border-brand-500/10">
+                  <tr className="text-left text-xs uppercase tracking-wider text-crisp border-b border-edge">
                     <th className="py-2 pr-4 font-medium">Content type</th>
                     <th className="py-2 px-4 font-medium text-right">Min</th>
                     <th className="py-2 px-4 font-medium text-right">Mid</th>
@@ -256,7 +261,7 @@ export default function RateCalculatorPage() {
                 </thead>
                 <tbody>
                   {result.rateCard.map((r) => (
-                    <tr key={r.contentType} className="border-b border-brand-500/5 last:border-b-0">
+                    <tr key={r.contentType} className="border-b border-edge last:border-b-0">
                       <td className="py-2.5 pr-4 text-zinc-300">{r.contentType}</td>
                       <td className="py-2.5 px-4 text-right font-mono text-zinc-400">{fmt(r.min)}</td>
                       <td className="py-2.5 px-4 text-right font-mono text-brand-300 font-semibold">{fmt(r.mid)}</td>
@@ -284,7 +289,7 @@ export default function RateCalculatorPage() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">💵</span>
           <p>Plug in your stats to see a rate range for this content type, plus a full rate card to quote from.</p>
         </div>

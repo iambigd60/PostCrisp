@@ -94,7 +94,7 @@ export default function FeatureAccessPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Feature Access</h1>
-        <p className="text-zinc-500">Loading…</p>
+        <p className="text-crisp">Loading…</p>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export default function FeatureAccessPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Feature Access</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-crisp mt-1">
           Control which subscription tier unlocks each feature. Adjust as you grow.
         </p>
       </div>
@@ -114,11 +114,11 @@ export default function FeatureAccessPage() {
         Changes take effect within 60 seconds.
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-tertiary">
-              <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="text-left text-xs uppercase tracking-wider text-crisp">
                 <th className="px-4 py-3 font-medium">Feature</th>
                 <th className="px-4 py-3 font-medium">Default</th>
                 <th className="px-4 py-3 font-medium">Minimum tier</th>
@@ -126,7 +126,7 @@ export default function FeatureAccessPage() {
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-500/5">
+            <tbody className="divide-y divide-edge">
               {items.map((item) => {
                 const eff = getEffective(item);
                 const dirty = isDirty(item);
@@ -138,7 +138,7 @@ export default function FeatureAccessPage() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
                         <span className="font-medium text-zinc-200">{TASK_LABELS[item.feature]}</span>
-                        <span className="text-2xs text-zinc-600 font-mono">{item.feature}</span>
+                        <span className="text-2xs text-crisp font-mono">{item.feature}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -150,7 +150,7 @@ export default function FeatureAccessPage() {
                       <select
                         value={eff.minTier}
                         onChange={(e) => updatePending(item.feature, { minTier: e.target.value as Tier })}
-                        className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40 transition-colors"
+                        className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400 transition-colors"
                       >
                         {TIER_OPTIONS.map((t) => (
                           <option key={t} value={t}>{TIER_LABELS[t]}</option>
@@ -177,7 +177,7 @@ export default function FeatureAccessPage() {
                           <Button size="sm" variant="secondary" onClick={() => handleReset(item)} loading={saving}>Reset</Button>
                         )}
                         {!hasOverride && !dirty && (
-                          <span className="text-2xs text-zinc-600">default</span>
+                          <span className="text-2xs text-crisp">default</span>
                         )}
                       </div>
                     </td>

@@ -7,6 +7,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Item { targetPlatform: string; content: string; hashtags?: string[]; notes?: string }
 
@@ -78,22 +79,22 @@ export default function RepurposePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Content Repurposer</h1>
-        <p className="text-zinc-500 mt-1">One piece of content, rewritten to feel native on every platform.</p>
+        <p className="text-crisp mt-1">One piece of content, rewritten to feel native on every platform.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Source content *</label>
           <textarea rows={8} value={source} onChange={(e) => setSource(e.target.value)}
             placeholder="Paste your YouTube script, blog post, newsletter, or any long-form content..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-y" />
-          <p className="text-xs text-zinc-600 mt-1">{source.length.toLocaleString()} characters</p>
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-y" />
+          <p className="text-xs text-crisp mt-1">{source.length.toLocaleString()} characters</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Source type</label>
           <select value={sourceType} onChange={(e) => setSourceType(e.target.value)}
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
             {SOURCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -108,14 +109,15 @@ export default function RepurposePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Tone adjustment <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Tone adjustment <span className="text-crisp">(optional)</span></label>
           <input value={toneAdjustment} onChange={(e) => setToneAdjustment(e.target.value)}
             placeholder="e.g., make it punchier, more professional, more casual"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <Button onClick={handleRepurpose} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Repurposing..." : "♻️ Repurpose"}
+          <CreditCost task="repurpose" />
         </Button>
       </div>
 
@@ -133,24 +135,24 @@ export default function RepurposePage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex flex-wrap gap-1 border-b border-brand-500/10">
+          <div className="flex flex-wrap gap-1 border-b border-edge">
             {items.map((item, i) => (
               <button key={i} onClick={() => setActiveTab(i)}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-all -mb-px ${activeTab === i ? "text-brand-300 border-brand-500" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}>
+                className={`px-3 py-2 text-sm font-medium border-b-2 transition-all -mb-px ${activeTab === i ? "text-brand-300 border-brand-500" : "text-crisp border-transparent hover:text-zinc-300"}`}>
                 {item.targetPlatform}
               </button>
             ))}
           </div>
 
           {active && (
-            <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 space-y-3">
+            <div className="rounded-xl border border-edge bg-surface-secondary p-5 space-y-3">
               <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{active.content}</p>
               {active.hashtags && active.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-brand-500/5">
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-edge">
                   {active.hashtags.map((h) => <span key={h} className="text-xs text-brand-300 bg-brand-500/10 px-2 py-0.5 rounded-full">{h}</span>)}
                 </div>
               )}
-              {active.notes && <p className="text-xs text-zinc-500 italic">💡 {active.notes}</p>}
+              {active.notes && <p className="text-xs text-crisp italic">💡 {active.notes}</p>}
               <div className="flex gap-2 pt-2">
                 <CopyButton text={active.hashtags ? `${active.content}\n\n${active.hashtags.join(" ")}` : active.content} />
                 <Button variant="secondary" size="sm" onClick={() => handleSaveOne(active)}>💾 Save</Button>
@@ -161,7 +163,7 @@ export default function RepurposePage() {
       )}
 
       {items.length === 0 && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">♻️</span>
           <p>Paste long-form content and pick target platforms to get native versions for each.</p>
         </div>

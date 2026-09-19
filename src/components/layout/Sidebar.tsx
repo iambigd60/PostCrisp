@@ -172,17 +172,24 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
+  // Active item: a solid left-edge bar plus aria-current, so "where am I" is
+  // not signalled by a colour shift alone (the old highlight measured 1.28:1).
   const linkClass = (href: string) =>
-    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[38px] group ${
+    `relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[38px] group ${
       isActive(href)
-        ? "bg-brand-600/20 text-brand-300 border border-brand-500/20"
+        ? "bg-brand-500/15 text-brand-200 before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-brand-400 before:content-['']"
         : "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
     }`;
+
+  const linkProps = (href: string) => ({
+    className: linkClass(href),
+    "aria-current": isActive(href) ? ("page" as const) : undefined,
+  });
 
   const navContent = (
     <>
       {/* Logo */}
-      <div className="flex items-center px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
+      <div className="flex items-center px-4 h-16 border-b border-edge flex-shrink-0">
         {collapsed ? (
           // No room for the wordmark logo at 72px collapsed width — render
           // a small icon-only placeholder so the header has presence.
@@ -208,7 +215,7 @@ export function Sidebar() {
         <Link
           href={DASHBOARD_ITEM.href}
           onClick={() => setMobileOpen(false)}
-          className={linkClass(DASHBOARD_ITEM.href)}
+          {...linkProps(DASHBOARD_ITEM.href)}
         >
           <span className="text-lg flex-shrink-0">{DASHBOARD_ITEM.icon}</span>
           {!collapsed && <span>{DASHBOARD_ITEM.label}</span>}
@@ -218,7 +225,7 @@ export function Sidebar() {
         <Link
           href={VOICE_ITEM.href}
           onClick={() => setMobileOpen(false)}
-          className={linkClass(VOICE_ITEM.href)}
+          {...linkProps(VOICE_ITEM.href)}
         >
           <span className="text-lg flex-shrink-0">{VOICE_ITEM.icon}</span>
           {!collapsed && (
@@ -236,7 +243,7 @@ export function Sidebar() {
           <Link
             href={TUTORIAL_ITEM.href}
             onClick={() => setMobileOpen(false)}
-            className={linkClass(TUTORIAL_ITEM.href)}
+            {...linkProps(TUTORIAL_ITEM.href)}
           >
             <span className="text-lg flex-shrink-0">{TUTORIAL_ITEM.icon}</span>
             {!collapsed && <span>{TUTORIAL_ITEM.label}</span>}
@@ -253,7 +260,7 @@ export function Sidebar() {
                 // the hub, arrow = separate button for expand/collapse. When
                 // there's no hub yet, the entire row is a toggle button.
                 group.hubHref ? (
-                  <div className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-zinc-500">
+                  <div className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-crisp">
                     <Link
                       href={group.hubHref}
                       onClick={() => setMobileOpen(false)}
@@ -264,7 +271,7 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={() => toggleGroup(group.label)}
-                      className="ml-2 text-zinc-600 hover:text-zinc-400 transition-transform"
+                      className="ml-2 text-crisp hover:text-zinc-400 transition-transform"
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? "Collapse" : "Expand"} ${group.label}`}
                     >
@@ -275,12 +282,12 @@ export function Sidebar() {
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.label)}
-                  className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-zinc-500 hover:text-zinc-300 transition-colors group"
+                  className="w-full flex items-center justify-between px-3 mb-1.5 text-2xs uppercase tracking-wider font-semibold text-crisp hover:text-zinc-300 transition-colors group"
                   aria-expanded={isOpen}
                   aria-label={`${isOpen ? "Collapse" : "Expand"} ${group.label}`}
                 >
                   <span>{group.label}</span>
-                  <span className={`text-zinc-600 group-hover:text-zinc-400 transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}>▾</span>
+                  <span className={`text-crisp group-hover:text-zinc-400 transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}>▾</span>
                 </button>
                 )
               ) : (
@@ -294,7 +301,7 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={linkClass(item.href)}
+                      {...linkProps(item.href)}
                     >
                       <span className="text-lg flex-shrink-0">{item.icon}</span>
                       {!collapsed && <span>{item.label}</span>}
@@ -307,7 +314,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto px-3 py-4 border-t border-brand-500/10 space-y-2">
+      <div className="mt-auto px-3 py-4 border-t border-edge space-y-2">
         {isAdmin && (
           <Link
             href="/admin"
@@ -325,7 +332,7 @@ export function Sidebar() {
         </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover text-sm transition-colors min-h-[40px]"
+          className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover text-sm transition-colors min-h-[40px]"
         >
           {collapsed ? "→" : "← Collapse"}
         </button>
@@ -337,7 +344,7 @@ export function Sidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-surface-secondary border border-brand-500/10 text-zinc-300 hover:text-white transition-colors"
+        className="lg:hidden fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-surface-secondary border border-edge text-zinc-300 hover:text-white transition-colors"
         aria-label="Open menu"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,13 +360,13 @@ export function Sidebar() {
       )}
 
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-surface-secondary border-r border-brand-500/10 flex flex-col transition-transform duration-300 ${
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-surface-secondary border-r border-edge flex flex-col transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover transition-colors"
           aria-label="Close menu"
         >
           ✕
@@ -368,7 +375,7 @@ export function Sidebar() {
       </aside>
 
       <aside
-        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-surface-secondary border-r border-brand-500/10 transition-all duration-300 ${
+        className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-surface-secondary border-r border-edge transition-all duration-300 ${
           collapsed ? "w-[72px]" : "w-[260px]"
         }`}
       >

@@ -8,6 +8,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Poll { question: string; format: string; options?: string[]; correctAnswer?: string; expectedEngagement: string }
 
@@ -65,10 +66,10 @@ export default function PollsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Polls &amp; Questions</h1>
-        <p className="text-zinc-500 mt-1">Engagement-driving Story prompts tailored to your niche.</p>
+        <p className="text-crisp mt-1">Engagement-driving Story prompts tailored to your niche.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-zinc-300">Your niche *</label>
@@ -85,10 +86,10 @@ export default function PollsPage() {
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
               placeholder="e.g., sourdough baking for beginners, indie game dev, DIY van conversions"
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400"
             />
           ) : (
-            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40">
+            <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-400">
               <option value="">Select a niche…</option>
               {NICHES.map((n) => <option key={n.id} value={n.label}>{n.label}</option>)}
             </select>
@@ -123,6 +124,7 @@ export default function PollsPage() {
 
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Generating..." : "📊 Generate Polls"}
+          <CreditCost task="polls" />
         </Button>
       </div>
 
@@ -137,7 +139,7 @@ export default function PollsPage() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {polls.map((p, i) => (
-              <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
+              <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-4">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-lg">{formatIcon[p.format] ?? "❓"}</span>
                   <span className="text-xs font-medium text-zinc-400 capitalize">{p.format.replace(/-/g, " ")}</span>
@@ -164,7 +166,7 @@ export default function PollsPage() {
       )}
 
       {polls.length === 0 && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">📊</span>
           <p>Pick your niche and generate a week&apos;s worth of Story polls.</p>
         </div>

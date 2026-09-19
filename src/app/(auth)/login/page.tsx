@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-4 mb-6">
           <div className="h-px flex-1 bg-brand-500/20" />
-          <span className="text-sm text-zinc-500">or</span>
+          <span className="text-sm text-crisp">or</span>
           <div className="h-px flex-1 bg-brand-500/20" />
         </div>
 
@@ -103,7 +103,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-500">
+        <p className="mt-6 text-center text-sm text-crisp">
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-brand-400 hover:text-brand-300 font-medium">
             Sign up

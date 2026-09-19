@@ -7,10 +7,20 @@
  * recent activity can be filtered without a join.
  */
 
+import { CREDITS_PER_TASK, type CrispTask } from './crisp-engine-config'
+
 export type ToolCategory = 'create' | 'optimize' | 'grow' | 'monetize'
 
 export interface ToolMeta {
   key: string
+  /**
+   * The engine task this tool runs. `CREDITS_PER_TASK` is keyed by this, so
+   * `creditCost` below is always derived from the one price table the API
+   * routes charge against — never hard-code a credit number in a page.
+   */
+  task: CrispTask
+  /** Credits charged per run, read from `CREDITS_PER_TASK[task]`. */
+  creditCost: number
   category: ToolCategory
   icon: string
   label: string
@@ -21,10 +31,19 @@ export interface ToolMeta {
   href: string
 }
 
+/** Tool definition before the derived price is attached. */
+type ToolDef = Omit<ToolMeta, 'creditCost'>
+
+/** Attach `creditCost` from the canonical price table so it can never drift. */
+function withCosts(defs: ToolDef[]): ToolMeta[] {
+  return defs.map((d) => ({ ...d, creditCost: CREDITS_PER_TASK[d.task] }))
+}
+
 // CREATE — content authoring tools. Phase 1 hub.
-export const CREATE_TOOLS: ToolMeta[] = [
+export const CREATE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'captions',
+    task: 'captions',
     category: 'create',
     icon: '✍️',
     label: 'Captions',
@@ -34,6 +53,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'hashtags',
+    task: 'hashtags',
     category: 'create',
     icon: '🏷️',
     label: 'Hashtags',
@@ -43,6 +63,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'script',
+    task: 'script',
     category: 'create',
     icon: '🎬',
     label: 'Scripts',
@@ -52,6 +73,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'repurpose',
+    task: 'repurpose',
     category: 'create',
     icon: '♻️',
     label: 'Repurpose',
@@ -61,6 +83,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'blog_to_social',
+    task: 'blog-to-social',
     category: 'create',
     icon: '📰',
     label: 'Blog → Social',
@@ -70,6 +93,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'polls',
+    task: 'polls',
     category: 'create',
     icon: '📊',
     label: 'Polls',
@@ -79,6 +103,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'dm_template',
+    task: 'dm-template',
     category: 'create',
     icon: '✉️',
     label: 'DM Templates',
@@ -88,6 +113,7 @@ export const CREATE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'comment_reply',
+    task: 'comment-reply',
     category: 'create',
     icon: '💬',
     label: 'Comment Replies',
@@ -95,12 +121,13 @@ export const CREATE_TOOLS: ToolMeta[] = [
     bestFor: "High-value comments where a generic 'thanks!' loses steam.",
     href: '/dashboard/comment-replies',
   },
-]
+])
 
 // OPTIMIZE — channel + asset improvement tools.
-export const OPTIMIZE_TOOLS: ToolMeta[] = [
+export const OPTIMIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'posting_times',
+    task: 'posting-times',
     category: 'optimize',
     icon: '⏰',
     label: 'Best Times',
@@ -110,6 +137,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'youtube_seo',
+    task: 'youtube-seo',
     category: 'optimize',
     icon: '📺',
     label: 'YouTube SEO',
@@ -119,6 +147,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'bio_optimizer',
+    task: 'bio-optimizer',
     category: 'optimize',
     icon: '🧬',
     label: 'Bio Optimizer',
@@ -128,6 +157,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'platform_tips',
+    task: 'platform-tips',
     category: 'optimize',
     icon: '💡',
     label: 'Platform Tips',
@@ -137,6 +167,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'channel_analysis',
+    task: 'channel-analysis',
     category: 'optimize',
     icon: '🪞',
     label: 'Channel Analysis',
@@ -146,6 +177,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'foundation_analysis',
+    task: 'foundation-analysis',
     category: 'optimize',
     icon: '🧬',
     label: 'Foundation Analysis',
@@ -155,6 +187,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'thumbnail_analyzer',
+    task: 'thumbnail-analyzer',
     category: 'optimize',
     icon: '🖼️',
     label: 'Thumbnail Analyzer',
@@ -164,6 +197,7 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'cta_optimizer',
+    task: 'cta-optimizer',
     category: 'optimize',
     icon: '🎯',
     label: 'CTA Optimizer',
@@ -171,12 +205,13 @@ export const OPTIMIZE_TOOLS: ToolMeta[] = [
     bestFor: 'Squeezing more conversions out of content you\'ve already drafted.',
     href: '/dashboard/cta-optimizer',
   },
-]
+])
 
 // GROW — discovery + reach tools.
-export const GROW_TOOLS: ToolMeta[] = [
+export const GROW_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'viral_ideas',
+    task: 'viral-ideas',
     category: 'grow',
     icon: '🚀',
     label: 'Viral Ideas',
@@ -186,6 +221,7 @@ export const GROW_TOOLS: ToolMeta[] = [
   },
   {
     key: 'trend_radar',
+    task: 'trend-radar',
     category: 'grow',
     icon: '📡',
     label: 'Trend Radar',
@@ -195,6 +231,7 @@ export const GROW_TOOLS: ToolMeta[] = [
   },
   {
     key: 'sound_tracker',
+    task: 'sound-tracker',
     category: 'grow',
     icon: '🎵',
     label: 'Sound Tracker',
@@ -204,6 +241,7 @@ export const GROW_TOOLS: ToolMeta[] = [
   },
   {
     key: 'collab_finder',
+    task: 'collab-finder',
     category: 'grow',
     icon: '🤝',
     label: 'Collab Finder',
@@ -211,12 +249,13 @@ export const GROW_TOOLS: ToolMeta[] = [
     bestFor: 'Building reach through partnerships.',
     href: '/dashboard/collab-finder',
   },
-]
+])
 
 // MONETIZE — partnership + pricing tools (Creator+ tier-gated).
-export const MONETIZE_TOOLS: ToolMeta[] = [
+export const MONETIZE_TOOLS: ToolMeta[] = withCosts([
   {
     key: 'brand_pitch',
+    task: 'brand-pitch',
     category: 'monetize',
     icon: '📧',
     label: 'Brand Pitch',
@@ -226,6 +265,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'rate_calculator',
+    task: 'rate-calculator',
     category: 'monetize',
     icon: '💵',
     label: 'Rate Calculator',
@@ -235,6 +275,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = [
   },
   {
     key: 'competitor_analysis',
+    task: 'competitor-analysis',
     category: 'monetize',
     icon: '🔍',
     label: 'Competitor Analysis',
@@ -242,7 +283,7 @@ export const MONETIZE_TOOLS: ToolMeta[] = [
     bestFor: 'Positioning against creators in your tier.',
     href: '/dashboard/competitor-analysis',
   },
-]
+])
 
 // Aggregate map for quick lookup by feature key. Hub pages read by
 // category; dashboard widgets read by key.
@@ -260,3 +301,16 @@ export function toolsForCategory(category: ToolCategory): ToolMeta[] {
 export function toolByKey(key: string): ToolMeta | undefined {
   return ALL_TOOLS.find((t) => t.key === key)
 }
+
+/** Credit cost for a tool by feature key; falls back to 1 for unknown keys. */
+export function creditCostForTool(key: string): number {
+  return toolByKey(key)?.creditCost ?? 1
+}
+
+/** Credit cost for an engine task, for pages that know the task rather than the tool key. */
+export function creditCostForTask(task: CrispTask): number {
+  return CREDITS_PER_TASK[task]
+}
+
+/** Tools priced at this many credits or more ask the user to confirm before spending. */
+export const SPEND_CONFIRM_THRESHOLD = 5

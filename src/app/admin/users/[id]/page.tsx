@@ -201,10 +201,10 @@ export default function UserDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/users" className="text-sm text-zinc-500 hover:text-zinc-300">← All users</Link>
+      <Link href="/admin/users" className="text-sm text-crisp hover:text-zinc-300">← All users</Link>
 
       {/* Header */}
-      <div className={`rounded-xl border ${data.isDisabled ? "border-red-500/30 bg-red-500/5" : "border-brand-500/10 bg-surface-secondary"} p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
+      <div className={`rounded-xl border ${data.isDisabled ? "border-red-500/30 bg-red-500/5" : "border-edge bg-surface-secondary"} p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
         <div className="flex items-center gap-4">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-glow flex-shrink-0"
@@ -225,8 +225,8 @@ export default function UserDetailPage() {
                 <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">disabled</span>
               )}
             </div>
-            <p className="text-sm text-zinc-500 mt-0.5">{p.email}</p>
-            <p className="text-xs text-zinc-600 mt-1">Joined {new Date(p.created_at).toLocaleDateString()} · {p.id.slice(0, 8)}</p>
+            <p className="text-sm text-crisp mt-0.5">{p.email}</p>
+            <p className="text-xs text-crisp mt-1">Joined {new Date(p.created_at).toLocaleDateString()} · {p.id.slice(0, 8)}</p>
           </div>
         </div>
       </div>
@@ -239,10 +239,10 @@ export default function UserDetailPage() {
           { label: "Total tokens", value: data.aggregates.totalTokens.toLocaleString(), sub: "all time" },
           { label: "Saved items", value: data.aggregates.savedCount.toLocaleString(), sub: "library count" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-            <div className="text-xs text-zinc-500">{s.label}</div>
+          <div key={s.label} className="rounded-xl border border-edge bg-surface-secondary p-4">
+            <div className="text-xs text-crisp">{s.label}</div>
             <div className="text-xl sm:text-2xl font-bold text-zinc-100 mt-1">{s.value}</div>
-            <div className="text-2xs text-zinc-600 mt-0.5">{s.sub}</div>
+            <div className="text-2xs text-crisp mt-0.5">{s.sub}</div>
           </div>
         ))}
       </div>
@@ -253,23 +253,23 @@ export default function UserDetailPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Subscription tier</label>
-            <select value={newTier} onChange={(e) => setNewTier(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40">
+            <label className="block text-xs text-crisp mb-1">Subscription tier</label>
+            <select value={newTier} onChange={(e) => setNewTier(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
               <option value="free">Starter</option>
               <option value="creator">Creator</option>
               <option value="elite">Elite</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Role</label>
-            <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40">
+            <label className="block text-xs text-crisp mb-1">Role</label>
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Reason (audit log)</label>
-            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g., comped for beta feedback" className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40" />
+            <label className="block text-xs text-crisp mb-1">Reason (audit log)</label>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g., comped for beta feedback" className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
           </div>
         </div>
 
@@ -291,7 +291,7 @@ export default function UserDetailPage() {
             <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
               <div>
                 <p className="text-xs text-amber-200 font-semibold">Set a new password directly</p>
-                <p className="text-xs text-zinc-500 mt-0.5">
+                <p className="text-xs text-crisp mt-0.5">
                   Use this when the normal email-based reset isn&apos;t reaching the user
                   (e.g., Outlook SafeLinks consumed the token). Share the password via a
                   secure channel — Slack DM, text, or phone.
@@ -299,24 +299,24 @@ export default function UserDetailPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">New password (min 12 chars)</label>
+                  <label className="block text-xs text-crisp mb-1">New password (min 12 chars)</label>
                   <input
                     type="text"
                     value={tempPw}
                     onChange={(e) => setTempPw(e.target.value)}
                     placeholder="e.g. Rodney-alpha-2026-test"
-                    className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+                    className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400 font-mono"
                     autoComplete="off"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">Confirm password</label>
+                  <label className="block text-xs text-crisp mb-1">Confirm password</label>
                   <input
                     type="text"
                     value={tempPwConfirm}
                     onChange={(e) => setTempPwConfirm(e.target.value)}
                     placeholder="Re-type to confirm"
-                    className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 font-mono"
+                    className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400 font-mono"
                     autoComplete="off"
                   />
                 </div>
@@ -341,14 +341,14 @@ export default function UserDetailPage() {
 
       {/* Feature breakdown */}
       {data.aggregates.featureBreakdown.length > 0 && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <h2 className="text-sm font-semibold text-zinc-200 mb-3">Feature usage</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {data.aggregates.featureBreakdown.map((f) => (
-              <div key={f.feature} className="rounded-lg bg-surface-tertiary border border-brand-500/5 p-3">
+              <div key={f.feature} className="rounded-lg bg-surface-tertiary border border-edge p-3">
                 <div className="text-xs text-zinc-400 font-mono">{f.feature}</div>
                 <div className="text-lg font-bold text-zinc-100 mt-1">{f.count}</div>
-                <div className="text-2xs text-zinc-600">{f.tokens.toLocaleString()} tokens</div>
+                <div className="text-2xs text-crisp">{f.tokens.toLocaleString()} tokens</div>
               </div>
             ))}
           </div>
@@ -357,22 +357,22 @@ export default function UserDetailPage() {
 
       {/* Two-column: recent generations + credit transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-          <div className="px-4 py-3 border-b border-brand-500/10 bg-surface-tertiary flex items-center justify-between">
+        <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
+          <div className="px-4 py-3 border-b border-edge bg-surface-tertiary flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-200">Recent generations</h3>
-            <span className="text-2xs text-zinc-500">last 15</span>
+            <span className="text-2xs text-crisp">last 15</span>
           </div>
           {data.recentGenerations.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-zinc-500">No generations yet</p>
+            <p className="px-4 py-6 text-center text-xs text-crisp">No generations yet</p>
           ) : (
-            <ul className="divide-y divide-brand-500/5">
+            <ul className="divide-y divide-edge">
               {data.recentGenerations.map((g) => (
                 <li key={g.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-xs text-zinc-300 font-mono">{g.feature}</span>
-                    <span className="text-2xs text-zinc-600">{g.platform ? `${g.platform} · ` : ""}{new Date(g.created_at).toLocaleString()}</span>
+                    <span className="text-2xs text-crisp">{g.platform ? `${g.platform} · ` : ""}{new Date(g.created_at).toLocaleString()}</span>
                   </div>
-                  <span className="text-2xs text-zinc-500 whitespace-nowrap">{g.tokens_used.toLocaleString()} tok</span>
+                  <span className="text-2xs text-crisp whitespace-nowrap">{g.tokens_used.toLocaleString()} tok</span>
                   <Link href={`/dashboard/generations/${g.id}`} className="text-2xs text-brand-400 hover:text-brand-300 whitespace-nowrap">view</Link>
                 </li>
               ))}
@@ -380,15 +380,15 @@ export default function UserDetailPage() {
           )}
         </div>
 
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-          <div className="px-4 py-3 border-b border-brand-500/10 bg-surface-tertiary flex items-center justify-between">
+        <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
+          <div className="px-4 py-3 border-b border-edge bg-surface-tertiary flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-200">Credit transactions</h3>
-            <span className="text-2xs text-zinc-500">last 20</span>
+            <span className="text-2xs text-crisp">last 20</span>
           </div>
           {data.creditTransactions.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-zinc-500">No transactions yet</p>
+            <p className="px-4 py-6 text-center text-xs text-crisp">No transactions yet</p>
           ) : (
-            <ul className="divide-y divide-brand-500/5">
+            <ul className="divide-y divide-edge">
               {data.creditTransactions.map((t) => (
                 <li key={t.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
                   <div className="flex flex-col min-w-0 flex-1">
@@ -396,7 +396,7 @@ export default function UserDetailPage() {
                       <span className={`text-2xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${typeBadge[t.type] ?? ""}`}>{t.type}</span>
                       <span className="text-xs text-zinc-400 truncate">{t.reason}</span>
                     </div>
-                    <span className="text-2xs text-zinc-600">{new Date(t.created_at).toLocaleString()}</span>
+                    <span className="text-2xs text-crisp">{new Date(t.created_at).toLocaleString()}</span>
                   </div>
                   <span className={`text-xs font-mono ${t.amount > 0 ? "text-emerald-400" : "text-red-400"}`}>
                     {t.amount > 0 ? "+" : ""}{t.amount}
@@ -409,24 +409,24 @@ export default function UserDetailPage() {
       </div>
 
       {/* Admin actions audit */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden">
-        <div className="px-4 py-3 border-b border-brand-500/10 bg-surface-tertiary flex items-center justify-between">
+      <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden">
+        <div className="px-4 py-3 border-b border-edge bg-surface-tertiary flex items-center justify-between">
           <h3 className="text-sm font-semibold text-zinc-200">Admin actions audit</h3>
-          <span className="text-2xs text-zinc-500">last 20</span>
+          <span className="text-2xs text-crisp">last 20</span>
         </div>
         {data.adminActions.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-zinc-500">No admin actions against this user yet</p>
+          <p className="px-4 py-6 text-center text-xs text-crisp">No admin actions against this user yet</p>
         ) : (
-          <ul className="divide-y divide-brand-500/5">
+          <ul className="divide-y divide-edge">
             {data.adminActions.map((a) => (
               <li key={a.id} className="px-4 py-2.5 grid grid-cols-[auto_1fr_auto] gap-3 items-center">
                 <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 whitespace-nowrap">{a.action.replace(/_/g, " ")}</span>
                 <div className="text-xs text-zinc-300 min-w-0">
                   {a.from_value && a.to_value && <span className="font-mono">{a.from_value} → {a.to_value}</span>}
-                  {a.reason && <span className="text-zinc-500"> · {a.reason}</span>}
-                  <div className="text-2xs text-zinc-600 mt-0.5">by {a.actor?.email ?? a.actor_id?.slice(0, 8) ?? "unknown"}</div>
+                  {a.reason && <span className="text-crisp"> · {a.reason}</span>}
+                  <div className="text-2xs text-crisp mt-0.5">by {a.actor?.email ?? a.actor_id?.slice(0, 8) ?? "unknown"}</div>
                 </div>
-                <span className="text-2xs text-zinc-600 whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</span>
+                <span className="text-2xs text-crisp whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</span>
               </li>
             ))}
           </ul>

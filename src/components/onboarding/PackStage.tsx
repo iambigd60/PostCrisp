@@ -239,7 +239,7 @@ export function PackStage({
           {captions.map((c, i) => (
             <li
               key={i}
-              className="rounded-lg border border-brand-500/10 bg-surface-secondary p-3 text-sm text-zinc-200"
+              className="rounded-lg border border-edge bg-surface-secondary p-3 text-sm text-zinc-200"
             >
               {c}
             </li>
@@ -286,7 +286,7 @@ export function PackStage({
               </div>
             )}
             {idea.bestTime && (
-              <p className="text-xs text-zinc-500">Best time to post: {idea.bestTime}</p>
+              <p className="text-xs text-crisp">Best time to post: {idea.bestTime}</p>
             )}
           </div>
         )}
@@ -305,7 +305,7 @@ export function PackStage({
       )}
 
       <div className="flex items-center justify-between pt-2">
-        <button onClick={onLater} className="text-sm text-zinc-500 hover:text-zinc-300">
+        <button onClick={onLater} className="text-sm text-crisp hover:text-zinc-300">
           Finish later
         </button>
         <Button onClick={() => onDone({ captions, hashtags, idea })} size="lg" disabled={!allSettled || !anySucceeded}>
@@ -327,11 +327,11 @@ function ArtifactCard({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-xl border border-brand-500/15 bg-surface-secondary/50 p-5">
+    <section className="rounded-xl border border-edge bg-surface-secondary/50 p-5">
       <h2 className="text-sm font-bold uppercase tracking-wider text-brand-300 mb-3">{title}</h2>
-      {state === 'loading' && <p className="text-sm text-zinc-500">Writing…</p>}
+      {state === 'loading' && <p className="text-sm text-crisp">Writing…</p>}
       {state === 'failed' && (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-crisp">
           This one didn&apos;t come through. The rest of your pack is fine — you can try this tool
           again any time from the dashboard.
         </p>

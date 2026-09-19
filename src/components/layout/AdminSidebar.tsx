@@ -28,7 +28,7 @@ export function AdminSidebar() {
 
   const navContent = (
     <>
-      <div className="flex items-center justify-between gap-2 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 px-4 h-16 border-b border-edge flex-shrink-0">
         <Link href="/dashboard" aria-label="PostCrisp dashboard" className="flex items-center">
           <Image
             src="/postcrisp-logo-header.png"
@@ -63,7 +63,7 @@ export function AdminSidebar() {
           ) : (
             <div
               key={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium min-h-[44px] text-zinc-600 cursor-not-allowed"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium min-h-[44px] text-crisp cursor-not-allowed"
               title="Coming in Admin Phase 2 (post-launch)"
             >
               <span className="text-lg flex-shrink-0 opacity-40">{item.icon}</span>
@@ -74,7 +74,7 @@ export function AdminSidebar() {
         )}
       </nav>
 
-      <div className="mt-auto px-3 py-4 border-t border-brand-500/10">
+      <div className="mt-auto px-3 py-4 border-t border-edge">
         <Link
           href="/dashboard"
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover text-sm transition-colors min-h-[44px]"
@@ -111,7 +111,7 @@ export function AdminSidebar() {
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover transition-colors"
           aria-label="Close menu"
         >
           ✕

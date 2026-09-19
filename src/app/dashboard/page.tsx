@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { SkeletonDashboard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { InlineError } from '@/components/ui/ErrorBoundary'
 import { TIER_ALLOWANCE, tierFromDbValue } from '@/lib/crisp-engine-config'
 import { PLATFORM_META, avatarUrlFor, type Channel } from '@/lib/channels'
 import { GettingStartedCard, type GettingStartedState } from '@/components/GettingStartedCard'
@@ -226,14 +227,14 @@ function CreditMeter({ balance, allowance, resetAt, cycleLabel }: { balance: num
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold text-zinc-100 leading-none">{balance}</span>
-          <span className="text-2xs text-zinc-600 leading-none">/{allowance}</span>
+          <span className="text-2xs text-crisp leading-none">/{allowance}</span>
         </div>
       </div>
       <div>
         <p className="text-sm font-medium text-zinc-200">
           {balance} credits left
         </p>
-        <p className="text-xs text-zinc-500 mt-0.5">
+        <p className="text-xs text-crisp mt-0.5">
           Resets {resetIn}
         </p>
         {low ? (
@@ -466,13 +467,19 @@ function ChannelAvatar({ platform, handle }: { platform: Channel['platform']; ha
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  // A failed load must never look like an empty account with 0 credits.
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
 
     async function load() {
+      setLoading(true)
+      setLoadError(null)
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) throw authError
         if (!user) { setLoading(false); return }
 
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -521,6 +528,11 @@ export default function DashboardPage() {
             .eq('user_id', user.id)
             .maybeSingle(),
         ])
+
+        // The profile row carries the credit balance. A query error here is a
+        // load failure, not a zero balance.
+        if (profileRes.error) throw profileRes.error
+        if (recentRes.error) throw recentRes.error
 
         let dailyUsed = profileRes.data?.daily_generations_used ?? 0
         if (profileRes.data) {
@@ -628,15 +640,26 @@ export default function DashboardPage() {
         })
       } catch (err) {
         console.error('[dashboard] unexpected error:', err)
+        setStats(null)
+        setLoadError("Couldn't load your dashboard. Your account and credits are unchanged.")
       } finally {
         setLoading(false)
       }
     }
 
     load()
-  }, [])
+  }, [attempt])
 
   if (loading) return <SkeletonDashboard />
+
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Dashboard</h1>
+        <InlineError message={loadError} onRetry={() => setAttempt((n) => n + 1)} />
+      </div>
+    )
+  }
 
   const profile = stats?.profile
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
@@ -654,7 +677,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">
             {greeting}, {firstName}
           </h1>
-          <p className="text-zinc-500 mt-1 text-sm">
+          <p className="text-crisp mt-1 text-sm">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -708,25 +731,25 @@ export default function DashboardPage() {
               return (
                 <div
                   key={c.id}
-                  className="flex-shrink-0 min-w-[220px] rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/25 transition-all p-4 group"
+                  className="flex-shrink-0 min-w-[220px] rounded-xl border border-edge bg-surface-secondary hover:border-brand-400 transition-all p-4 group"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <ChannelAvatar platform={c.platform} handle={c.handle} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">{meta.label}</div>
+                      <div className="text-xs text-crisp uppercase tracking-wider font-semibold">{meta.label}</div>
                       <div className="text-sm text-zinc-200 truncate">{c.handle}</div>
                     </div>
                   </div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-xs text-crisp">
                     <span className="font-bold text-zinc-200">{weekCount}</span> generation{weekCount === 1 ? '' : 's'} this week
                   </div>
-                  {c.label && <div className="text-2xs text-zinc-600 mt-1 truncate">{c.label}</div>}
+                  {c.label && <div className="text-2xs text-crisp mt-1 truncate">{c.label}</div>}
                 </div>
               )
             })}
             <Link
               href="/dashboard/settings"
-              className="flex-shrink-0 min-w-[120px] rounded-xl border border-dashed border-brand-500/20 hover:border-brand-500/40 hover:bg-surface-secondary/60 transition-all p-4 flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300"
+              className="flex-shrink-0 min-w-[120px] rounded-xl border border-dashed border-brand-500/20 hover:border-brand-500/40 hover:bg-surface-secondary/60 transition-all p-4 flex flex-col items-center justify-center text-crisp hover:text-zinc-300"
             >
               <span className="text-xl mb-1">＋</span>
               <span className="text-xs font-medium">Add channel</span>
@@ -782,16 +805,16 @@ export default function DashboardPage() {
             { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0,                 sub: 'in your library' },
             { icon: '🔥', label: 'Today',       value: profile?.daily_generations_used ?? 0,   sub: 'generations' },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all">
+            <div key={stat.label} className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-all">
               <span className="text-xl block mb-2">{stat.icon}</span>
               <div className="text-2xl font-bold text-zinc-100">{stat.value}</div>
-              <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
-              <div className="text-2xs text-zinc-600">{stat.sub}</div>
+              <div className="text-xs text-crisp mt-0.5">{stat.label}</div>
+              <div className="text-2xs text-crisp">{stat.sub}</div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <h2 className="text-base font-semibold text-zinc-200 mb-4">Credits</h2>
           <CreditMeter
             balance={profile?.credits_balance ?? 0}
@@ -819,7 +842,7 @@ export default function DashboardPage() {
                   <Link
                     key={gen.id}
                     href={`/dashboard/generations/${gen.id}`}
-                    className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/20 hover:bg-surface-elevated transition-all group"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-edge bg-surface-secondary hover:border-brand-400 hover:bg-surface-elevated transition-all group"
                   >
                     <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
                     <div className="flex-1 min-w-0">
@@ -833,7 +856,7 @@ export default function DashboardPage() {
                       </div>
                       <p className="text-sm text-zinc-400 truncate">{getPreview(gen)}</p>
                     </div>
-                    <span className="text-xs text-zinc-600 flex-shrink-0">{timeAgo(gen.created_at)}</span>
+                    <span className="text-xs text-crisp flex-shrink-0">{timeAgo(gen.created_at)}</span>
                   </Link>
                 )
               })}
@@ -867,7 +890,7 @@ export default function DashboardPage() {
                   <Link
                     key={s.id}
                     href={s.href}
-                    className={`block rounded-xl border border-brand-500/10 border-l-4 ${borderColor} bg-surface-secondary hover:bg-surface-elevated p-4 transition-all group`}
+                    className={`block rounded-xl border border-edge border-l-4 ${borderColor} bg-surface-secondary hover:bg-surface-elevated p-4 transition-all group`}
                   >
                     <div className="flex items-start gap-2.5">
                       <span className="text-lg flex-shrink-0">{s.icon}</span>
@@ -892,11 +915,11 @@ export default function DashboardPage() {
                 <Link
                   key={action.href}
                   href={action.href}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary border border-brand-500/10 hover:border-brand-500/25 hover:bg-surface-elevated transition-all group min-h-[48px]"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary border border-edge hover:border-brand-400 hover:bg-surface-elevated transition-all group min-h-[48px]"
                 >
                   <span className="text-lg group-hover:scale-110 transition-transform">{action.icon}</span>
                   <span className="text-sm font-medium text-zinc-300">{action.label}</span>
-                  <span className="ml-auto text-zinc-600 group-hover:text-brand-400 transition-colors text-sm">→</span>
+                  <span className="ml-auto text-crisp group-hover:text-brand-400 transition-colors text-sm">→</span>
                 </Link>
               ))}
             </div>
@@ -907,7 +930,7 @@ export default function DashboardPage() {
       {/* Footer affordance — only renders if user has dismissed at least one
           of the onboarding cards. One-click reset to bring them back. */}
       {stats && (stats.gettingStartedDismissed || stats.nextToolsDismissed) && (
-        <div className="flex justify-center pt-4 pb-2 border-t border-brand-500/5">
+        <div className="flex justify-center pt-4 pb-2 border-t border-edge">
           <button
             onClick={async () => {
               try {
@@ -928,7 +951,7 @@ export default function DashboardPage() {
                 // Non-fatal — toggling visibility shouldn't error-out the dashboard.
               }
             }}
-            className="text-xs text-zinc-500 hover:text-brand-300 transition-colors"
+            className="text-xs text-crisp hover:text-brand-300 transition-colors"
           >
             ↩  Show hidden checklists
           </button>

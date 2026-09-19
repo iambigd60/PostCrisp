@@ -112,7 +112,7 @@ export default function SignupPage() {
 
             <div className="flex items-center gap-4 mb-6">
               <div className="h-px flex-1 bg-brand-500/20" />
-              <span className="text-sm text-zinc-500">or</span>
+              <span className="text-sm text-crisp">or</span>
               <div className="h-px flex-1 bg-brand-500/20" />
             </div>
           </>
@@ -205,7 +205,7 @@ export default function SignupPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-500">
+        <p className="mt-6 text-center text-sm text-crisp">
           Already have an account?{' '}
           <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium">
             Sign in

@@ -9,6 +9,7 @@ import { InlineError } from "@/components/ui/ErrorBoundary";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { HASHTAG_MESSAGES } from "@/lib/constants";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 type Category = "HIGH_REACH" | "MEDIUM_REACH" | "LOW_COMPETITION";
 
@@ -141,18 +142,18 @@ export default function HashtagsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Hashtag Finder</h1>
-        <p className="text-zinc-500 mt-1">Discover the right mix of trending and niche hashtags.</p>
+        <p className="text-crisp mt-1">Discover the right mix of trending and niche hashtags.</p>
       </div>
 
       {/* Input form */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         {/* Topic */}
         <div>
           <label htmlFor="q" className="block text-sm font-medium text-zinc-300 mb-2">
             Topic or niche
           </label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-crisp">🔍</span>
             <input
               id="q"
               type="text"
@@ -160,7 +161,7 @@ export default function HashtagsPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") fetchHashtags(); }}
               placeholder="e.g., fitness, cooking, travel, personal finance..."
-              className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-colors min-h-[48px]"
+              className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-500/20 transition-colors min-h-[48px]"
             />
           </div>
         </div>
@@ -204,7 +205,7 @@ export default function HashtagsPage() {
             onChange={(e) => setCount(Number(e.target.value))}
             className="w-full accent-brand-500"
           />
-          <div className="flex justify-between text-2xs text-zinc-600 mt-1">
+          <div className="flex justify-between text-2xs text-crisp mt-1">
             <span>10</span><span>20</span><span>30</span>
           </div>
         </div>
@@ -215,7 +216,7 @@ export default function HashtagsPage() {
             <label htmlFor="mix" className="block text-sm font-medium text-zinc-300">
               Mix preference
             </label>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-crisp">
               {mix < 0.33 ? "Popular-heavy" : mix > 0.66 ? "Niche-heavy" : "Balanced"}
             </span>
           </div>
@@ -229,7 +230,7 @@ export default function HashtagsPage() {
             onChange={(e) => setMix(Number(e.target.value))}
             className="w-full accent-brand-500"
           />
-          <div className="flex justify-between text-2xs text-zinc-600 mt-1">
+          <div className="flex justify-between text-2xs text-crisp mt-1">
             <span>← Popular</span><span>Balanced</span><span>Niche →</span>
           </div>
         </div>
@@ -237,9 +238,10 @@ export default function HashtagsPage() {
         <div className="flex items-center gap-3">
           <Button onClick={fetchHashtags} loading={loading} size="lg" className="flex-1 sm:flex-none">
             {loading ? "Finding hashtags..." : "🔍 Find Hashtags"}
+            <CreditCost task="hashtags" />
           </Button>
           {platformRecommendation && (
-            <span className="text-xs text-zinc-500 hidden sm:block">{platformRecommendation}</span>
+            <span className="text-xs text-crisp hidden sm:block">{platformRecommendation}</span>
           )}
         </div>
       </div>
@@ -254,13 +256,13 @@ export default function HashtagsPage() {
       {hashtags.length > 0 && !loading && (
         <div className="space-y-5 animate-fade-in">
           {/* Action bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-secondary border border-brand-500/10">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-surface-secondary border border-edge">
             <div className="flex items-center gap-3">
               <div className="text-sm">
                 <span className="font-semibold text-zinc-200">{hashtags.length}</span>
-                <span className="text-zinc-500"> hashtags · </span>
+                <span className="text-crisp"> hashtags · </span>
                 <span className="font-semibold text-brand-300">{selected.size}</span>
-                <span className="text-zinc-500"> selected</span>
+                <span className="text-crisp"> selected</span>
               </div>
               <EngineBadge />
             </div>
@@ -286,8 +288,8 @@ export default function HashtagsPage() {
                   <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${meta.badge}`}>
                     {meta.label}
                   </span>
-                  <span className="text-xs text-zinc-500">{meta.desc}</span>
-                  <span className="text-xs text-zinc-600 ml-auto">{items.length}</span>
+                  <span className="text-xs text-crisp">{meta.desc}</span>
+                  <span className="text-xs text-crisp ml-auto">{items.length}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {items.map((h) => {
@@ -304,7 +306,7 @@ export default function HashtagsPage() {
                       >
                         {isSelected && <span className="text-brand-300">✓</span>}
                         <span>{h.tag}</span>
-                        <span className="text-2xs text-zinc-500 font-mono">{h.posts}</span>
+                        <span className="text-2xs text-crisp font-mono">{h.posts}</span>
                       </button>
                     );
                   })}
@@ -317,14 +319,14 @@ export default function HashtagsPage() {
 
       {/* Empty state */}
       {!loading && !error && !searched && (
-        <div className="text-center py-16 text-zinc-500">
+        <div className="text-center py-16 text-crisp">
           <span className="text-4xl block mb-4">🏷️</span>
           <p>Enter a topic above and click Find Hashtags to start.</p>
         </div>
       )}
 
       {!loading && !error && searched && hashtags.length === 0 && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-3xl block mb-3">🤷</span>
           <p>No hashtags found for &quot;{query}&quot;. Try a different search.</p>
         </div>

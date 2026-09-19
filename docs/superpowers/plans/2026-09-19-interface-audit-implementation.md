@@ -60,9 +60,9 @@ Also not done from the audit's closing section:
 
 Each session ends with `npm run lint`, `npm run typecheck`, `npm test` green, a visual check in the browser (the audit never ran the app), and a push to a feature branch. Effort estimates are working days of focused implementation.
 
-### Session A — Stop misleading the user (Wave 1, ~1 day, low risk)
+### Session A — Stop misleading the user (Wave 1, ~1 day, low risk) — ✅ DONE 2026-09-19
 
-Closes F01, F02, F04, F05, F06.
+Closes F01, F02, F04, F05, F06. Shipped on `claude/vigilant-hamilton-juu4a5`: `task` + `creditCost` on `ToolMeta` derived from `CREDITS_PER_TASK`; `CreditCost` chip on all 24 generate buttons and every hub card; `useSpendConfirm` dialog on the five 5+-credit tools; orphan `media-kit-bio` price removed; `text-zinc-500/600` → `text-crisp` (532 sites); new `border-edge` token (#5C6E80, 3.2:1) replacing `border-brand-500/5|10|15` (337 sites) with hover/focus borders bumped so they no longer dim; dashboard and hubs show `InlineError` + retry instead of a zero-credit account; sidebar active item has a left-edge bar and `aria-current`. Guard test: `src/lib/__tests__/tools-meta.test.ts`. Visual check: login and landing pages rendered via headless Chromium; authenticated pages still owed a look in production.
 
 1. **Price on every action (F01).**
    - Add `task: CrispTask` and `creditCost: number` to `ToolMeta` in `src/lib/tools-meta.ts`, deriving cost from `CREDITS_PER_TASK` so there is one price table.

@@ -63,7 +63,7 @@ export default function DemoBestTimesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Best Times to Post</h1>
-        <p className="text-zinc-500 mt-1">Discover when your audience is most active.</p>
+        <p className="text-crisp mt-1">Discover when your audience is most active.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -93,18 +93,18 @@ export default function DemoBestTimesPage() {
           ))}
         </div>
 
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 sm:p-6 overflow-x-auto">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-4 sm:p-6 overflow-x-auto">
           <h2 className="text-lg font-semibold text-zinc-200 mb-4">Weekly Engagement Heatmap</h2>
           <div className="min-w-[600px]">
             <div className="flex mb-1 pl-12">
               {hourLabels.map((label, i) => (
-                <div key={i} className="flex-1 text-center text-2xs text-zinc-600">{label}</div>
+                <div key={i} className="flex-1 text-center text-2xs text-crisp">{label}</div>
               ))}
             </div>
 
             {MOCK_WEEK_DATA.map((dayData, dayIndex) => (
               <div key={dayIndex} className="flex items-center gap-1 mb-1">
-                <span className="w-10 text-xs text-zinc-500 text-right flex-shrink-0">{DAYS[dayIndex]}</span>
+                <span className="w-10 text-xs text-crisp text-right flex-shrink-0">{DAYS[dayIndex]}</span>
                 <div className="flex-1 grid grid-cols-24 gap-0.5">
                   {dayData.map((value, hourIndex) => (
                     <HeatmapCell key={hourIndex} value={value} />
@@ -113,7 +113,7 @@ export default function DemoBestTimesPage() {
               </div>
             ))}
 
-            <div className="flex items-center justify-end gap-2 mt-4 text-xs text-zinc-500">
+            <div className="flex items-center justify-end gap-2 mt-4 text-xs text-crisp">
               <span>Low</span>
               <div className="flex gap-0.5">
                 {[10, 30, 50, 70, 90].map((v) => (
@@ -129,7 +129,7 @@ export default function DemoBestTimesPage() {
           <h2 className="text-base font-semibold text-zinc-200 mb-3">Top 5 Time Slots</h2>
           <div className="space-y-2">
             {MOCK_TOP_SLOTS.map((slot, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary">
+              <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-edge bg-surface-secondary">
                 <div className="w-7 h-7 rounded-full bg-brand-600/20 border border-brand-500/20 flex items-center justify-center text-xs font-bold text-brand-300 flex-shrink-0">
                   {i + 1}
                 </div>
@@ -138,11 +138,11 @@ export default function DemoBestTimesPage() {
                     <span className="text-sm font-medium text-zinc-200">{slot.day}</span>
                     <span className="text-sm text-brand-300">{slot.time}</span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 truncate">{slot.reason}</p>
+                  <p className="text-xs text-crisp mt-0.5 truncate">{slot.reason}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-sm font-bold text-emerald-400">{slot.score}</div>
-                  <div className="text-xs text-zinc-600">score</div>
+                  <div className="text-xs text-crisp">score</div>
                 </div>
               </div>
             ))}

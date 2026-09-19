@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 const MIN_SAMPLES = 3;
 const MAX_SAMPLES = 25;
@@ -191,7 +192,7 @@ export default function VoiceTrainerPage() {
       </div>
 
       {/* How it works */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5">
         <h2 className="text-sm font-semibold text-zinc-200 mb-3">How this works</h2>
         <ol className="space-y-2.5 text-sm text-zinc-400">
           <li className="flex gap-3">
@@ -221,7 +222,7 @@ export default function VoiceTrainerPage() {
       </div>
 
       {/* Video / audio / URL import — coming soon */}
-      <div className="rounded-xl border border-zinc-500/10 bg-surface-secondary/60 p-4 text-xs text-zinc-500 flex gap-3 items-start">
+      <div className="rounded-xl border border-zinc-500/10 bg-surface-secondary/60 p-4 text-xs text-crisp flex gap-3 items-start">
         <span className="text-lg">🔜</span>
         <div>
           <strong className="text-zinc-400 block mb-0.5">Coming soon</strong>
@@ -232,7 +233,7 @@ export default function VoiceTrainerPage() {
       </div>
 
       {/* Status banner */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${profile.traits ? "bg-emerald-500/15" : "bg-zinc-500/15"}`}>
             {profile.traits ? "✓" : "🧪"}
@@ -245,7 +246,7 @@ export default function VoiceTrainerPage() {
                   ? "Ready to analyze"
                   : `Paste ${samplesNeeded} more caption${samplesNeeded === 1 ? "" : "s"} to get started`}
             </div>
-            <div className="text-xs text-zinc-500">
+            <div className="text-xs text-crisp">
               {sampleCount} of {MAX_SAMPLES} captions added
               {profile.last_analyzed_at && <> · last analyzed {relativeTime(profile.last_analyzed_at)}</>}
             </div>
@@ -259,6 +260,7 @@ export default function VoiceTrainerPage() {
           )}
           <Button size="sm" onClick={handleAnalyze} disabled={!canAnalyze} loading={analyzing}>
             {profile.traits ? "Re-analyze" : "Analyze voice"}
+            <CreditCost task="bio-optimizer" />
           </Button>
         </div>
       </div>
@@ -282,7 +284,7 @@ export default function VoiceTrainerPage() {
                 rows={8}
                 maxLength={MAX_SAMPLE_CHARS}
                 placeholder="Paste a caption you've written here. Scripts, posts, and newsletters work too — but captions are easiest. Longer = better."
-                className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
+                className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
               />
               <div className="flex flex-wrap gap-2">
                 <input
@@ -290,13 +292,13 @@ export default function VoiceTrainerPage() {
                   value={sampleLabel}
                   onChange={(e) => setSampleLabel(e.target.value)}
                   placeholder="Optional label (e.g. 'newsletter intro')"
-                  className="flex-1 min-w-[180px] rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40"
+                  className="flex-1 min-w-[180px] rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400"
                   maxLength={100}
                 />
                 <select
                   value={samplePlatform}
                   onChange={(e) => setSamplePlatform(e.target.value)}
-                  className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500/40"
+                  className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-xs focus:outline-none focus:border-brand-400"
                 >
                   {PLATFORMS.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -304,7 +306,7 @@ export default function VoiceTrainerPage() {
                 </select>
               </div>
               <div className="flex items-center justify-between text-2xs">
-                <span className="text-zinc-600">{sampleContent.length.toLocaleString()} / {MAX_SAMPLE_CHARS.toLocaleString()} chars</span>
+                <span className="text-crisp">{sampleContent.length.toLocaleString()} / {MAX_SAMPLE_CHARS.toLocaleString()} chars</span>
                 <Button size="sm" onClick={handleAddSample} loading={adding} disabled={!sampleContent.trim()}>
                   Save sample
                 </Button>
@@ -324,7 +326,7 @@ export default function VoiceTrainerPage() {
           )}
 
           {profile.samples.map((s) => (
-            <div key={s.id} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 group">
+            <div key={s.id} className="rounded-xl border border-edge bg-surface-secondary p-4 group">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   {s.platform && (
@@ -333,11 +335,11 @@ export default function VoiceTrainerPage() {
                     </span>
                   )}
                   {s.label && <span className="text-xs text-zinc-400">{s.label}</span>}
-                  <span className="text-xs text-zinc-600">· {relativeTime(s.added_at)}</span>
+                  <span className="text-xs text-crisp">· {relativeTime(s.added_at)}</span>
                 </div>
                 <button
                   onClick={() => handleDeleteSample(s.id)}
-                  className="text-xs text-zinc-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                  className="text-xs text-crisp hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                   aria-label="Remove sample"
                 >
                   Remove
@@ -375,8 +377,8 @@ export default function VoiceTrainerPage() {
               <TraitList label="Typical closers" items={profile.traits.closers} />
               <TraitList label="Avoids" items={profile.traits.avoid} variant="warning" />
               {profile.traits.notes && (
-                <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-                  <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Notes</div>
+                <div className="rounded-xl border border-edge bg-surface-secondary p-4">
+                  <div className="text-2xs font-bold uppercase tracking-wider text-crisp mb-1">Notes</div>
                   <p className="text-sm text-zinc-300 leading-relaxed">{profile.traits.notes}</p>
                 </div>
               )}
@@ -391,8 +393,8 @@ export default function VoiceTrainerPage() {
 
 function TraitBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-      <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500 mb-1">{label}</div>
+    <div className="rounded-xl border border-edge bg-surface-secondary p-4">
+      <div className="text-2xs font-bold uppercase tracking-wider text-crisp mb-1">{label}</div>
       <p className="text-sm text-zinc-300 leading-relaxed">{value}</p>
     </div>
   );
@@ -405,8 +407,8 @@ function TraitList({ label, items, variant = "default" }: { label: string; items
       ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
       : "bg-brand-500/10 text-brand-300 border-brand-500/20";
   return (
-    <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4">
-      <div className="text-2xs font-bold uppercase tracking-wider text-zinc-500 mb-2">{label}</div>
+    <div className="rounded-xl border border-edge bg-surface-secondary p-4">
+      <div className="text-2xs font-bold uppercase tracking-wider text-crisp mb-2">{label}</div>
       <div className="flex flex-wrap gap-1.5">
         {items.map((item, i) => (
           <span key={i} className={`text-xs px-2 py-1 rounded-lg border ${pillColor}`}>

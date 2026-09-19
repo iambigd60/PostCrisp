@@ -84,7 +84,7 @@ export function DemoSidebar() {
           ? "bg-brand-600/20 text-brand-300 border border-brand-500/20 shadow-glow"
           : item.interactive
           ? "text-zinc-400 hover:text-zinc-200 hover:bg-surface-hover"
-          : "text-zinc-500 hover:text-brand-300 hover:bg-surface-hover"
+          : "text-crisp hover:text-brand-300 hover:bg-surface-hover"
       }`}
       title={item.interactive ? undefined : "Sign up to try this tool"}
     >
@@ -93,14 +93,14 @@ export function DemoSidebar() {
       </span>
       <span className="flex-1">{item.label}</span>
       {!item.interactive && (
-        <span className="text-2xs text-zinc-600 group-hover:text-brand-400 transition-colors">🔒</span>
+        <span className="text-2xs text-crisp group-hover:text-brand-400 transition-colors">🔒</span>
       )}
     </Link>
   );
 
   const navContent = (
     <>
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-brand-500/10 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-edge flex-shrink-0">
         <Link href="/" aria-label="PostCrisp home" className="flex items-center">
           <Image
             src="/postcrisp-logo-header.png"
@@ -120,7 +120,7 @@ export function DemoSidebar() {
         {/* Grouped tool nav */}
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-0.5">
-            <div className="px-3 py-1 text-2xs uppercase tracking-wider text-zinc-600 font-semibold">
+            <div className="px-3 py-1 text-2xs uppercase tracking-wider text-crisp font-semibold">
               {group.label}
             </div>
             {group.items.map(renderItem)}
@@ -128,7 +128,7 @@ export function DemoSidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto px-3 py-4 border-t border-brand-500/10 space-y-2">
+      <div className="mt-auto px-3 py-4 border-t border-edge space-y-2">
         <Link
           href="/signup"
           className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-all hover:shadow-glow min-h-[44px]"
@@ -149,7 +149,7 @@ export function DemoSidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-surface-secondary border border-brand-500/10 text-zinc-300 hover:text-white transition-colors"
+        className="lg:hidden fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-surface-secondary border border-edge text-zinc-300 hover:text-white transition-colors"
         aria-label="Open menu"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,13 +165,13 @@ export function DemoSidebar() {
       )}
 
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-surface-secondary border-r border-brand-500/10 flex flex-col transition-transform duration-300 ${
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-surface-secondary border-r border-edge flex flex-col transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-surface-hover transition-colors"
+          className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-crisp hover:text-zinc-300 hover:bg-surface-hover transition-colors"
           aria-label="Close menu"
         >
           ✕
@@ -179,7 +179,7 @@ export function DemoSidebar() {
         {navContent}
       </aside>
 
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-surface-secondary border-r border-brand-500/10 w-[260px]">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-surface-secondary border-r border-edge w-[260px]">
         {navContent}
       </aside>
     </>

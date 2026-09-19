@@ -169,7 +169,7 @@ function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
           ) : (
             <>
               <span className="text-lg font-bold text-zinc-100 leading-none">{used}</span>
-              <span className="text-2xs text-zinc-600 leading-none">/{FREE_DAILY_LIMIT}</span>
+              <span className="text-2xs text-crisp leading-none">/{FREE_DAILY_LIMIT}</span>
             </>
           )}
         </div>
@@ -178,7 +178,7 @@ function UsageRing({ used, isPro }: { used: number; isPro: boolean }) {
         <p className="text-sm font-medium text-zinc-200">
           {isPro ? 'Unlimited plan' : `${Math.max(0, FREE_DAILY_LIMIT - used)} left today`}
         </p>
-        <p className="text-xs text-zinc-500 mt-0.5">
+        <p className="text-xs text-crisp mt-0.5">
           {isPro ? 'All features unlocked' : 'Starter · resets at midnight'}
         </p>
         <Link href="/signup" className="text-xs text-brand-400 font-medium mt-1 inline-block hover:text-brand-300">
@@ -212,7 +212,7 @@ export default function DemoDashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">
             Welcome back, {MOCK.firstName}! 👋
           </h1>
-          <p className="text-zinc-500 mt-1 text-sm">
+          <p className="text-crisp mt-1 text-sm">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -225,18 +225,18 @@ export default function DemoDashboardPage() {
       </div>
 
       {/* Channels row */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-zinc-200">Your channels</h2>
-          <span className="text-xs text-zinc-600">{MOCK.channels.length} connected (demo)</span>
+          <span className="text-xs text-crisp">{MOCK.channels.length} connected (demo)</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {MOCK.channels.map((c) => (
-            <div key={c.handle} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-tertiary border border-brand-500/5">
+            <div key={c.handle} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-tertiary border border-edge">
               <span className="text-lg">{PLATFORM_EMOJI[c.platform] ?? '🌐'}</span>
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-medium text-zinc-200">{c.handle}</span>
-                <span className="text-2xs text-zinc-500">{c.label}</span>
+                <span className="text-2xs text-crisp">{c.label}</span>
               </div>
             </div>
           ))}
@@ -251,10 +251,10 @@ export default function DemoDashboardPage() {
           { icon: '💾', label: 'Saved items', value: MOCK.savedCount, sub: 'pieces of content' },
           { icon: '🔥', label: 'Today', value: MOCK.daily_generations_used, sub: isPro ? 'unlimited' : `of ${FREE_DAILY_LIMIT}` },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-all">
+          <div key={stat.label} className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-all">
             <span className="text-xl block mb-2">{stat.icon}</span>
             <div className="text-2xl font-bold text-zinc-100">{stat.value}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
+            <div className="text-xs text-crisp mt-0.5">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -264,7 +264,7 @@ export default function DemoDashboardPage() {
         <div className="lg:col-span-2">
           <BrandReadinessCard result={brs} />
         </div>
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <h2 className="text-base font-semibold text-zinc-200 mb-4">Daily Usage</h2>
           <UsageRing used={MOCK.daily_generations_used} isPro={isPro} />
         </div>
@@ -274,14 +274,14 @@ export default function DemoDashboardPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-zinc-200">Browse all 22 tools</h2>
-          <span className="text-xs text-zinc-500">4 interactive demos · rest unlock on signup</span>
+          <span className="text-xs text-crisp">4 interactive demos · rest unlock on signup</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {CATEGORIES.map((c) => (
             <Link
               key={c.label}
               href={c.href}
-              className="group relative rounded-xl bg-surface-secondary border border-brand-500/10 p-5 hover:border-brand-500/25 transition-all hover:shadow-glow flex items-start gap-4"
+              className="group relative rounded-xl bg-surface-secondary border border-edge p-5 hover:border-brand-400 transition-all hover:shadow-glow flex items-start gap-4"
             >
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform`}>
                 {c.icon}
@@ -311,17 +311,17 @@ export default function DemoDashboardPage() {
               <Link
                 key={gen.id}
                 href={meta.href}
-                className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/20 hover:bg-surface-elevated transition-all group"
+                className="flex items-center gap-3 p-4 rounded-xl border border-edge bg-surface-secondary hover:border-brand-400 hover:bg-surface-elevated transition-all group"
               >
                 <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-medium text-brand-400">{meta.label}</span>
-                    <span className="text-xs text-zinc-600 bg-surface-tertiary px-1.5 py-0.5 rounded-full capitalize">{gen.platform}</span>
+                    <span className="text-xs text-crisp bg-surface-tertiary px-1.5 py-0.5 rounded-full capitalize">{gen.platform}</span>
                   </div>
                   <p className="text-sm text-zinc-400 truncate">{gen.preview}</p>
                 </div>
-                <span className="text-xs text-zinc-600 flex-shrink-0">{timeAgo(gen.created_at_minutes_ago)}</span>
+                <span className="text-xs text-crisp flex-shrink-0">{timeAgo(gen.created_at_minutes_ago)}</span>
               </Link>
             )
           })}

@@ -38,6 +38,11 @@ const config: Config = {
           DEFAULT: "#8C949C",  // Warship Grey — secondary accent
           dark:    "#646B73",
         },
+        // ── Edge: card/input boundary at ≥3:1 against surface-secondary (#181E24).
+        //    Replaces the old border-brand-500/10 (1.15:1, effectively invisible). ──
+        edge: {
+          DEFAULT: "#5C6E80",  // Steel Edge — 3.2:1 on Deep Steel
+        },
         // ── Paper: Hangar White for primary text on dark ──
         paper: {
           DEFAULT: "#E8ECEF",  // Hangar White

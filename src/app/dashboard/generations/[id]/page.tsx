@@ -45,11 +45,11 @@ const FEATURE_META: Record<string, { icon: string; label: string; backHref: stri
 
 // Generic recursive renderer: turns any JSON-ish structure into a readable block.
 function renderValue(value: unknown, depth = 0): React.ReactNode {
-  if (value === null || value === undefined) return <span className="text-zinc-600">—</span>;
+  if (value === null || value === undefined) return <span className="text-crisp">—</span>;
   if (typeof value === 'string') return <span className="whitespace-pre-wrap text-zinc-300">{value}</span>;
   if (typeof value === 'number' || typeof value === 'boolean') return <span className="font-mono text-brand-300">{String(value)}</span>;
   if (Array.isArray(value)) {
-    if (value.length === 0) return <span className="text-zinc-600">[]</span>;
+    if (value.length === 0) return <span className="text-crisp">[]</span>;
     if (value.every((v) => typeof v === 'string')) {
       return (
         <ul className="space-y-1">
@@ -58,10 +58,10 @@ function renderValue(value: unknown, depth = 0): React.ReactNode {
       );
     }
     return (
-      <div className={`space-y-2 ${depth > 0 ? 'pl-3 border-l border-brand-500/10' : ''}`}>
+      <div className={`space-y-2 ${depth > 0 ? 'pl-3 border-l border-edge' : ''}`}>
         {value.map((v, i) => (
           <div key={i} className="rounded-lg bg-surface-tertiary/40 p-3">
-            <div className="text-2xs text-zinc-600 uppercase tracking-wider mb-2">#{i + 1}</div>
+            <div className="text-2xs text-crisp uppercase tracking-wider mb-2">#{i + 1}</div>
             {renderValue(v, depth + 1)}
           </div>
         ))}
@@ -71,10 +71,10 @@ function renderValue(value: unknown, depth = 0): React.ReactNode {
   if (typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>);
     return (
-      <div className={`space-y-2 ${depth > 0 ? 'pl-3 border-l border-brand-500/10' : ''}`}>
+      <div className={`space-y-2 ${depth > 0 ? 'pl-3 border-l border-edge' : ''}`}>
         {entries.map(([k, v]) => (
           <div key={k}>
-            <div className="text-2xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">{formatKey(k)}</div>
+            <div className="text-2xs font-semibold uppercase tracking-wider text-crisp mb-1">{formatKey(k)}</div>
             {renderValue(v, depth + 1)}
           </div>
         ))}
@@ -194,20 +194,20 @@ export default function GenerationDetailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+        <Link href="/dashboard" className="text-sm text-crisp hover:text-zinc-300 transition-colors">
           ← Back to dashboard
         </Link>
       </div>
 
       {/* Header */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-700/20 border border-brand-500/20 flex items-center justify-center text-2xl">
             {meta.icon}
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-zinc-100">{meta.label}</h1>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-crisp">
               {gen.platform ? `${gen.platform} · ` : ''}{timeAgo(gen.created_at)} · {gen.tokens_used.toLocaleString()} tokens
             </p>
           </div>
@@ -237,27 +237,27 @@ export default function GenerationDetailPage() {
       </div>
 
       {/* Output */}
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-zinc-200">Output</h2>
           <CopyButton text={fullTextForCopy} label="Copy JSON" />
         </div>
-        {gen.output_data ? renderValue(gen.output_data) : <p className="text-sm text-zinc-500">No output data.</p>}
+        {gen.output_data ? renderValue(gen.output_data) : <p className="text-sm text-crisp">No output data.</p>}
       </div>
 
       {/* Input (collapsible) */}
       {gen.input_data && (
-        <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+        <div className="rounded-xl border border-edge bg-surface-secondary p-5">
           <button
             type="button"
             onClick={() => setShowInput(!showInput)}
             className="w-full flex items-center justify-between text-sm font-semibold text-zinc-200 hover:text-zinc-100"
           >
             <span>📥 Input used for this generation</span>
-            <span className="text-zinc-500">{showInput ? '▾' : '▸'}</span>
+            <span className="text-crisp">{showInput ? '▾' : '▸'}</span>
           </button>
           {showInput && (
-            <div className="mt-4 pt-4 border-t border-brand-500/10">
+            <div className="mt-4 pt-4 border-t border-edge">
               {renderValue(gen.input_data)}
             </div>
           )}

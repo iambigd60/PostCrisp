@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { toolByKey, type ToolMeta } from '@/lib/tools-meta'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
+import { InlineError } from '@/components/ui/ErrorBoundary'
 
 interface RecentRow {
   id: string
@@ -47,31 +48,46 @@ export function CategoryHub({ title, description, tools }: Props) {
   const [recent, setRecent] = useState<RecentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [usedToolKeys, setUsedToolKeys] = useState<Set<string>>(new Set())
+  // A failed query must not render as "Nothing here yet" — that is a lie to
+  // anyone with real history. Track the error and offer a retry instead.
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
+    let cancelled = false
     ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setLoading(false)
-        return
+      setLoading(true)
+      setLoadError(null)
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) throw authError
+        if (!user) return
+
+        const featureKeys = tools.map((t) => t.key)
+        const { data: rows, error } = await supabase
+          .from('generations')
+          .select('id, feature, platform, created_at')
+          .eq('user_id', user.id)
+          .in('feature', featureKeys)
+          .order('created_at', { ascending: false })
+          .limit(8)
+        if (error) throw error
+        if (cancelled) return
+
+        const recentRows = (rows ?? []) as RecentRow[]
+        setRecent(recentRows)
+        setUsedToolKeys(new Set(recentRows.map((r) => r.feature)))
+      } catch (err) {
+        if (cancelled) return
+        console.error('[category-hub] recent activity failed:', err)
+        setLoadError("Couldn't load your recent activity.")
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-
-      const featureKeys = tools.map((t) => t.key)
-      const { data: rows } = await supabase
-        .from('generations')
-        .select('id, feature, platform, created_at')
-        .eq('user_id', user.id)
-        .in('feature', featureKeys)
-        .order('created_at', { ascending: false })
-        .limit(8)
-
-      const recentRows = (rows ?? []) as RecentRow[]
-      setRecent(recentRows)
-      setUsedToolKeys(new Set(recentRows.map((r) => r.feature)))
-      setLoading(false)
     })()
-  }, [tools])
+    return () => { cancelled = true }
+  }, [tools, attempt])
 
   return (
     <div className="space-y-6">
@@ -96,7 +112,7 @@ export function CategoryHub({ title, description, tools }: Props) {
               <Link
                 key={tool.key}
                 href={tool.href}
-                className="group rounded-xl border border-brand-500/10 bg-surface-secondary hover:border-brand-500/30 hover:bg-surface-elevated transition-all p-5 flex flex-col gap-3"
+                className="group rounded-xl border border-edge bg-surface-secondary hover:border-brand-400 hover:bg-surface-elevated transition-all p-5 flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -110,11 +126,16 @@ export function CategoryHub({ title, description, tools }: Props) {
                   )}
                 </div>
                 <p className="text-sm text-zinc-300 leading-snug">{tool.tagline}</p>
-                <div className="text-2xs text-zinc-500 leading-relaxed">
+                <div className="text-2xs text-crisp leading-relaxed">
                   <span className="font-semibold text-zinc-400">Best for:</span> {tool.bestFor}
                 </div>
-                <div className="mt-auto pt-2 flex items-center justify-end text-xs text-zinc-500 group-hover:text-brand-300 transition-colors">
-                  Open <span className="ml-1.5">→</span>
+                <div className="mt-auto pt-2 flex items-center justify-between text-xs text-crisp">
+                  <span className="font-semibold tabular-nums text-zinc-300">
+                    {tool.creditCost} {tool.creditCost === 1 ? 'credit' : 'credits'}
+                  </span>
+                  <span className="group-hover:text-brand-300 transition-colors">
+                    Open <span className="ml-1.5">→</span>
+                  </span>
                 </div>
               </Link>
             )
@@ -127,7 +148,7 @@ export function CategoryHub({ title, description, tools }: Props) {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-zinc-300">Your recent {title} activity</h2>
           {recent.length > 0 && (
-            <span className="text-2xs text-zinc-500">
+            <span className="text-2xs text-crisp">
               {recent.length} item{recent.length === 1 ? '' : 's'}
             </span>
           )}
@@ -135,15 +156,19 @@ export function CategoryHub({ title, description, tools }: Props) {
 
         {loading && <SkeletonGrid count={3} />}
 
-        {!loading && recent.length === 0 && (
-          <div className="rounded-xl border border-dashed border-brand-500/15 bg-surface-secondary/40 p-8 text-center">
+        {!loading && loadError && (
+          <InlineError message={loadError} onRetry={() => setAttempt((n) => n + 1)} />
+        )}
+
+        {!loading && !loadError && recent.length === 0 && (
+          <div className="rounded-xl border border-dashed border-edge bg-surface-secondary/40 p-8 text-center">
             <p className="text-sm text-zinc-400">
               Nothing here yet. Pick a tool above and ship your first piece — it&apos;ll show up in this list.
             </p>
           </div>
         )}
 
-        {!loading && recent.length > 0 && (
+        {!loading && !loadError && recent.length > 0 && (
           <div className="space-y-2">
             {recent.map((row) => {
               const tool = toolByKey(row.feature)
@@ -152,16 +177,16 @@ export function CategoryHub({ title, description, tools }: Props) {
                 <Link
                   key={row.id}
                   href={`/dashboard/generations/${row.id}`}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-secondary border border-brand-500/10 hover:border-brand-500/25 hover:bg-surface-elevated transition-all group"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-secondary border border-edge hover:border-brand-400 hover:bg-surface-elevated transition-all group"
                 >
                   <span className="text-lg flex-shrink-0">{tool.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-zinc-200 truncate">{tool.label}</div>
-                    <div className="text-2xs text-zinc-500">
+                    <div className="text-2xs text-crisp">
                       {row.platform ? `${row.platform} · ` : ''}{timeAgo(row.created_at)}
                     </div>
                   </div>
-                  <span className="text-zinc-500 group-hover:text-brand-400 text-sm flex-shrink-0 transition-colors">
+                  <span className="text-crisp group-hover:text-brand-400 text-sm flex-shrink-0 transition-colors">
                     →
                   </span>
                 </Link>

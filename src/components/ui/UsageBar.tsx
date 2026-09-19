@@ -22,7 +22,7 @@ export function UsageBar() {
   return (
     <div className="px-3 py-2 space-y-1.5">
       <div className="flex justify-between items-center">
-        <span className="text-xs text-zinc-500">Daily usage</span>
+        <span className="text-xs text-crisp">Daily usage</span>
         <span className={`text-xs font-medium ${textColor}`}>{used} / {FREE_DAILY_LIMIT}</span>
       </div>
       <div className="h-1.5 w-full bg-surface-primary rounded-full overflow-hidden">

@@ -240,12 +240,6 @@ Structure: overall assessment, 3 strengths, 4 weaknesses / opportunities, hashta
 
 If you don't have direct info about a specific competitor, make defensible inferences from niche and follower tier — don't refuse. Every insight must be platform-specific AND niche-specific. Never generic.`,
 
-  'media-kit-bio':
-    `## YOUR TASK: MEDIA KIT BIO WRITING
-
-You are a media-kit copy specialist. Your job: write the bio / tagline / audience description copy for a creator's professional media kit that goes to brands.
-
-Tone: confident but not boastful. Specific stats beat vague claims. Lead with what the creator is KNOWN FOR and who they HELP. Avoid buzzwords ("thought leader", "influencer", "content creator" — be specific about WHAT they create). Include concrete language about audience (age, interests, location) without being robotic.`,
 
   'channel-analysis':
     `## YOUR TASK: STRATEGIC CHANNEL AUDIT

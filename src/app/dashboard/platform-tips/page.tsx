@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Tip {
   title: string;
@@ -71,7 +72,7 @@ export default function PlatformTipsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Platform Tips</h1>
-        <p className="text-zinc-500 mt-1">Algorithm insights, best practices, and growth tactics per platform.</p>
+        <p className="text-crisp mt-1">Algorithm insights, best practices, and growth tactics per platform.</p>
       </div>
 
       {/* Platform tabs */}
@@ -83,14 +84,15 @@ export default function PlatformTipsPage() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 flex flex-wrap items-center gap-3">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-4 flex flex-wrap items-center gap-3">
         <span className="text-sm text-zinc-400">Get niche-personalized tips:</span>
-        <select value={niche} onChange={(e) => setNiche(e.target.value)} className="rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500/40">
+        <select value={niche} onChange={(e) => setNiche(e.target.value)} className="rounded-lg bg-surface-tertiary border border-edge text-zinc-200 px-3 py-1.5 text-sm focus:outline-none focus:border-brand-400">
           <option value="">Choose your niche…</option>
           {NICHES.map((n) => <option key={n.id} value={n.label}>{n.label}</option>)}
         </select>
         <Button size="sm" variant="secondary" onClick={() => fetchTips(true)} loading={loading} disabled={!niche}>
           🎯 Personalize
+          <CreditCost task="platform-tips" />
         </Button>
       </div>
 
@@ -110,7 +112,7 @@ export default function PlatformTipsPage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {items.map((tip, i) => (
-                    <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-4 hover:border-brand-500/20 transition-colors">
+                    <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-colors">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h4 className="text-sm font-semibold text-zinc-100 flex-1">{tip.title}</h4>
                       </div>

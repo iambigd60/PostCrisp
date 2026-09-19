@@ -26,11 +26,11 @@ function Check({ ok }: { ok: boolean | string }) {
   if (typeof ok === 'string') return <span className="text-zinc-200 font-medium text-xs">{ok}</span>
   return ok
     ? <span className="text-emerald-400">✓</span>
-    : <span className="text-zinc-600">—</span>
+    : <span className="text-crisp">—</span>
 }
 
 const tierTheme: Record<Tier, { ring: string; glow: string; accent: string; icon: string }> = {
-  starter: { ring: 'border-brand-500/10', glow: '', accent: 'text-zinc-300', icon: '🆓' },
+  starter: { ring: 'border-edge', glow: '', accent: 'text-zinc-300', icon: '🆓' },
   creator: { ring: 'border-brand-500/40', glow: 'shadow-glow', accent: 'text-brand-300', icon: '⚡' },
   elite:   { ring: 'border-amber-500/40', glow: 'shadow-glow', accent: 'text-amber-300', icon: '👑' },
 }
@@ -120,7 +120,7 @@ export default function BillingPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Billing &amp; Subscription</h1>
-        <p className="text-zinc-500 mt-1">Manage your PostCrisp plan.</p>
+        <p className="text-crisp mt-1">Manage your PostCrisp plan.</p>
       </div>
 
       {/* Current plan */}
@@ -140,7 +140,7 @@ export default function BillingPage() {
                 {isPaid ? 'Active' : 'Free tier'}
               </span>
             </div>
-            <p className="text-sm text-zinc-500 mt-0.5">
+            <p className="text-sm text-crisp mt-0.5">
               {currentPlan.tagline} · {currentPlan.engine}
             </p>
           </div>
@@ -161,14 +161,14 @@ export default function BillingPage() {
         <>
           {/* Billing toggle */}
           <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-zinc-200' : 'text-zinc-500'}`}>Monthly</span>
+            <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-zinc-200' : 'text-crisp'}`}>Monthly</span>
             <button
               onClick={() => setBilling(billing === 'monthly' ? 'yearly' : 'monthly')}
               className={`relative w-12 h-6 rounded-full transition-colors ${billing === 'yearly' ? 'bg-brand-600' : 'bg-surface-elevated'}`}
             >
               <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${billing === 'yearly' ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
-            <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-zinc-200' : 'text-zinc-500'}`}>
+            <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-zinc-200' : 'text-crisp'}`}>
               Yearly
               <span className="ml-1.5 text-xs text-emerald-400 font-semibold">Save 17%</span>
             </span>
@@ -209,8 +209,8 @@ export default function BillingPage() {
           </div>
 
           {/* Feature comparison */}
-          <div className="rounded-xl border border-brand-500/10 bg-surface-secondary overflow-hidden overflow-x-auto">
-            <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] text-xs font-semibold text-zinc-500 uppercase tracking-wider px-5 py-3 border-b border-brand-500/10 bg-surface-tertiary min-w-[600px]">
+          <div className="rounded-xl border border-edge bg-surface-secondary overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] text-xs font-semibold text-crisp uppercase tracking-wider px-5 py-3 border-b border-edge bg-surface-tertiary min-w-[600px]">
               <span>Feature</span>
               <span className="text-center">Starter</span>
               <span className="text-center text-brand-400">Creator</span>
@@ -229,7 +229,7 @@ export default function BillingPage() {
             ))}
           </div>
 
-          <p className="text-center text-xs text-zinc-600">
+          <p className="text-center text-xs text-crisp">
             Cancel anytime · No contracts · 30-day money-back guarantee
           </p>
         </>
@@ -240,7 +240,7 @@ export default function BillingPage() {
         <div className="flex items-end justify-between">
           <div>
             <h2 className="text-lg font-bold text-zinc-100">Top up credits</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">One-time credit packs. Never expire.</p>
+            <p className="text-xs text-crisp mt-0.5">One-time credit packs. Never expire.</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -250,15 +250,15 @@ export default function BillingPage() {
             return (
               <div
                 key={pack.id}
-                className={`rounded-xl border p-5 ${isBest ? 'border-brand-500/40 bg-gradient-to-b from-brand-900/10 to-surface-secondary' : 'border-brand-500/10 bg-surface-secondary'} relative`}
+                className={`rounded-xl border p-5 ${isBest ? 'border-brand-500/40 bg-gradient-to-b from-brand-900/10 to-surface-secondary' : 'border-edge bg-surface-secondary'} relative`}
               >
                 {isBest && (
                   <span className="absolute top-3 right-3 bg-brand-600 text-white text-2xs font-bold px-2 py-0.5 rounded-full">BEST VALUE</span>
                 )}
                 <div className="text-3xl font-extrabold text-zinc-100">{pack.credits}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">credits</div>
+                <div className="text-xs text-crisp mt-0.5">credits</div>
                 <div className="text-xl font-bold text-brand-300 mt-3">${pack.priceDollars}</div>
-                <div className="text-2xs text-zinc-600">${dollarsPerCredit} / credit</div>
+                <div className="text-2xs text-crisp">${dollarsPerCredit} / credit</div>
                 <button
                   onClick={() => handleBuyPack(pack)}
                   disabled={buyingPack !== null}
@@ -270,7 +270,7 @@ export default function BillingPage() {
             )
           })}
         </div>
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-crisp">
           💡 Credit packs stack on top of your monthly allowance and never expire. Great for heavy project months.
         </p>
       </div>
@@ -279,7 +279,7 @@ export default function BillingPage() {
       {tier === 'elite' && (
         <div className="rounded-xl border border-amber-500/20 bg-surface-secondary p-6 space-y-4">
           <h3 className="text-base font-semibold text-amber-200">👑 You&apos;re on Elite — highest tier</h3>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-crisp">
             You have access to every feature at PostCrisp Engine Elite quality. Manage payment method, download invoices, or cancel through the Stripe billing portal.
           </p>
           <button
@@ -319,7 +319,7 @@ function PricingCard({ planKey, billing, isCurrent, popular, premium, disabled, 
     ? 'border-amber-500/40 bg-gradient-to-b from-amber-900/20 to-surface-secondary'
     : popular
     ? 'border-brand-500/40 bg-gradient-to-b from-brand-900/20 to-surface-secondary'
-    : 'border-brand-500/10 bg-surface-secondary'
+    : 'border-edge bg-surface-secondary'
 
   const ctaClasses = premium
     ? 'bg-amber-600 hover:bg-amber-500 text-white hover:shadow-glow'
@@ -341,13 +341,13 @@ function PricingCard({ planKey, billing, isCurrent, popular, premium, disabled, 
       )}
       <div className="mb-4">
         <h3 className="text-lg font-bold text-zinc-100">{plan.name}</h3>
-        <p className="text-xs text-zinc-500 mt-0.5">{plan.tagline}</p>
+        <p className="text-xs text-crisp mt-0.5">{plan.tagline}</p>
         <div className="mt-3 flex items-end gap-1">
           <span className="text-3xl font-extrabold text-zinc-100">${monthlyPrice}</span>
-          <span className="text-zinc-500 mb-1">/ mo</span>
+          <span className="text-crisp mb-1">/ mo</span>
         </div>
         {isPaid && billing === 'yearly' && (
-          <p className="text-xs text-zinc-500 mt-0.5">${yearlyPrice} billed annually</p>
+          <p className="text-xs text-crisp mt-0.5">${yearlyPrice} billed annually</p>
         )}
       </div>
       <ul className="space-y-2 mb-6 flex-1">

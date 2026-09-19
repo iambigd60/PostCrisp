@@ -8,6 +8,7 @@ import { EngineBadge } from "@/components/ui/EngineBadge";
 import { GenerationLoader } from "@/components/ui/GenerationLoader";
 import { InlineError } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
+import { CreditCost } from "@/components/ui/CreditCost";
 
 interface Script {
   hook: string;
@@ -101,10 +102,10 @@ export default function ScriptsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Script Generator</h1>
-        <p className="text-zinc-500 mt-1">Camera-ready scripts with hooks, timestamps, and B-roll suggestions.</p>
+        <p className="text-crisp mt-1">Camera-ready scripts with hooks, timestamps, and B-roll suggestions.</p>
       </div>
 
-      <div className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5 sm:p-6 space-y-5">
+      <div className="rounded-xl border border-edge bg-surface-secondary p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">Video topic *</label>
           <textarea
@@ -112,7 +113,7 @@ export default function ScriptsPage() {
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g., 5 morning habits that changed my productivity"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none"
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none"
           />
         </div>
 
@@ -146,20 +147,21 @@ export default function ScriptsPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Target audience <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Target audience <span className="text-crisp">(optional)</span></label>
           <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="e.g., busy parents, indie devs, home cooks"
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Key points to include <span className="text-zinc-600">(optional)</span></label>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Key points to include <span className="text-crisp">(optional)</span></label>
           <textarea rows={3} value={keyPoints} onChange={(e) => setKeyPoints(e.target.value)}
             placeholder="Any specific points, stats, stories, or references to weave in..."
-            className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-4 py-3 text-sm focus:outline-none focus:border-brand-500/40 resize-none" />
+            className="w-full rounded-lg bg-surface-tertiary border border-edge text-zinc-200 placeholder:text-crisp px-4 py-3 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
 
         <Button onClick={handleGenerate} loading={loading} size="lg" className="w-full sm:w-auto">
           {loading ? "Writing..." : "🎬 Generate Script"}
+          <CreditCost task="script" />
         </Button>
       </div>
 
@@ -179,7 +181,7 @@ export default function ScriptsPage() {
             </div>
           </div>
 
-          <div className="text-xs text-zinc-500 flex gap-4">
+          <div className="text-xs text-crisp flex gap-4">
             <span>⏱️ {script.estimatedReadTime}</span>
             <span>📝 {script.wordCount} words</span>
           </div>
@@ -188,14 +190,14 @@ export default function ScriptsPage() {
           <Block title="📍 Intro">{script.intro}</Block>
 
           {script.sections.map((sec, i) => (
-            <div key={i} className="rounded-xl border border-brand-500/10 bg-surface-secondary p-5">
+            <div key={i} className="rounded-xl border border-edge bg-surface-secondary p-5">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-xs font-mono text-brand-300 bg-brand-500/10 px-2 py-0.5 rounded">⏱️ {sec.timestamp}</span>
                 <h4 className="text-sm font-semibold text-zinc-200">{sec.title}</h4>
               </div>
               <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{sec.body}</p>
               {sec.bRoll && (
-                <p className="text-xs text-zinc-500 mt-2 italic">📹 B-roll: {sec.bRoll}</p>
+                <p className="text-xs text-crisp mt-2 italic">📹 B-roll: {sec.bRoll}</p>
               )}
             </div>
           ))}
@@ -206,7 +208,7 @@ export default function ScriptsPage() {
       )}
 
       {!script && !loading && !error && (
-        <div className="text-center py-12 text-zinc-500">
+        <div className="text-center py-12 text-crisp">
           <span className="text-4xl block mb-4">🎬</span>
           <p>Describe your video above and get a camera-ready script.</p>
         </div>
@@ -217,9 +219,9 @@ export default function ScriptsPage() {
 
 function Block({ title, subtitle, children, accent }: { title: string; subtitle?: string; children: React.ReactNode; accent?: boolean }) {
   return (
-    <div className={`rounded-xl border ${accent ? "border-brand-500/30 bg-brand-900/10" : "border-brand-500/10 bg-surface-secondary"} p-5`}>
+    <div className={`rounded-xl border ${accent ? "border-brand-500/30 bg-brand-900/10" : "border-edge bg-surface-secondary"} p-5`}>
       <h4 className="text-sm font-semibold text-zinc-200">{title}</h4>
-      {subtitle && <p className="text-xs text-zinc-500 mb-2">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-crisp mb-2">{subtitle}</p>}
       <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed mt-2">{children}</p>
     </div>
   );
