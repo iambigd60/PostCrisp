@@ -89,12 +89,22 @@ export interface ProfileConfig {
   model: string
 }
 
+// ─── Updating engines ───────────────────────────────────────────────────────
+// Three places, all in this repo, must agree when a model changes:
+//   1. MODEL_CATALOG (below)  — what the admin screen offers in its dropdowns
+//   2. MODEL_PRICING in ai-costs.ts — what the cost ledger charges per token
+//   3. this table               — the code default per power profile
+// A test (engine-catalog.test.ts) fails if a catalogued model has no price.
+// Production may also carry per-cell overrides in `ai_config_overrides`; those
+// win over this table until reset from /admin/ai-config, so a change here is
+// not live until the overrides are reset or re-applied.
 export const DEFAULT_PROFILE_CONFIG: Record<PowerProfile, ProfileConfig> = {
-  // GPT-4o-mini is ~5× cheaper than Haiku 4.5 ($0.15/$0.60 vs $1/$5 per 1M)
-  // at equivalent quality for classification / short-output tasks.
-  FAST:     { provider: 'openai',    model: 'gpt-4o-mini' },
-  STANDARD: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-  PREMIUM:  { provider: 'anthropic', model: 'claude-opus-4-7' },
+  // GPT-5 mini: $0.25 / $2 per 1M — cheap, short-output tasks.
+  FAST:     { provider: 'openai',    model: 'gpt-5-mini' },
+  // Sonnet 5: $2 / $10 per 1M — the balanced default (cheaper than Sonnet 4.6).
+  STANDARD: { provider: 'anthropic', model: 'claude-sonnet-5' },
+  // Opus 5: $5 / $25 per 1M — same price as Opus 4.7, current generation.
+  PREMIUM:  { provider: 'anthropic', model: 'claude-opus-5' },
 }
 
 // ─── Per-tier task routing ──────────────────────────────────────────────────
@@ -105,25 +115,29 @@ export const DEFAULT_PROFILE_CONFIG: Record<PowerProfile, ProfileConfig> = {
 //
 // Admin can override any cell at runtime via `/admin/ai-config`.
 
+// Elite runs PREMIUM only where quality changes a real-world outcome (pitches,
+// pricing, analyses, vision critique, strategy). Everyday high-volume tasks
+// run STANDARD on Elite too: on a 2,000-credit allowance, a 1-credit caption
+// on Opus is the most expensive thing a user can do to our margin.
 export const TASK_TIER_PROFILE: Record<CrispTask, Record<ConfigurableTier, PowerProfile>> = {
   // Content creation
-  captions:        { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  hashtags:        { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  'posting-times': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  captions:        { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  hashtags:        { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  'posting-times': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   'viral-ideas':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  script:          { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  repurpose:       { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  'blog-to-social':{ starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  script:          { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  repurpose:       { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  'blog-to-social':{ starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   // Engagement
   'comment-reply': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
-  'dm-template':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'dm-template':   { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   polls:           { starter: 'FAST', creator: 'FAST',     elite: 'STANDARD' },
   // Platform optimization
-  'youtube-seo':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
-  'bio-optimizer': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'youtube-seo':   { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
+  'bio-optimizer': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   'platform-tips': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   // Growth / discovery
-  'trend-radar':   { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
+  'trend-radar':   { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   'sound-tracker': { starter: 'FAST', creator: 'STANDARD', elite: 'STANDARD' },
   'collab-finder': { starter: 'FAST', creator: 'STANDARD', elite: 'PREMIUM' },
   // Monetization — Creator already gets PREMIUM here because these are where
@@ -235,15 +249,19 @@ export const CREDIT_PACKS: CreditPack[] = [
 
 export const MODEL_CATALOG: Record<ProviderId, { id: string; label: string; notes?: string }[]> = {
   anthropic: [
-    { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7',           notes: 'Premium quality' },
-    { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',         notes: 'Balanced default' },
-    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',          notes: 'Cheapest / fastest' },
+    { id: 'claude-opus-5',             label: 'Claude Opus 5',             notes: 'Premium default · $5 / $25 per 1M' },
+    { id: 'claude-sonnet-5',           label: 'Claude Sonnet 5',           notes: 'Balanced default · $2 / $10 per 1M' },
+    { id: 'claude-opus-4-8',           label: 'Claude Opus 4.8',           notes: 'Previous premium · $5 / $25 per 1M' },
+    { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7',           notes: 'Previous premium · $5 / $25 per 1M' },
+    { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',         notes: 'Previous balanced · $3 / $15 per 1M' },
+    { id: 'claude-haiku-4-5',          label: 'Claude Haiku 4.5',          notes: 'Cheapest Anthropic · $1 / $5 per 1M' },
   ],
   openai: [
-    { id: 'gpt-4o',                    label: 'GPT-4o',                    notes: 'Balanced, ~$2.50/$10 per 1M' },
-    { id: 'gpt-4o-mini',               label: 'GPT-4o mini',               notes: 'Cheap, ~$0.15/$0.60 per 1M' },
-    { id: 'o1',                        label: 'o1 (reasoning)',            notes: 'Premium reasoning, slow' },
-    { id: 'o1-mini',                   label: 'o1-mini (reasoning)',       notes: 'Cheaper reasoning' },
+    { id: 'gpt-5',                     label: 'GPT-5',                     notes: '$1.25 / $10 per 1M' },
+    { id: 'gpt-5-mini',                label: 'GPT-5 mini',                notes: 'Fast default · $0.25 / $2 per 1M' },
+    { id: 'gpt-5-nano',                label: 'GPT-5 nano',                notes: 'Cheapest · $0.05 / $0.40 per 1M' },
+    { id: 'gpt-4o',                    label: 'GPT-4o',                    notes: 'Previous · $2.50 / $10 per 1M' },
+    { id: 'gpt-4o-mini',               label: 'GPT-4o mini',               notes: 'Previous fast · $0.15 / $0.60 per 1M' },
   ],
   azure: [
     { id: 'gpt-4o',                    label: 'Azure GPT-4o',              notes: 'Azure adapter not yet wired — falls back to Anthropic' },
