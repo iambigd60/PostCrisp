@@ -1,8 +1,16 @@
 "use client";
+import { useEffect } from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export function OfflineBanner() {
   const isOnline = useOnlineStatus();
+
+  // Fixed chrome (the mobile menu button) reads this class to drop below the
+  // banner, so losing connectivity never also hides the navigation.
+  useEffect(() => {
+    document.documentElement.classList.toggle("offline", !isOnline);
+    return () => document.documentElement.classList.remove("offline");
+  }, [isOnline]);
 
   if (isOnline) return null;
 
@@ -12,7 +20,7 @@ export function OfflineBanner() {
       style={{ animation: "slideInDown 300ms ease-out forwards" }}
       role="alert"
     >
-      <span className="mr-2">📡</span>
+      <span aria-hidden="true" className="mr-2">📡</span>
       You appear to be offline. Some features may not work.
     </div>
   );

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Generate viral captions, find trending hashtags, and discover the best times to post.",
     start_url: "/",
     display: "standalone",
-    background_color: "#09090b",
-    theme_color: "#8b5cf6",
+    background_color: "#0E1216",
+    theme_color: "#4A9EE0",
     icons: [
       {
         src: "/icon-192.png",

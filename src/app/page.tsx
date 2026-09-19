@@ -514,15 +514,16 @@ function PricingCard({ name, tagline, price, highlight, premium, badge, features
     : "border-edge bg-surface-secondary";
   const checkColor = premium ? "text-amber-400" : highlight ? "text-brand-400" : "text-emerald-400";
   const cta_classes = premium
-    ? "bg-amber-600 hover:bg-amber-500 text-white hover:shadow-glow"
+    ? "bg-amber-600 hover:bg-amber-500 text-black hover:shadow-glow"
     : highlight
     ? "bg-brand-600 hover:bg-brand-500 text-white hover:shadow-glow"
     : "bg-surface-elevated hover:bg-surface-hover text-zinc-200 border border-brand-500/20";
-  const badgeColor = premium ? "bg-amber-600" : "bg-brand-600";
+  // Amber needs dark text: white on amber-600 is 3.18:1 and fails AA.
+  const badgeColor = premium ? "bg-amber-600 text-black" : "bg-brand-600 text-white";
   return (
     <div className={`relative rounded-2xl border p-6 flex flex-col ${ring}`}>
       {badge && (
-        <div className={`absolute top-3 right-3 ${badgeColor} text-white text-2xs font-bold px-2 py-0.5 rounded-full`}>
+        <div className={`absolute top-3 right-3 ${badgeColor} text-2xs font-bold px-2 py-0.5 rounded-full`}>
           {badge}
         </div>
       )}

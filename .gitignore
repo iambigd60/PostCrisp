@@ -52,3 +52,7 @@ PostCrisp/
 .three-aimigos/
 the-three-aimigos-*.tgz
 SHA256SUMS.txt
+
+# playwright
+/test-results
+/playwright-report

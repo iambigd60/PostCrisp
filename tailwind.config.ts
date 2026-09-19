@@ -19,7 +19,7 @@ const config: Config = {
           300: "#85BBE4",
           400: "#65ABDD",
           500: "#4A9EE0",  // Electric Blue — brand primary
-          600: "#3B85BE",
+          600: "#2F6FA3",  // deepened from #3B85BE: white text on it is 5.4:1 (was 3.97:1, failed AA)
           700: "#2D6699",
           800: "#204B72",
           900: "#14354F",
@@ -35,7 +35,7 @@ const config: Config = {
         // ── Crisp: Warship Grey as a semantic accent (part of the brand vocabulary) ──
         crisp: {
           light:   "#B4BBC2",
-          DEFAULT: "#8C949C",  // Warship Grey — secondary accent
+          DEFAULT: "#9AA3AB",  // Warship Grey, lifted one step: 4.9:1 on surface-tertiary inputs (the spec value #8C949C was 4.09:1 there)
           dark:    "#646B73",
         },
         // ── Edge: card/input boundary at ≥3:1 against surface-secondary (#181E24).

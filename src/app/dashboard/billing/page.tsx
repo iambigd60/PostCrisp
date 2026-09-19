@@ -285,7 +285,7 @@ export default function BillingPage() {
           <button
             onClick={handleManage}
             disabled={!!working}
-            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-xl text-sm transition-all disabled:opacity-50"
+            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-black font-medium rounded-xl text-sm transition-all disabled:opacity-50"
           >
             {working ? 'Opening portal...' : 'Open Billing Portal →'}
           </button>
@@ -322,7 +322,7 @@ function PricingCard({ planKey, billing, isCurrent, popular, premium, disabled, 
     : 'border-edge bg-surface-secondary'
 
   const ctaClasses = premium
-    ? 'bg-amber-600 hover:bg-amber-500 text-white hover:shadow-glow'
+    ? 'bg-amber-600 hover:bg-amber-500 text-black hover:shadow-glow'
     : popular
     ? 'bg-brand-600 hover:bg-brand-500 text-white hover:shadow-glow'
     : 'bg-surface-elevated hover:bg-surface-hover text-zinc-200 border border-brand-500/20'
@@ -335,7 +335,7 @@ function PricingCard({ planKey, billing, isCurrent, popular, premium, disabled, 
         </div>
       )}
       {premium && (
-        <div className="absolute top-3 right-3 bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+        <div className="absolute top-3 right-3 bg-amber-600 text-black text-xs font-bold px-2 py-0.5 rounded-full">
           PREMIUM
         </div>
       )}

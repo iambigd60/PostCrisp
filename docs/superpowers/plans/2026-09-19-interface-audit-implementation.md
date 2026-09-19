@@ -85,7 +85,10 @@ Closes F03, F12, F13, F15, F17. Shipped on `claude/vigilant-hamilton-juu4a5`: si
 4. **Fix the briefing (F15).** Render the briefing instantly; delete `TypedBriefing` or move the interval cleanup into the effect body if the animation is kept.
 5. **One dismiss pattern (F17).** Replace `window.confirm` (three components) and `location.reload()` with the existing `Modal` and local state updates; disable the button while the request is in flight.
 
-### Session C — Navigation a person can operate (~1 day)
+### Session C — Navigation a person can operate (~1 day) — ✅ DONE 2026-09-19
+
+Shipped on `claude/vigilant-hamilton-juu4a5`: sidebar rewritten around the registry — every icon-only link carries `title` + `aria-label` in collapsed mode (F09); Settings, Billing, Admin and Log out move into an account menu in the sidebar footer that shows the signed-in email, Logout is no longer a red button in the nav (F10); the whole group row is the 44px disclosure control with a separate ↗ hub link (F11); only the current group opens by default, user toggles still persist (F08); Ctrl/Cmd-K command palette over label/tagline/best-for text from `tools-meta.ts`, also reachable from a Search button at the top of the nav (F08). Saved Content is a top-level item; the Library group is gone.
+
 
 Closes F08, F09, F10, F11.
 
@@ -95,7 +98,10 @@ Closes F08, F09, F10, F11.
 4. **Default expansion (F08).** Only the group containing the current page opens by default; everything else collapsed.
 5. **Command palette (F08, optional for beta).** Ctrl/Cmd-K search over label, tagline and best-for text from `tools-meta.ts`. Recommend shipping it if Session C finishes early; otherwise first post-beta item.
 
-### Session D — Accessibility sweep, housekeeping, guardrails (~half day)
+### Session D — Accessibility sweep, housekeeping, guardrails (~half day) — ✅ DONE 2026-09-19
+
+Shipped: caption pickers are labelled groups with `aria-pressed`, credit ring has `role="img"` + name, decorative emoji hidden, skip link in the root layout with `id="main"` targets (F14); reduced-motion block covers every animation and transition (F16); mobile menu button drops below the offline banner via an `offline` class on `<html>` (F18); theme colour #4A9EE0 in layout and manifest (F19); Google Fonts `@import` and the two Geist files removed (F20). Guardrails: `@axe-core/playwright` suite in `tests/a11y/` on a production build, new `a11y` CI job (public routes always; dashboard routes when `E2E_EMAIL`/`E2E_PASSWORD` secrets exist); `design-tokens.test.ts` fails the unit run on any return of the retired greys/borders, the font `@import`, a partial reduced-motion block or the old violet. Instrumentation: `dashboard_recommender_clicked` event fired from every recommender block on the dashboard. **The axe run found three contrast failures the audit had not measured** (white on `brand-600` 3.97:1, `text-crisp` on `surface-tertiary` 4.09:1, white on `amber-600` 3.18:1); fixed at token level — `brand-600` → #2F6FA3, `crisp`/`--text-secondary` → #9AA3AB, amber buttons use black text.
+
 
 Closes F14, F16, F18, F19, F20 and adds the checks the audit asked for.
 
@@ -108,7 +114,11 @@ Closes F14, F16, F18, F19, F20 and adds the checks the audit asked for.
 7. **Guardrail: contrast lint.** An ESLint or grep-based check that fails on new `text-zinc-500`, `text-zinc-600` or `border-brand-500/10` usages.
 8. **Instrumentation for Wave 2.** Emit a click event (existing `onboarding-client.ts` emitter pattern) for each of the six recommenders so the post-beta consolidation is decided with data.
 
-### Deferred to post-beta — Dashboard consolidation (F07)
+### Session E — Dashboard consolidation (F07) — ✅ DONE 2026-09-19 (brought forward at Dennis's request)
+
+Shipped: one "next move" hero replaces the Foundation nudge, the briefing card and the first checklist item competing for attention — priority order: low credits → Foundation (Elite) → first incomplete basic → top Brand Readiness action → an untried tool → captions. Getting Started, Next Tools and Brand Readiness live in a collapsible "Your setup" section, open only while the basics are incomplete. Four stat tiles (three of them the same metric) become two. "PostCrisp suggests" never repeats the hero's move. Click tracking on all six blocks stays in place so the priority order can be tuned with beta data.
+
+#### Original deferral note
 
 The audit itself says to decide this with data. Ship Session D's instrumentation in the beta, collect two to three weeks of tester clicks, then collapse the six recommenders into one "next best move" block and merge the three duplicate stat tiles. Estimated 1–2 days once the data is in.
 

@@ -171,11 +171,13 @@ export default function GeneratePage() {
 
         {/* Platform selector */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Platform</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="platform-label" className="block text-sm font-medium text-zinc-300 mb-2">Platform</span>
+          <div role="group" aria-labelledby="platform-label" className="flex flex-wrap gap-2">
             {PLATFORMS.map((p) => (
               <button
                 key={p.id}
+                type="button"
+                aria-pressed={platform === p.id}
                 onClick={() => setPlatform(p.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                   platform === p.id
@@ -183,7 +185,7 @@ export default function GeneratePage() {
                     : "bg-surface-tertiary text-zinc-400 border border-transparent hover:bg-surface-hover hover:text-zinc-200"
                 }`}
               >
-                <p.icon className="w-4 h-4" style={{ color: p.color }} />
+                <p.icon aria-hidden="true" className="w-4 h-4" style={{ color: p.color }} />
                 <span>{p.label}</span>
               </button>
             ))}
@@ -192,11 +194,13 @@ export default function GeneratePage() {
 
         {/* Content type selector */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Content type</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="content-type-label" className="block text-sm font-medium text-zinc-300 mb-2">Content type</span>
+          <div role="group" aria-labelledby="content-type-label" className="flex flex-wrap gap-2">
             {CONTENT_TYPES.map((c) => (
               <button
                 key={c.id}
+                type="button"
+                aria-pressed={contentType === c.id}
                 onClick={() => setContentType(c.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                   contentType === c.id
@@ -204,7 +208,7 @@ export default function GeneratePage() {
                     : "bg-surface-tertiary text-zinc-400 border border-transparent hover:bg-surface-hover hover:text-zinc-200"
                 }`}
               >
-                <span>{c.icon}</span>
+                <span aria-hidden="true">{c.icon}</span>
                 <span>{c.label}</span>
               </button>
             ))}
@@ -213,11 +217,13 @@ export default function GeneratePage() {
 
         {/* Tone selector */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Tone</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="tone-label" className="block text-sm font-medium text-zinc-300 mb-2">Tone</span>
+          <div role="group" aria-labelledby="tone-label" className="flex flex-wrap gap-2">
             {TONES.map((t) => (
               <button
                 key={t.id}
+                type="button"
+                aria-pressed={tone === t.id}
                 onClick={() => setTone(t.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                   tone === t.id
@@ -225,7 +231,7 @@ export default function GeneratePage() {
                     : "bg-surface-tertiary text-zinc-400 border border-transparent hover:bg-surface-hover hover:text-zinc-200"
                 }`}
               >
-                <span>{t.icon}</span>
+                <span aria-hidden="true">{t.icon}</span>
                 <span>{t.label}</span>
               </button>
             ))}

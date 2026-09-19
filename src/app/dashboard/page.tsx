@@ -15,6 +15,7 @@ import { computeBrandReadiness, type BrsResult } from '@/lib/brand-readiness'
 import { ResumeFirstSessionCard } from '@/components/ResumeFirstSessionCard'
 import { shouldOfferResume, type FirstSessionProgress } from '@/lib/first-session-state'
 import { toolByKey } from '@/lib/tools-meta'
+import { emitOnboardingEvent } from '@/lib/onboarding-client'
 
 interface Profile {
   full_name: string | null
@@ -191,8 +192,12 @@ function CreditMeter({ balance, allowance, resetAt, cycleLabel }: { balance: num
 
   return (
     <div className="flex items-center gap-4">
-      <div className="relative w-20 h-20 flex-shrink-0">
-        <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+      <div
+        className="relative w-20 h-20 flex-shrink-0"
+        role="img"
+        aria-label={`${balance} of ${allowance} credits left, resets ${resetIn}`}
+      >
+        <svg aria-hidden="true" className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
           <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(74,158,224,0.12)" strokeWidth="7" />
           <circle
             cx="40" cy="40" r={r} fill="none"
@@ -203,7 +208,7 @@ function CreditMeter({ balance, allowance, resetAt, cycleLabel }: { balance: num
             className="transition-all duration-700"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold text-zinc-100 leading-none">{balance}</span>
           <span className="text-2xs text-crisp leading-none">/{allowance}</span>
         </div>
@@ -292,6 +297,55 @@ function buildBriefing(stats: DashboardStats, firstName: string): string {
   else sentence += '.'
 
   return sentence
+}
+
+// ─── The one next move ───────────────────────────────────────────────────────
+// The audit found six recommendation systems competing on this page. This
+// picks a single action, in priority order, and the hero block renders only
+// it. Everything else moves into "Your setup" or the side column.
+type NextMove = { id: string; icon: string; eyebrow: string; title: string; description: string; cta: string; href: string; dismissible?: boolean }
+
+function buildNextMove(stats: DashboardStats, suggestions: Suggestion[]): NextMove {
+  const low = suggestions.find((s) => s.id === 'low-credits')
+  if (low) {
+    return { id: 'low-credits', icon: '⚠️', eyebrow: 'Before anything else', title: 'Top up your credits', description: low.message, cta: 'Go to billing', href: '/dashboard/billing' }
+  }
+  if (stats.showFoundationCta) {
+    return { id: 'foundation', icon: '🧬', eyebrow: 'Your next move', title: 'Run your Foundation Analysis', description: "Captions, Viral Ideas and Bio Optimizer get noticeably sharper once you've filled this in. Takes about a minute.", cta: 'Run it now', href: '/dashboard/foundation-analysis', dismissible: true }
+  }
+  if (!stats.gettingStartedDismissed) {
+    const gs = stats.gettingStarted
+    if (!gs.channelsAdded) return { id: 'gs-channels', icon: '🧭', eyebrow: 'Your next move', title: 'Add the channels you post to', description: 'Every tool tailors its output to your platforms, and your library organises itself by channel.', cta: 'Add channels', href: '/dashboard/settings' }
+    if (!gs.firstGeneration) return { id: 'gs-first', icon: '✍️', eyebrow: 'Your next move', title: 'Generate your first caption', description: 'Describe a post and get five ready-to-ship captions in your voice. About fifteen seconds.', cta: 'Generate captions', href: '/dashboard/generate' }
+    if (!gs.voiceTrained) return { id: 'gs-voice', icon: '🎙️', eyebrow: 'Your next move', title: 'Train your voice', description: 'Paste three captions you have already written and every tool starts sounding like you.', cta: 'Open Voice Trainer', href: '/dashboard/voice' }
+    if (!gs.savedSomething) return { id: 'gs-save', icon: '💾', eyebrow: 'Your next move', title: 'Save something you like', description: 'Anything you keep lands in your library, ready to reuse or repurpose later.', cta: 'Generate and save', href: '/dashboard/generate' }
+    if (!gs.triedThreeFeatures) return { id: 'gs-explore', icon: '🧰', eyebrow: 'Your next move', title: 'Try a second tool', description: 'Hashtags, scripts and repurposing all read the same voice profile. Pick one from the Create hub.', cta: 'Open the Create hub', href: '/dashboard/create' }
+  }
+  const action = stats.brs.actions[0]
+  if (action) {
+    return { id: `brs-${action.href}`, icon: '📈', eyebrow: 'Raise your brand readiness', title: action.label, description: `Worth about ${action.expectedPoints} points on your Brand Readiness score (currently ${stats.brs.score}/100).`, cta: 'Do it', href: action.href }
+  }
+  const TEASE = ['viral_ideas', 'channel_analysis', 'repurpose', 'posting_times']
+  const unusedKey = TEASE.find((k) => !stats.featuresUsed.has(k))
+  const tool = unusedKey ? toolByKey(unusedKey) : undefined
+  if (tool) {
+    return { id: `try-${tool.key}`, icon: tool.icon, eyebrow: 'Something you have not tried', title: `Try ${tool.label}`, description: `${tool.tagline} Best for: ${tool.bestFor}`, cta: `Open ${tool.label}`, href: tool.href }
+  }
+  return { id: 'captions', icon: '✍️', eyebrow: 'Your next move', title: 'Generate today\'s captions', description: 'Describe a post and get five options in your voice.', cta: 'Generate captions', href: '/dashboard/generate' }
+}
+
+// Click tracking for the recommendation blocks. Wraps each block with an
+// onClickCapture so child components stay untouched. Fire-and-forget.
+function trackRecommender(recommender: string) {
+  return (e: React.MouseEvent<HTMLElement>) => {
+    const target = (e.target as HTMLElement).closest('a, button')
+    if (!target) return
+    emitOnboardingEvent('dashboard_recommender_clicked', {
+      recommender,
+      href: target.getAttribute('href') ?? undefined,
+      label: (target.textContent ?? '').trim().slice(0, 80),
+    })
+  }
 }
 
 // Proactive suggestions — color-coded by urgency. All signals are internal
@@ -611,7 +665,11 @@ export default function DashboardPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const briefing = stats ? buildBriefing(stats, firstName) : ''
-  const suggestions = stats ? buildSuggestions(stats) : []
+  const allSuggestions = stats ? buildSuggestions(stats) : []
+  const nextMove = stats ? buildNextMove(stats, allSuggestions) : null
+  // The side column never repeats the move the hero already names.
+  const suggestions = allSuggestions.filter((s) => s.id !== nextMove?.id)
+  const setupOpen = Boolean(stats && !stats.gettingStartedDismissed && !stats.offerResume && Object.values(stats.gettingStarted).some((v) => !v))
 
   return (
     <div className="space-y-6">
@@ -635,40 +693,53 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Foundation Analysis CTA — Elite-only, one-time nudge. Sits near the
-          top so it's the first onboarding card a fresh Elite user sees. */}
-      {stats?.showFoundationCta && (
-        <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-amber-500/0 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="text-3xl">🧬</div>
-          <div className="flex-1">
-            <h3 className="text-base font-semibold text-zinc-100">Set up your Foundation Analysis</h3>
-            <p className="text-sm text-zinc-400 mt-0.5">Captions, Viral Ideas, and Bio Optimizer get noticeably sharper once you&apos;ve filled this in.</p>
+      {/* The one next move — replaces the Foundation nudge, the typed briefing
+          tease and the first checklist item competing for the same attention.
+          Hidden while an unfinished first session is offered below, since that
+          card already is the next move. */}
+      {nextMove && !stats?.offerResume && (
+        <section
+          aria-labelledby="next-move-title"
+          onClickCapture={trackRecommender('next-move')}
+          className="rounded-xl border border-brand-500/30 bg-surface-secondary shadow-glow p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+        >
+          <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-brand-500/15 flex items-center justify-center text-2xl flex-shrink-0">
+            {nextMove.icon}
           </div>
-          <div className="flex gap-2">
-            <Link href="/dashboard/foundation-analysis" className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400">Run now →</Link>
-            <button
-              type="button"
-              disabled={dismissingCta}
-              onClick={async () => {
-                if (dismissingCta) return
-                setDismissingCta(true)
-                // Hide the card in place; no reload, no lost scroll position.
-                // The server records the dismissal so it stays hidden next visit.
-                setStats((prev) => (prev ? { ...prev, showFoundationCta: false } : prev))
-                try {
-                  await fetch('/api/user/dismiss-foundation-cta', { method: 'POST' })
-                } catch (err) {
-                  console.error('[dashboard] dismiss foundation CTA failed:', err)
-                } finally {
-                  setDismissingCta(false)
-                }
-              }}
-              className="px-3 py-2 rounded-lg bg-zinc-700/50 text-zinc-300 text-sm hover:bg-zinc-700 disabled:opacity-50"
-            >
-              Dismiss
-            </button>
+          <div className="flex-1 min-w-0">
+            <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1">{nextMove.eyebrow}</div>
+            <h2 id="next-move-title" className="text-lg sm:text-xl font-bold text-zinc-100 leading-tight">{nextMove.title}</h2>
+            <p className="text-sm text-zinc-300 mt-1 leading-relaxed">{nextMove.description}</p>
+            {briefing && <p className="text-xs text-crisp mt-2">{briefing}</p>}
           </div>
-        </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Link href={nextMove.href} className="px-4 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold min-h-[44px] inline-flex items-center">
+              {nextMove.cta} →
+            </Link>
+            {nextMove.dismissible && (
+              <button
+                type="button"
+                disabled={dismissingCta}
+                onClick={async () => {
+                  if (dismissingCta) return
+                  setDismissingCta(true)
+                  // Hide in place; the server records the dismissal so it stays hidden next visit.
+                  setStats((prev) => (prev ? { ...prev, showFoundationCta: false } : prev))
+                  try {
+                    await fetch('/api/user/dismiss-foundation-cta', { method: 'POST' })
+                  } catch (err) {
+                    console.error('[dashboard] dismiss foundation CTA failed:', err)
+                  } finally {
+                    setDismissingCta(false)
+                  }
+                }}
+                className="px-3 py-2 rounded-lg bg-zinc-700/50 text-zinc-300 text-sm hover:bg-zinc-700 disabled:opacity-50 min-h-[44px]"
+              >
+                Not now
+              </button>
+            )}
+          </div>
+        </section>
       )}
 
       {/* Channels row — moved to the top so the user immediately sees what
@@ -714,55 +785,60 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Daily briefing — typed text, references the user's channels + usage */}
-      <div className="rounded-xl border border-brand-500/20 bg-surface-secondary shadow-glow p-5 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center text-xl flex-shrink-0">
-          ✦
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-2xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Your daily briefing</div>
-          <p className="text-sm sm:text-base text-zinc-200 leading-relaxed min-h-[1.5rem]">
-            {briefing}
-          </p>
-        </div>
-      </div>
-
       {/* An unfinished first session takes precedence over the generic
           checklist — showing both is how a new user faced 22 checklist items. */}
       {stats?.offerResume && <ResumeFirstSessionCard />}
 
-      {/* Getting Started checklist — hides once fully complete or user dismisses */}
+      {/* Your setup — the two checklists and the Brand Readiness score live
+          here, out of the main path. Open by default only while the basics
+          are incomplete. */}
       {stats && !stats.offerResume && (
-        <GettingStartedCard
-          state={stats.gettingStarted}
-          dismissed={stats.gettingStartedDismissed}
-          onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
-        />
+        <details open={setupOpen} className="group rounded-xl border border-edge bg-surface-secondary">
+          <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none min-h-[56px] [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-3 min-w-0">
+              <span aria-hidden="true" className="text-lg">🧰</span>
+              <span className="min-w-0">
+                <span className="block text-base font-semibold text-zinc-100">Your setup</span>
+                <span className="block text-xs text-crisp truncate">
+                  Brand readiness {stats.brs.score}/100 · {Object.values(stats.gettingStarted).filter(Boolean).length} of {Object.keys(stats.gettingStarted).length} basics done
+                </span>
+              </span>
+            </span>
+            <span aria-hidden="true" className="text-crisp text-sm transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="px-5 pb-5 space-y-4 border-t border-edge pt-4">
+            <div onClickCapture={trackRecommender('getting-started')}>
+              <GettingStartedCard
+                state={stats.gettingStarted}
+                dismissed={stats.gettingStartedDismissed}
+                onDismiss={() => setStats((prev) => prev ? { ...prev, gettingStartedDismissed: true } : prev)}
+              />
+            </div>
+            {stats.showNextTools && (
+              <div onClickCapture={trackRecommender('next-tools')}>
+                <NextToolsCard
+                  state={stats.nextTools}
+                  dismissed={stats.nextToolsDismissed}
+                  onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
+                />
+              </div>
+            )}
+            <div onClickCapture={trackRecommender('brand-readiness')}>
+              <BrandReadinessCard result={stats.brs} />
+            </div>
+          </div>
+        </details>
       )}
-
-      {/* Phase 2 — 10 next tools to try. Only surfaces post-tutorial. */}
-      {stats?.showNextTools && (
-        <NextToolsCard
-          state={stats.nextTools}
-          dismissed={stats.nextToolsDismissed}
-          onDismiss={() => setStats((prev) => prev ? { ...prev, nextToolsDismissed: true } : prev)}
-        />
-      )}
-
-      {/* Brand Readiness Score — always visible, deterministic, free. */}
-      {stats && <BrandReadinessCard result={stats.brs} />}
 
       {/* Metrics + Credits */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
           {[
-            { icon: '✍️', label: 'This week',   value: stats?.weekGenerations ?? 0,            sub: 'generations' },
-            { icon: '📈', label: 'All time',    value: stats?.totalGenerations ?? 0,           sub: 'generations' },
-            { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0,                 sub: 'in your library' },
-            { icon: '🔥', label: 'Today',       value: profile?.daily_generations_used ?? 0,   sub: 'generations' },
+            { icon: '✍️', label: 'This week', value: stats?.weekGenerations ?? 0, sub: `generations · ${stats?.totalGenerations ?? 0} all time` },
+            { icon: '💾', label: 'Saved items', value: stats?.savedCount ?? 0, sub: 'in your library' },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-edge bg-surface-secondary p-4 hover:border-brand-400 transition-all">
-              <span className="text-xl block mb-2">{stat.icon}</span>
+              <span aria-hidden="true" className="text-xl block mb-2">{stat.icon}</span>
               <div className="text-2xl font-bold text-zinc-100">{stat.value}</div>
               <div className="text-xs text-crisp mt-0.5">{stat.label}</div>
               <div className="text-2xs text-crisp">{stat.sub}</div>
@@ -801,7 +877,7 @@ export default function DashboardPage() {
                     href={`/dashboard/generations/${gen.id}`}
                     className="flex items-center gap-3 p-4 rounded-xl border border-edge bg-surface-secondary hover:border-brand-400 hover:bg-surface-elevated transition-all group"
                   >
-                    <span className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
+                    <span aria-hidden="true" className="text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{meta.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-xs font-medium text-brand-400">{meta.label}</span>
@@ -832,7 +908,7 @@ export default function DashboardPage() {
         {/* Proactive suggestions + quick actions (right column) */}
         <div className="space-y-3">
           {suggestions.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2" onClickCapture={trackRecommender('suggests')}>
               <h2 className="text-base font-semibold text-zinc-200">PostCrisp suggests</h2>
               {suggestions.map((s) => {
                 const borderColor =
@@ -850,7 +926,7 @@ export default function DashboardPage() {
                     className={`block rounded-xl border border-edge border-l-4 ${borderColor} bg-surface-secondary hover:bg-surface-elevated p-4 transition-all group`}
                   >
                     <div className="flex items-start gap-2.5">
-                      <span className="text-lg flex-shrink-0">{s.icon}</span>
+                      <span aria-hidden="true" className="text-lg flex-shrink-0">{s.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className={`text-2xs font-bold uppercase tracking-wider ${labelColor} mb-1`}>{s.label}</div>
                         <p className="text-sm text-zinc-300 leading-snug">{s.message}</p>
@@ -865,7 +941,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-2" onClickCapture={trackRecommender('quick-actions')}>
             <h2 className="text-base font-semibold text-zinc-200">Quick actions</h2>
             <div className="grid grid-cols-1 gap-2">
               {QUICK_ACTIONS.map((action) => (
@@ -874,7 +950,7 @@ export default function DashboardPage() {
                   href={action.href}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-secondary border border-edge hover:border-brand-400 hover:bg-surface-elevated transition-all group min-h-[48px]"
                 >
-                  <span className="text-lg group-hover:scale-110 transition-transform">{action.icon}</span>
+                  <span aria-hidden="true" className="text-lg group-hover:scale-110 transition-transform">{action.icon}</span>
                   <span className="text-sm font-medium text-zinc-300">{action.label}</span>
                   <span className="ml-auto text-crisp group-hover:text-brand-400 transition-colors text-sm">→</span>
                 </Link>

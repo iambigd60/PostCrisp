@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:a11y": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
@@ -27,6 +28,8 @@
     "youtubei.js": "^17.0.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

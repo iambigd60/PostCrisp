@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#8b5cf6",
+  themeColor: "#4A9EE0",
   width: "device-width",
   initialScale: 1,
 };
@@ -49,6 +49,13 @@ export default function RootLayout({
           after SSR but before hydration. The mismatch is a false positive
           and React's recommended fix is to suppress only on this one node. */}
       <body className="antialiased font-sans" suppressHydrationWarning>
+        {/* Skip link: first focusable element, visible only when focused. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-brand-600 focus:text-white focus:text-sm focus:font-medium"
+        >
+          Skip to content
+        </a>
         <ToastProvider>
           <ErrorBoundary>
             <OfflineBanner />

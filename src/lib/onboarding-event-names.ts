@@ -18,6 +18,9 @@ export const ONBOARDING_EVENT_NAMES = [
   'first_session_snoozed',
   'first_session_resumed',
   'first_session_completed',
+  // Dashboard recommender clicks — which of the six blocks users act on.
+  // Decides the post-beta consolidation (interface audit F07) with data.
+  'dashboard_recommender_clicked',
 ] as const
 
 export type OnboardingEventName = (typeof ONBOARDING_EVENT_NAMES)[number]

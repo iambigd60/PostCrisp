@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,7 +10,7 @@
   --brand-300: #85BBE4;
   --brand-400: #65ABDD;
   --brand-500: #4A9EE0;
-  --brand-600: #3B85BE;
+  --brand-600: #2F6FA3;
   --brand-700: #2D6699;
   --brand-800: #204B72;
   --brand-900: #14354F;
@@ -45,7 +43,7 @@
 
   /* Text */
   --text-primary:   #E8ECEF;  /* Hangar White */
-  --text-secondary: #8C949C;  /* Warship Grey */
+  --text-secondary: #9AA3AB;  /* Warship Grey, lifted so it clears 4.5:1 on every surface incl. --bg-tertiary */
   --text-tertiary:  #646B73;
   --text-accent:    #4A9EE0;  /* Electric Blue */
 
@@ -424,11 +422,16 @@ body {
    the JSX (in user-space SVG units) since Tailwind animation utilities don't
    carry transform-origin. */
 
+/* Reduced motion: every animation and transition in the app, not just the
+   rocket loader. Durations collapse to near-zero (rather than `none`) so
+   `forwards` fills still land on their final frame and nothing stays hidden. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-rocket-bob,
-  .animate-flame-flicker,
-  .animate-puff-rise,
-  .animate-twinkle {
-    animation: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
