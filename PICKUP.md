@@ -8,6 +8,10 @@
 
 ---
 
+## 🎨 Interface audit — implementation plan (2026-09-19)
+
+The Greybeard interface audit (2026-08-17, findings F01–F20) was re-verified against `main` @ `713685c` and every GitHub branch: **0 of 20 findings implemented.** Four-session plan, decisions, and exit criteria: [`docs/superpowers/plans/2026-09-19-interface-audit-implementation.md`](docs/superpowers/plans/2026-09-19-interface-audit-implementation.md). UI work can proceed on a feature branch in parallel with the Phase 0 external gates; production deploy waits on Phase 0 exit.
+
 ## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-21T00:04Z)
 
 Verified current state:
