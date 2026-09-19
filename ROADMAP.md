@@ -1,5 +1,13 @@
 # PostCrisp — Pre-Launch Roadmap
 
+## ✅ Interface audit closed, beta form wired, engines updated (2026-09-19, session 28)
+
+On branch `claude/vigilant-hamilton-juu4a5`, not yet merged. All 20 findings of the 2026-08-17 interface audit are implemented (plan: `docs/superpowers/plans/2026-09-19-interface-audit-implementation.md`); an axe accessibility job and four source-guard tests keep the debt from rebuilding. Plan copy states real credit allowances instead of "Unlimited". Next.js patched to 15.5.25. Engine defaults moved to gpt-5-mini / claude-sonnet-5 / claude-opus-5 with Elite on premium only where the output changes a real outcome; production AI-config overrides reset so code defaults apply on deploy. Join Beta form merged and pointed at admin@postcrisp.com.
+
+**Open before beta:** `RESEND_API_KEY` in Vercel (form cannot send without it); pull request to `main`; Stripe keys absent in production (hide upgrade buttons or add keys); provider spend caps + kill switch; cost ledger on all tools. See `PICKUP.md` → Next session.
+
+---
+
 ## 🔴 Phase 0 containment — BLOCKED (current 2026-08-20 checkpoint)
 
 Do **not** push, merge this branch, change `main`, or begin Phase 1 until every remaining gate below closes with fresh evidence.

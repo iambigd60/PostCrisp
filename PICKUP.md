@@ -1,18 +1,34 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-20 (Phase 0 integrated into `main`; CI green)
-**Build status:** `main`, `origin/main`, `codex/phase-0-containment`, and its remote are synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
-**Production URL:** **https://postcrisp.com** (primary)
+**Last updated:** 2026-09-19 (session 28 — interface audit closed, beta form wired, engines updated)
+**Build status:** all work is on branch `claude/vigilant-hamilton-juu4a5` (20 commits ahead of `main` @ `713685c`, pushed). Tree passes 283/283 unit tests, typecheck, lint with four baseline warnings, a production build, and the new axe accessibility scan on the public routes. **Not yet merged to `main`; no pull request opened yet (Dennis's call).**
+**Production URL:** **https://postcrisp.com** (primary) — still serving `main`.
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
+**Launch status:** 🟡 Code for the beta is ready on the branch. Phase 0 operational exit is still formally BLOCKED on three external evidence gates (restore drill, Vercel/provider console evidence, council verdict); Dennis must either close them or decide the invite-only beta proceeds with them open.
 
 ---
 
-## 🎨 Interface audit — implementation plan (2026-09-19)
+## 🚀 Session 28 — 2026-09-19 — what shipped (all on `claude/vigilant-hamilton-juu4a5`)
 
-The Greybeard interface audit (2026-08-17, findings F01–F20) was re-verified against `main` @ `713685c` and every GitHub branch: **0 of 20 findings implemented.** Four-session plan, decisions, and exit criteria: [`docs/superpowers/plans/2026-09-19-interface-audit-implementation.md`](docs/superpowers/plans/2026-09-19-interface-audit-implementation.md). UI work can proceed on a feature branch in parallel with the Phase 0 external gates; production deploy waits on Phase 0 exit.
+1. **Interface audit (2026-08-17, F01–F20) fully implemented.** Five sessions A–E: credit cost + spend confirmation on every tool, contrast/border tokens, dashboard error states, one tool registry, house pattern on the outlier tools, copy/save on expensive reports, registry-driven sidebar with account menu and ⌘K palette, accessibility sweep, reduced motion, one "next move" dashboard with click tracking. Plan + status: `docs/superpowers/plans/2026-09-19-interface-audit-implementation.md`, artifact https://claude.ai/artifact/RXk1nuMzUymg5AcBUQBZns.
+2. **Guardrails:** `@axe-core/playwright` suite (`tests/a11y/`) + `a11y` CI job; `design-tokens.test.ts`, `tools-meta.test.ts`, `plan-copy.test.ts`, `engine-catalog.test.ts` source guards. The axe run caught three contrast failures the audit had not measured; fixed at token level (`brand-600` → #2F6FA3, `crisp` → #9AA3AB, amber buttons use black text).
+3. **Preview review by Dennis** (signed-in screenshots): found and fixed a duplicated next-move suggestion and the billing monthly/yearly toggle knob overshooting its track (pre-existing).
+4. **"Unlimited" plan copy replaced** with the real allowances (10/day, 500/mo, 2,000/mo) read from `TIER_ALLOWANCE`; 429 message no longer promises an upgrade.
+5. **Next.js 15.5.21 → 15.5.25** (GHSA-2xp9-vwfh-vxw4 / AIKIDO-2026-553733). `npm audit` still lists 14 non-critical findings; `npm audit fix` crashed with an npm internal error and was left alone.
+6. **Engines updated:** defaults gpt-5-mini / claude-sonnet-5 / claude-opus-5; `MODEL_CATALOG` + `MODEL_PRICING` carry the current generations with list prices (Opus 4.7 price corrected from $15/$75 to $5/$25 — every Opus cost in the ledger to date was 3× overstated). **Elite runs PREMIUM only on the nine outcome-changing tools** (5+ credit analyses/pitches, thumbnail, viral ideas, collab finder, CTA); everyday tasks run STANDARD. Guide: `docs/operations/updating-ai-engines.md`.
+7. **Production `ai_config_overrides` reset** (63 rows deleted, Dennis-approved) so the engine follows code defaults from the next deploy. Live today (on `main`'s defaults) nothing changed except four Elite tasks dropping to Sonnet 4.6.
+8. **Join Beta form** (PR #8 branch) merged into this branch, brought onto the design tokens. All contact/notification addresses now `admin@postcrisp.com` (beta@ and captain@ had no inbox). Vercel env `BETA_NOTIFICATION_EMAIL` and `FEEDBACK_NOTIFICATION_EMAIL` set to admin@ for Production + Preview.
 
-**Session A shipped 2026-09-19** on `claude/vigilant-hamilton-juu4a5` (F01 credit cost on every action + spend confirmation, F02 dashboard/hub error states, F04 contrast, F05 border token, F06 active-nav marker). 246/246 tests, typecheck clean, lint at the four baseline warnings. **Session B shipped 2026-09-19** on the same branch (F03 single registry, F12 house pattern on the three outlier tools, F13 copy/save on the expensive reports, F15 instant briefing, F17 one confirm dialog). 250/250 tests. **Sessions C, D and E shipped 2026-09-19** on the same branch: registry-driven sidebar with account menu and ⌘K palette (F08–F11); accessibility sweep, reduced motion, offline-banner offset, theme colour, font cleanup (F14, F16, F18–F20); axe CI job + design-token guard test; dashboard consolidated to one next move with click tracking (F07). **All 20 audit findings closed.** The axe run also caught three contrast failures the audit had not measured and they are fixed at token level. Later the same day: "Unlimited" plan copy replaced with real allowances; Next.js patched to 15.5.25 (GHSA-2xp9-vwfh-vxw4); engines moved to gpt-5-mini / claude-sonnet-5 / claude-opus-5 with Elite running premium only on outcome-changing tools; **production `ai_config_overrides` reset (63 rows) on 2026-09-19 with Dennis's approval**, so the engine follows code defaults from the next deploy of this branch. Owed: a look at the authenticated pages in a preview deployment, and `E2E_EMAIL`/`E2E_PASSWORD` repository secrets so the dashboard routes join the CI accessibility scan.
+## ⏭️ Next session — start here
+
+1. **Dennis: add `RESEND_API_KEY` in Vercel** (Production + Preview) and redeploy. Without it the beta form and the feedback button cannot send. Then run one real signup on the newest preview with a personal email and confirm both emails (code → tester, notification → admin@).
+2. **Open the pull request from `claude/vigilant-hamilton-juu4a5` to `main`** once Dennis says go; merging deploys everything above to postcrisp.com. Close PR #8 (its commits are now in this branch).
+3. **Vercel has no Stripe keys in production.** Fine for a no-checkout beta, but "Upgrade to Elite" / "Buy more credits" will error. Either add the keys or hide the buttons for the beta.
+4. **Before Elite testers get credits:** provider spend caps + kill switch (half a day); extend the cost ledger from 3 tools to all 23.
+5. Smaller: five high-severity transitive audit findings; credit ring "Resets now" (lazy allowance refresh); Starter "25 saved items" is not enforced; public Terms/Privacy pages; `E2E_EMAIL`/`E2E_PASSWORD` repo secrets so CI scans signed-in pages; still-owed screenshots (result Copy/Save, account menu, ⌘K, phone + offline banner); the 1.1 GB duplicate `PostCrisp/` folder on Dennis's machine.
+6. Process: the `/save` skill's co-author trailer still says Opus 4.7 (stale, noted since session 27).
+
+---
 
 ## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-21T00:04Z)
 
