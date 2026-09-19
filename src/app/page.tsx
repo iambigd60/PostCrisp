@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { PLANS } from "@/lib/stripe";
 import { CREDIT_PACKS } from "@/lib/crisp-engine-config";
+import BetaSignupForm from "@/components/BetaSignupForm";
 
 export const metadata: Metadata = {
   title: "PostCrisp — Your Social Media Creation Gateway",
@@ -158,6 +159,12 @@ export default function HomePage() {
             />
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              href="#beta"
+              className="px-3 sm:px-4 py-2 text-brand-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] hidden sm:flex items-center"
+            >
+              Join Beta
+            </Link>
             <Link
               href="/demo"
               className="px-3 sm:px-4 py-2 text-zinc-300 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] hidden sm:flex items-center"
@@ -438,6 +445,25 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Join the Beta */}
+      <section id="beta" className="py-20 px-4 sm:px-6 border-t border-brand-500/10 scroll-mt-24">
+        <div className="max-w-xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-sm font-medium mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
+              Invite-only beta
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">Join the Beta Test</h2>
+            <p className="text-zinc-400 text-lg">
+              Be one of the first creators to shape PostCrisp. Verify your email and we’ll be in touch with an invite.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-surface-secondary border border-brand-500/15 p-6 sm:p-8">
+            <BetaSignupForm />
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-20 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto text-center rounded-2xl bg-gradient-to-br from-brand-900/40 to-surface-secondary border border-brand-500/20 p-10 sm:p-14 relative overflow-hidden">
@@ -483,6 +509,7 @@ export default function HomePage() {
           <div className="flex gap-6">
             <Link href="#features" className="hover:text-zinc-300">Features</Link>
             <Link href="#pricing" className="hover:text-zinc-300">Pricing</Link>
+            <Link href="#beta" className="hover:text-zinc-300">Join Beta</Link>
             <Link href="#faq" className="hover:text-zinc-300">FAQ</Link>
             <Link href="/demo" className="hover:text-zinc-300">Demo</Link>
           </div>

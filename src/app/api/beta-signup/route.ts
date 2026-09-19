@@ -1,0 +1,61 @@
+import { NextResponse } from 'next/server'
+import {
+  betaSigningKey,
+  generateCode,
+  makeToken,
+  sendVerificationCodeEmail,
+  validateSignup,
+} from '@/lib/beta-signup'
+
+// Uses node:crypto — must run on the Node.js runtime, not edge.
+export const runtime = 'nodejs'
+
+// POST — start beta signup. Validates {name, email, channel}, emails a 6-digit
+// verification code to the visitor, and returns an opaque signed token the
+// client sends back to /api/beta-signup/verify along with the code.
+// Edge per-IP rate limiting is handled by Vercel WAF — see docs/rate-limiting.md.
+export async function POST(request: Request) {
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+  }
+
+  // Honeypot: this hidden field is invisible to humans. Bots that fill it get a
+  // fake success and no email is sent.
+  if (typeof body.company === 'string' && body.company.trim() !== '') {
+    return NextResponse.json({ ok: true, token: '' })
+  }
+
+  const validated = validateSignup({
+    name: body.name as string | undefined,
+    email: body.email as string | undefined,
+    channel: body.channel as string | undefined,
+  })
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 })
+  }
+
+  const key = betaSigningKey()
+  if (!key) {
+    console.error('[beta-signup] no signing key (BETA_SIGNUP_SECRET / SUPABASE_SERVICE_ROLE_KEY unset)')
+    return NextResponse.json(
+      { error: 'Beta signup is temporarily unavailable. Please try again later.' },
+      { status: 503 },
+    )
+  }
+
+  const code = generateCode()
+  const emailResult = await sendVerificationCodeEmail(validated.value.email, code)
+  if (!emailResult.ok) {
+    console.error('[beta-signup] verification email failed:', emailResult.error)
+    return NextResponse.json(
+      { error: 'We couldn’t send the verification email. Please check the address and try again.' },
+      { status: 502 },
+    )
+  }
+
+  const token = makeToken(key, validated.value, code)
+  return NextResponse.json({ ok: true, token })
+}
