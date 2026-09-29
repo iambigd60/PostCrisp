@@ -1,6 +1,6 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (AI routing policy applied and [PR #14](https://github.com/iambigd60/PostCrisp/pull/14) merged; Auth hook enabled 04:17Z; Google buttons hidden behind `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` in [PR #13](https://github.com/iambigd60/PostCrisp/pull/13); Phase 0 exit remains blocked)
+**Last updated:** 2026-09-29, end of session. PRs #8–#12 and [PR #14](https://github.com/iambigd60/PostCrisp/pull/14) (AI routing policy) are merged; the CodeRabbit deep-scan fixes are live, both security migrations are applied, and the Auth hook is enabled (04:17Z). [PR #13](https://github.com/iambigd60/PostCrisp/pull/13) (hide the Google buttons, plus these tracker notes) is open, awaiting merge. The invite-code smoke test is still owed. Phase 0 exit remains blocked.
 **Build status:** PR #14 merged as `07761f9`; its CI and Vercel preview passed. The Phase 0 evidence and retired review-tool configuration were then refreshed in a documentation commit. The earlier ten-migration Phase 0 reset and grant-probe evidence remains historical; production now records 13 migrations through `20260929182158`, and a fresh local reset of that complete chain was unavailable on this Mac because Docker was not running.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
@@ -9,6 +9,13 @@
 ---
 
 ## 📋 To-do (Dennis, 2026-09-29)
+
+**Start here next session:**
+- **Merge [PR #13](https://github.com/iambigd60/PostCrisp/pull/13).** CI is green. Until it merges, production still shows "Sign in with Google", which errors because the provider is off.
+- **Invite-code signup smoke test.** The Before User Created hook is on, so legitimate signups now pass through it. Sign up once with a single-use code and once with the shared code; both must succeed. If either fails, disable the hook (Authentication → Hooks) before debugging.
+- **From the PC:** `supabase migration list --linked` should show 13 paired migrations (through `20260929182158`), and `supabase db push --dry-run --linked --skip-vault` should be empty. The cloud session couldn't run these because it has no Supabase login.
+
+Dennis's notes:
 
 1. **Run the CodeRabbit deep scan again.** Confirm the 8 findings fixed in PR #11 and PR #12 no longer report, and triage anything new. See "CodeRabbit deep-scan fixes" below.
 2. **Add Google sign-in back later.** The buttons are hidden behind `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` because the Google provider was never enabled in Supabase. The steps to turn it on are under "CodeRabbit deep-scan fixes" → "Google sign-in was never enabled".
@@ -1424,7 +1431,7 @@ No other DB changes this session.
 
 - Admin password rotated 2026-04-20. Rotate again on a schedule (quarterly or after any suspected exposure) via `scripts/rotate-admin-password.mjs`.
 - Azure provider shows in admin dropdowns but falls back to Anthropic (not yet wired)
-- Generations don't log `provider` + `model` — analytics cost shown is current-routing inference, not historical accuracy
+- ~~Generations don't log `provider` + `model` — analytics cost shown is current-routing inference~~ ✅ Fixed 2026-09-29 (PR #11). Every AI route writes the `generation_ai_calls` ledger with provider, model, tokens, and cost, and admin analytics reads only the ledger. Voice-profile analysis is the one AI call still unmetered.
 - Anthropic cache-read tokens count at full value in analytics but bill at ~10%; cost totals skew high when caching is hot
 - Est. MRR uses list prices, ignores yearly discounts — replaced once Billing admin ships
 - ~~`src/app/login/actions.ts` orphaned~~ deleted in s12 hardening sprint
@@ -1467,9 +1474,10 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 - 🟡 **Create Stripe products in live mode** — BLOCKED on Stripe verification. Playbook in session 14c block.
 - 🟡 **Register Stripe webhook endpoint for production** — same blocker
 - Set Anthropic monthly spending cap ($50-100) — defense in depth (5 min, do anytime)
-- Google OAuth in Supabase Auth settings (currently disabled in invite-only flow anyway)
+- 🟡 **Google OAuth provider in Supabase Auth.** Confirmed never enabled (2026-09-29): `/authorize` returns `provider is not enabled`, and all 13 accounts are email identities. The buttons are hidden behind `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` (PR #13). To turn Google on, see the CodeRabbit section → "Google sign-in was never enabled".
+- ✅ **Supabase Auth Before User Created hook**: enabled 2026-09-29 → `public.hook_enforce_signup_policy`. It enforces closed and invite-only modes for every Auth signup path; switch it off under Authentication → Hooks to roll back.
 - ~~**Confirm `beta@postcrisp.com` mail forwarding**~~ ✅ Done 2026-09-29 — mailbox created and confirmed working.
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
 - 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`. The beta-signup verify route (PR #8) also relies on this limit to bound code guessing.
 - 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
-- ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20.** Exactly ten local/remote versions pair through `20260820220303`, the linked `--skip-vault` dry run is empty, and post-hardening object parity is byte-identical. Earlier eight-version/manual-apply/object-unverified wording is historical and non-actionable.
+- ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20; re-verified 2026-09-29 at 12 pairs through `20260929032918`** (connector migration list, fresh local reset, byte-identical inventory). PR #14 then added `20260929182158`, for 13. The linked dry run is still to be re-run from the PC. Exactly ten local/remote versions pair through `20260820220303`, the linked `--skip-vault` dry run is empty, and post-hardening object parity is byte-identical. Earlier eight-version/manual-apply/object-unverified wording is historical and non-actionable.
