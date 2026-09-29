@@ -218,6 +218,13 @@ const nextConfig = {
 
 #### M4. RLS on `feature_access` + `ai_config_overrides` blocks regular users from reading
 
+**2026-09-29 update:** The `ai_config_overrides` half is closed by migration
+`20260929182158_authenticated_read_ai_config_overrides.sql`. A read-only
+authenticated-role probe changed from 0 visible override rows to 72; `anon`
+still sees 0, and the admin write policy remains. `feature_access` is still
+open. The older example below is historical; new policies should use
+`TO authenticated` instead of the deprecated `auth.role()` helper.
+
 **Files:**
 - `src/lib/supabase-schema.sql:232-234` (feature_access SELECT only for admins)
 - `src/lib/supabase-schema.sql:256-258` (ai_config_overrides SELECT only for admins)
