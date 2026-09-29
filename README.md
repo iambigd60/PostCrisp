@@ -61,6 +61,7 @@ Optional:
 | `FEEDBACK_NOTIFICATION_EMAIL` | Override admin notification address (default: captain@postcrisp.com) |
 | `BETA_NOTIFICATION_EMAIL` | Where beta-signup form submissions are emailed (default: beta@postcrisp.com) |
 | `BETA_SIGNUP_SECRET` | HMAC key for beta-signup email-verification tokens. Optional — falls back to a domain-separated subkey of `SUPABASE_SERVICE_ROLE_KEY` |
+| `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | `true` shows the Google sign-in/sign-up buttons. Leave unset until the Google provider is enabled in Supabase Auth; build-time, so redeploy after changing |
 
 Sentry is gated on `VERCEL_ENV === 'production' || 'preview'` — it intentionally does not capture from local dev.
 

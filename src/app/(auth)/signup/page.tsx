@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { signup } from './actions'
 import { useToast } from '@/components/ui/Toast'
 import { createClient } from '@/utils/supabase/client'
+import { GOOGLE_AUTH_ENABLED } from '@/lib/auth-providers'
 
 type SignupMode = 'open' | 'invite' | 'closed'
 
@@ -94,7 +95,7 @@ export default function SignupPage() {
           </p>
         </div>
 
-        {mode !== 'invite' && (
+        {GOOGLE_AUTH_ENABLED && mode !== 'invite' && (
           <>
             <button
               onClick={handleGoogleSignup}
