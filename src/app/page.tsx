@@ -75,27 +75,24 @@ const HOW_IT_WORKS = [
   },
 ];
 
-const TESTIMONIALS = [
+// Stands in for testimonials until real beta feedback exists. Keep every line
+// true of the beta as it actually runs (see docs/beta-tester-feedback-focus.md)
+// — no invented quotes, perks, or numbers.
+const BETA_INVITE_POINTS = [
   {
-    quote: "PostCrisp saves me 8 hours a week. The brand pitch generator alone landed me a 5-figure deal.",
-    name: "Sample Creator",
-    handle: "@lifestyle_pro",
-    avatar: "L",
-    color: "from-pink-500 to-rose-600",
+    icon: "🚀",
+    title: "Early access",
+    desc: "Invited testers use PostCrisp before the public launch, alongside a small group of creators.",
   },
   {
-    quote: "The channel analysis pointed out three things I'd been missing for months. Growth unlocked.",
-    name: "Sample Creator",
-    handle: "@finance_dad",
-    avatar: "F",
-    color: "from-emerald-500 to-teal-600",
+    icon: "💬",
+    title: "A direct line to the team",
+    desc: "Feedback goes straight to a person — through the in-app Feedback button or a reply to beta@postcrisp.com.",
   },
   {
-    quote: "I used to burn my weekends writing hooks. Now I write 10 scripts in 30 minutes.",
-    name: "Sample Creator",
-    handle: "@tech_story",
-    avatar: "T",
-    color: "from-sky-500 to-blue-600",
+    icon: "🛠️",
+    title: "Shape what ships",
+    desc: "Tell us what's useful, what's broken, and what the pricing should feel like. Your input decides what we build next.",
   },
 ];
 
@@ -386,34 +383,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Beta invitation — replaces testimonials until real beta feedback exists */}
       <section className="py-20 px-4 sm:px-6 border-t border-brand-500/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              What creators are saying
+              Be one of our first creators
             </h2>
-            <p className="text-zinc-400 text-lg">
-              <span className="text-2xs bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20 align-middle">placeholder</span>{" "}
-              <span className="align-middle">— real testimonials roll in after launch</span>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+              PostCrisp is in an invite-only beta, so there are no reviews to show yet. Join the beta and yours could be one of the first.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="rounded-2xl bg-surface-secondary border border-brand-500/10 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold`}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-200">{t.name}</div>
-                    <div className="text-xs text-zinc-500">{t.handle}</div>
-                  </div>
-                </div>
-                <p className="text-sm text-zinc-300 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
+            {BETA_INVITE_POINTS.map((point) => (
+              <div key={point.title} className="rounded-2xl bg-surface-secondary border border-brand-500/10 p-6">
+                <div className="text-3xl mb-3">{point.icon}</div>
+                <h3 className="text-lg font-semibold text-zinc-100 mb-2">{point.title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{point.desc}</p>
               </div>
             ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Link
+              href="#beta"
+              className="inline-flex items-center justify-center px-8 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all hover:shadow-glow-lg hover:scale-[1.02] active:scale-[0.98] min-h-[48px]"
+            >
+              Join the Beta Test →
+            </Link>
           </div>
         </div>
       </section>
