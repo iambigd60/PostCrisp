@@ -27,6 +27,10 @@ const REASONING_MODEL = /^gpt-6(-|$)/
 const REASONING_EFFORT = 'low' as const
 const REASONING_HEADROOM_TOKENS = 8000
 
+/**
+ * Output-cap and effort fields for a Chat Completions request. GPT-6 models get
+ * reasoning headroom and low effort; every other model gets the caller's cap.
+ */
 export function openaiModelTuning(model: string, maxTokens: number): {
   max_completion_tokens: number
   reasoning_effort?: typeof REASONING_EFFORT
@@ -38,8 +42,28 @@ export function openaiModelTuning(model: string, maxTokens: number): {
   }
 }
 
+/**
+ * Pull the answer text out of a Chat Completions choice. Throws on a refusal or
+ * on an empty answer cut off by the token cap, so callers refund credits
+ * instead of trying to parse nothing.
+ */
+export function extractOpenAIText(choice: {
+  message?: { content?: string | null; refusal?: string | null } | null
+  finish_reason?: string | null
+} | undefined): string {
+  if (choice?.message?.refusal) {
+    throw new Error(`OpenAI declined the request: ${choice.message.refusal}`)
+  }
+  const text = choice?.message?.content ?? ''
+  if (!text && choice?.finish_reason === 'length') {
+    throw new Error('OpenAI used the whole max_completion_tokens budget before writing an answer')
+  }
+  return text
+}
+
 export const openaiProvider: AIProvider = {
   id: 'openai',
+  /** Run one system + user prompt through Chat Completions and report token usage. */
   async generate(args: GenerateArgs): Promise<GenerateResult> {
     // Enable JSON mode when either prompt mentions JSON — avoids GPT returning
     // JS-style comments or trailing commas inside arrays.
@@ -55,11 +79,7 @@ export const openaiProvider: AIProvider = {
       ...(wantsJson ? { response_format: { type: 'json_object' as const } } : {}),
     })
 
-    const choice = response.choices[0]
-    const text = choice?.message?.content ?? ''
-    if (!text && choice?.finish_reason === 'length') {
-      throw new Error('OpenAI used the whole max_completion_tokens budget before writing an answer')
-    }
+    const text = extractOpenAIText(response.choices[0])
     return {
       text,
       inputTokens: response.usage?.prompt_tokens ?? 0,

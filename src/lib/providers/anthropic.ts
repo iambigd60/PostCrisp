@@ -53,6 +53,7 @@ const REFUSAL_FALLBACK_MODELS = new Set([
 ])
 const REFUSAL_FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 
+/** True for Claude 5-generation models, which think unless told otherwise (or always). */
 export function thinksByDefault(model: string): boolean {
   return THINKING_MODEL.test(model)
 }
@@ -120,6 +121,7 @@ export function extractAnthropicText(response: {
 
 export const anthropicProvider: AIProvider = {
   id: 'anthropic',
+  /** Run one system + user prompt through the Messages API and report token usage. */
   async generate(args: GenerateArgs): Promise<GenerateResult> {
     const shouldCacheSystem = args.system.length >= CACHE_MIN_CHARS
     const tuning = anthropicModelTuning(args.model, args.maxTokens)

@@ -4,7 +4,7 @@ import {
   extractAnthropicText,
   thinksByDefault,
 } from '@/lib/providers/anthropic'
-import { openaiModelTuning } from '@/lib/providers/openai'
+import { extractOpenAIText, openaiModelTuning } from '@/lib/providers/openai'
 
 describe('thinksByDefault', () => {
   it('flags the Claude 5-generation models', () => {
@@ -105,5 +105,32 @@ describe('openaiModelTuning', () => {
 
   it('does not match look-alike model names', () => {
     expect(openaiModelTuning('gpt-60', 2500)).toEqual({ max_completion_tokens: 2500 })
+  })
+})
+
+describe('extractOpenAIText', () => {
+  it('returns the answer text', () => {
+    expect(extractOpenAIText({
+      message: { content: '{"ok":true}', refusal: null },
+      finish_reason: 'stop',
+    })).toBe('{"ok":true}')
+  })
+
+  it('throws with the refusal text instead of returning an empty answer', () => {
+    expect(() => extractOpenAIText({
+      message: { content: null, refusal: 'I can’t help with that.' },
+      finish_reason: 'stop',
+    })).toThrow(/declined the request: I can’t help with that\./)
+  })
+
+  it('throws when reasoning used the whole budget and no answer was written', () => {
+    expect(() => extractOpenAIText({
+      message: { content: '', refusal: null },
+      finish_reason: 'length',
+    })).toThrow(/max_completion_tokens/)
+  })
+
+  it('returns an empty string when there is no choice, leaving the caller to report it', () => {
+    expect(extractOpenAIText(undefined)).toBe('')
   })
 })

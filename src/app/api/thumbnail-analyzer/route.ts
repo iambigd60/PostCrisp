@@ -38,6 +38,10 @@ function getAnthropic(): Anthropic {
   return _anthropic
 }
 
+/**
+ * Critique an uploaded thumbnail with a Claude vision call and return the
+ * structured analysis. Credits are reserved up front and refunded on failure.
+ */
 export async function POST(request: Request) {
   const auth = await checkAuthAndUsage('thumbnail-analyzer')
   if (!auth.ok) return auth.response
