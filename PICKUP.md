@@ -50,7 +50,7 @@ CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed again
 1. ✅ App changes merged and deployed (`aedd041`, production READY 2026-09-29 ~03:12Z, no runtime errors in the following hour).
 2. ✅ `20260929031720_protect_alpha_nda_acceptance.sql` applied 2026-09-29 via the Supabase connector's `apply_migration`.
 3. ✅ `20260929032918_before_user_created_signup_policy.sql` applied the same way. 🔴 **Still owed: enable it** — Supabase Dashboard → Authentication → Hooks → Before User Created → Postgres → `public.hook_enforce_signup_policy`. Disabling the hook there is the rollback.
-4. 🟡 Phase 0 gates — production half done, local half owed (below).
+4. ✅ Phase 0 gates re-run 2026-09-29 (below): fresh local rebuild, both probes, exact inventory parity with production.
 5. 🔴 Smoke test after the hook is on: an invite-mode signup with a single-use code, one with the shared code, and a Google sign-up (should be refused — production is in `invite` mode).
 
 **Why the versions changed:** the connector's `apply_migration` stamps the apply time as the version, so the files were committed as `20260929025759` / `20260929025800` and renamed afterwards to the recorded `20260929031720` / `20260929032918`, the same fix Phase 0 made for the 2026-08-19 migrations. Contents are unchanged.
@@ -60,13 +60,17 @@ CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed again
 Production (2026-09-29, read-only):
 - Migration history lists 12 versions, and after the rename they pair one-for-one with the 12 repo files.
 - Live function bodies match the repo files (MD5 of `prosrc`: trigger `450a77ed…`, hook `bd42baf6…`). The trigger is still bound. The hook is `SECURITY DEFINER`, `search_path=""`, owned by `postgres`.
-- `EXECUTE` on the hook: `supabase_auth_admin` only; `anon`, `authenticated`, and `service_role` are denied. `supabase_auth_admin` already had `USAGE` on `public`, so that grant was a no-op.
+- `EXECUTE` on the hook: `supabase_auth_admin` only; `anon`, `authenticated`, and `service_role` are denied. `supabase_auth_admin` already had effective `USAGE` on `public` through `PUBLIC`; the migration adds an explicit ACL entry for it (visible in the inventory).
 - The live hook refuses a code-less (Google) signup and a made-up code under the current `invite` mode.
 - Security advisor unchanged: exactly the 3 `INFO` policyless-RLS items.
 
-Owed (needs the CLI on Dennis's PC):
-- `supabase migration list --linked` (expect 12 paired) and `supabase db push --dry-run --linked --skip-vault` (expect empty).
-- A fresh `supabase db reset --local`, both `scripts/phase0/probe-*.sql` probes, and a schema-inventory capture/compare. The committed evidence still describes the ten-migration state.
+Local (2026-09-29, run in the Claude Code cloud container with Supabase CLI 2.118.0 and a DB-only local stack):
+- `supabase db reset --local` exited 0 and applied all 12 migrations through `20260929032918` on a fresh database.
+- `probe-client-role-grants.sql` and `probe-default-grants.sql` both exited 0 with `DO`.
+- `schema-inventory.sql` (contract v3): all 15 sections are byte-identical between the fresh local rebuild and production (per-section MD5 of the JSON). Counts: 18 tables, 147 columns, 58 constraints, 42 indexes, 39 policies, 5 functions, 6 triggers, 327 grants, 5 extensions. Grants MD5 is `56693fa5…`, functions MD5 is `2e04ef12…`.
+- Against the committed 2026-08-20 local inventory, `compare-schema-inventory.mjs` reports exactly the four expected changes: the new hook function, the new `protect_privileged_profile_columns` body, hook `EXECUTE` for `supabase_auth_admin`, and schema `USAGE` for `supabase_auth_admin`.
+
+Not run: `supabase migration list --linked` and `db push --dry-run --linked` need a Supabase access token and database password, which the cloud container doesn't have. The connector's migration list shows the same 12 versions and names as the repo, so the dry run should be empty. Confirm from the PC when convenient. The committed `2026-08-20-*-schema-inventory.json` evidence files still describe the ten-migration state; refresh them if a new evidence capture is wanted.
 
 ### Verification
 
