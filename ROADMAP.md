@@ -6,7 +6,7 @@ The Phase 0 containment branch was integrated into `main` on 2026-08-20, so the 
 
 Completed and verified:
 
-- the August checkpoint verified 10 production/local migration pairs through `20260820220303` and an empty linked `--skip-vault` dry run; production now has 13 migrations through the approved AI routing policy change, with a fresh full local reset still open;
+- the August checkpoint verified 10 production/local migration pairs through `20260820220303` and an empty linked `--skip-vault` dry run. On 2026-09-29 two reviewed forward migrations were applied: `20260929031720` (alpha-NDA protection) and `20260929032918` (signup-policy Auth hook). At 12 migrations, a fresh local reset and both grant probes passed, and the schema inventory was byte-identical between local and production (327 grants). Production now has 13 migrations through the approved AI routing policy change, and a fresh full local reset of that chain is still open;
 - `pg_graphql` removal migration applied; production/local inventories contain no `pg_graphql`;
 - grant-hardening migration applied with exactly 154 reviewed removals and zero non-grant drift; current forbidden client table/sequence grants and `postgres` defaults are zero;
 - reviewed post-hardening production/local source captures contain 325 grants and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`; tracked prior-key-order copies are comparator-clean;
@@ -34,8 +34,39 @@ Landing-page `#beta` section: name + email + influencer channel link, email owne
 
 - ✅ Merged [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) on 2026-09-29 (`7117827`).
 - ✅ `beta@postcrisp.com` mailbox created and confirmed working (2026-09-29).
-- ⏳ One real end-to-end signup in production after merge.
+- ✅ One real end-to-end signup in production — Dennis confirmed it works (2026-09-29).
 - 📋 Online code-guessing relies on the unverified Vercel WAF per-IP limit — verify the WAF or add a per-IP limit on `/api/beta-signup/verify`.
+
+## ✅ CodeRabbit deep-scan security fixes — merged 2026-09-29 (PRs #11–#12)
+
+CodeRabbit's deep scan reported 8 findings; all were confirmed and fixed:
+- invite-code double spend
+- forgeable alpha-agreement record (DB trigger)
+- Origin-derived admin link in feedback email
+- feature-access overrides failing open
+- maintenance pause enforced only at the login form
+- admin cost analytics trusting user-writable token counts; all AI routes now write the service-role ledger
+- an analytics crash on prototype-named features
+- signup policy bypass through direct Auth calls; closed with the Before User Created hook, enabled 2026-09-29
+
+Follow-ups:
+- ✅ Both migrations applied and paired with the repo; Phase 0 parity re-verified (2026-09-29).
+- ⏳ Invite-code signup smoke test with the hook on (single-use code + shared code).
+- 📋 Re-run the CodeRabbit deep scan to confirm the findings are closed.
+- 📋 Known gaps: voice-profile analysis is unmetered; users can delete their own generations, removing their ledger rows; pre-ledger generations show $0.
+
+## 🟡 Google sign-in — hidden until the provider is configured (PR #13, 2026-09-29)
+
+The Google provider was never enabled in Supabase Auth, so the Google buttons only produced a raw error. They're hidden behind `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`.
+- ⏳ Merge PR #13.
+- 📋 Add Google back later: Google Cloud OAuth client (redirect `https://sikabeqzypvllimyostg.supabase.co/auth/v1/callback`) → Supabase provider settings → set the env var in Vercel and redeploy. Then confirm a brand-new Google account is refused while invite-only.
+
+## ✅ AI Engine Config — Claude 5.x + GPT-6 models selectable (PR #9, 2026-09-29)
+
+Claude Opus 5.5, Sonnet 5.5, Fable 5.1 and GPT-6 Sol/Astra are in the `/admin/ai-config` catalog, with thinking/reasoning-aware adapters and pricing. Defaults are unchanged.
+- 📋 Test generations on each new engine before selecting one in production: confirm the GPT-6 model IDs, check `low`-effort output quality, and confirm Fable 5.1's 30-day retention requirement. Checklist in PICKUP.md.
+
+## ✅ Landing page — placeholder testimonials replaced with a beta invitation (PR #10, 2026-09-29)
 
 ## ✅ Onboarding telemetry made provable (2026-08-19, session 27)
 
