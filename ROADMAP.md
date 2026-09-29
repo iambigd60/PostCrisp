@@ -27,6 +27,14 @@ Informational accepted residual: `supabase_admin` retains 8 table-default + 6 se
 
 ---
 
+## 🟡 Join Beta Test signup form — built, PR #8 awaiting merge (2026-09-19)
+
+Landing-page `#beta` section: name + email + influencer channel link, email ownership confirmed with a 6-digit code, verified signups forwarded to `beta@postcrisp.com`. Stateless HMAC-signed token with a 15-minute expiry — no table, no migration, no new env vars. CodeRabbit's 6 findings fixed (`9ba1068`); 260/260 tests.
+
+- ⏳ Merge [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) — Dennis's call; clean against `main`. Reconcile with the Phase 0 "do not change `main`" rule above first.
+- ⏳ Confirm `beta@postcrisp.com` forwarding, then one real end-to-end signup in production.
+- 📋 Online code-guessing relies on the unverified Vercel WAF per-IP limit — verify the WAF or add a per-IP limit on `/api/beta-signup/verify`.
+
 ## ✅ Onboarding telemetry made provable (2026-08-19, session 27)
 
 `onboarding_events` sat at 0 rows with no way to tell a dead pipeline from an idle product. **Measured against production: it was never broken — it was never exercised.** Nobody had signed in since 2026-08-06, thirteen days before the deploy, and no `/api/onboarding/event` request appears in any production log. Event names match the server enum exactly, and the service-role key is proven live by successful `credit_transactions` / `generations` writes dated 2026-08-15.
