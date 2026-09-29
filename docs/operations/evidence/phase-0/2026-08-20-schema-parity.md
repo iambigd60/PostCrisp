@@ -6,7 +6,7 @@
 
 **Production project:** `sikabeqzypvllimyostg`
 
-**Verdict:** **VERIFIED — tracked post-hardening production and fresh-reset local inventory-v3 artifacts are byte-identical. Phase 0 remains BLOCKED on separate restore, platform-access, and council gates.**
+**Verdict:** **VERIFIED — tracked post-hardening production and fresh-reset local inventory-v3 artifacts are byte-identical. At the 2026-08-20 checkpoint, Phase 0 remained blocked on restore and platform access. The council-tool requirement was retired on 2026-09-29; current status is in PICKUP.md.**
 
 ## Current authoritative result
 

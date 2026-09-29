@@ -8,7 +8,9 @@
 
 **Branch:** `codex/phase-0-containment`
 
-Phase 0 has closed the migration-history, object-parity, optional-extension, client-role grant, leaked-password, and reserved-role disposition gates. It has not closed the isolated restore, Vercel/provider-console, or independent council gates. The branch therefore remains fail-closed **BLOCKED**.
+**Current-status update (2026-09-29):** The council-tool requirement was retired. It is not a Phase 0 blocker. The approved AI routing read policy is live and merged in PR #14; an authenticated-role probe sees all 72 configured overrides, but a real non-admin generation remains unverified. The newest completed physical backup at 18:28 UTC was taken before that migration, so the isolated restore drill awaits a post-migration backup, fresh preflights, and explicit execution authorization. Vercel/provider-control evidence and a fresh independent exit review remain open. The dated evidence below preserves the 2026-08-20 checkpoint.
+
+Phase 0 has closed the migration-history, object-parity, optional-extension, client-role grant, leaked-password, and reserved-role disposition gates. At this dated checkpoint, it had not closed the isolated restore, Vercel/provider-console, or independent review gates. The branch therefore remained fail-closed **BLOCKED**.
 
 ## Closed gates
 
@@ -72,9 +74,9 @@ That bounded estimate is not clone-specific Dashboard confirmation. Dashboard/br
 
 Vercel firewall state, production environment-variable names, and secrets-free successful runtime/provider linkage remain inaccessible. Anthropic and OpenAI current spend caps, enforcement modes, allowed models, and effective rate limits also require unavailable provider Billing/Admin read-only access. No runtime key was inspected or reused.
 
-### 3. Independent council
+### Historical council-tool attempt — retired
 
-Three AImigos beta.16 has no valid verdict. Grok 4.6 produced malformed responses twice; Grok 4.3 failed access. Gemini 3.5 access was verified, but `doctor` remains `Unknown` because the installed adapter's `detect()` always reports unknown authentication. Model access alone is not a council/Auditor verdict.
+The 2026-08-20 attempts produced no valid verdict. This tool is no longer used and its verdict is not required for Phase 0. A fresh independent exit review of the final evidence and current repository state remains required after the operational blockers close.
 
 ## Current security-advisor result
 
@@ -105,4 +107,4 @@ Earlier evidence on 2026-08-20 recorded eight paired migrations, then a ninth lo
 
 ## Exit decision
 
-Phase 0 remains **BLOCKED**, and Phase 1 must not begin until all three open blockers above are closed with fresh evidence and a valid independent exit verdict. The user's 2026-08-20 approval authorizes push and merge of the reviewed repository changes but does not close or waive those operational gates.
+Phase 0 remains **BLOCKED**, and Phase 1 must not begin until the restore and platform-control blockers above are closed with fresh evidence and an independent exit review has no unresolved blocker. The user's 2026-08-20 approval authorizes push and merge of the reviewed repository changes but does not close or waive those operational gates.

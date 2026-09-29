@@ -47,8 +47,3 @@ dashboard.html
 
 # Nested legacy clone (has its own .git) - local only
 PostCrisp/
-
-# Three AImigos local tool state and packaged builds
-.three-aimigos/
-the-three-aimigos-*.tgz
-SHA256SUMS.txt

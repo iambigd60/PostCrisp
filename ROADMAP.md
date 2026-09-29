@@ -1,22 +1,23 @@
 # PostCrisp — Pre-Launch Roadmap
 
-## 🔴 Phase 0 containment — BLOCKED (current 2026-08-20 checkpoint)
+## 🔴 Phase 0 containment — BLOCKED (updated 2026-09-29)
 
 The Phase 0 containment branch was integrated into `main` on 2026-08-20, so the earlier rule against pushing, merging, or changing `main` is retired — work that doesn't depend on Phase 0 exit can land (the beta-signup form, PR #8, merged 2026-09-29). **Do not begin Phase 1** until every remaining gate below closes with fresh evidence.
 
 Completed and verified:
 
-- exactly 10 production/local migration pairs through `20260820220303`; linked `--skip-vault` dry run is empty;
+- the August checkpoint verified 10 production/local migration pairs through `20260820220303` and an empty linked `--skip-vault` dry run; production now has 13 migrations through the approved AI routing policy change, with a fresh full local reset still open;
 - `pg_graphql` removal migration applied; production/local inventories contain no `pg_graphql`;
 - grant-hardening migration applied with exactly 154 reviewed removals and zero non-grant drift; current forbidden client table/sequence grants and `postgres` defaults are zero;
 - reviewed post-hardening production/local source captures contain 325 grants and are byte-identical at SHA-256 `184BAF24BEE2823173F4C9564F01F547DA103B110BD39DF4813FEEC03AC9C9EE`; tracked prior-key-order copies are comparator-clean;
-- HIBP leaked-password protection enabled; security advisor now reports only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`.
+- HIBP leaked-password protection enabled; security advisor reports only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`;
+- AI routing override SELECT is now available to `authenticated` (72 rows in a read-only role probe), while `anon` sees none; the migration is applied and merged in PR #14. A real non-admin generation is still open.
 
 Blocking exit:
 
-- restore preflight is clean and the bounded cost model is USD 0.0762, but the drill has not run because Dashboard/browser clone-specific cost and explicit organization confirmation remain unavailable;
-- Vercel firewall/environment evidence and provider spend/rate-limit consoles remain inaccessible;
-- Three AImigos beta.16 produced no valid verdict (Grok 4.6 malformed twice, Grok 4.3 access failure, Gemini 3.5 access verified but doctor remains `Unknown` because adapter `detect()` always reports unknown auth).
+- the newest completed backup at the 2026-09-29 18:28 UTC Dashboard check predates the AI routing migration. Wait for a completed post-migration backup, then refresh source preflights and the clone quote, obtain exact-backup/cost authorization, execute the drill, validate, delete, and collect settled billing evidence. The prior five-billable-hour estimate is `USD 0.07962`, not a provider cap;
+- Vercel project identity, two active 429 rules, and Production variable names are verified. Rule enforcement, provider-key ownership and effective spend controls, Config-versus-Secret warnings, and absent Stripe-name disposition remain open;
+- A fresh independent exit review is still required after the restore drill and platform/provider evidence are complete.
 
 See [the current Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
 

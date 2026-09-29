@@ -218,38 +218,9 @@ const nextConfig = {
 
 #### M4. RLS on `feature_access` + `ai_config_overrides` blocks regular users from reading
 
-**2026-09-29 update:** The `ai_config_overrides` half is closed by migration
-`20260929182158_authenticated_read_ai_config_overrides.sql`. A read-only
-authenticated-role probe changed from 0 visible override rows to 72; `anon`
-still sees 0, and the admin write policy remains. `feature_access` is still
-open. The older example below is historical; new policies should use
-`TO authenticated` instead of the deprecated `auth.role()` helper.
+**2026-09-29 status: corrected in code and database; application behavior still needs a real-user check.** PR #11 changed `src/lib/feature-access.ts` to read through the server-side service role and deny access when that read fails. It no longer depends on a regular user's SELECT policy. Migration `20260929182158_authenticated_read_ai_config_overrides.sql` added SELECT for `authenticated` on the AI routing table while retaining admin-only writes. A read-only role probe changed from 0 to 72 visible override rows for `authenticated`; `anon` still sees 0. PR #14 merged the migration into `main`. No end-to-end non-admin generation was run after the change.
 
-**Files:**
-- `src/lib/supabase-schema.sql:232-234` (feature_access SELECT only for admins)
-- `src/lib/supabase-schema.sql:256-258` (ai_config_overrides SELECT only for admins)
-- `src/lib/feature-access.ts:45-48` (reads via user-scoped client)
-- `src/lib/crisp-engine.ts:60-64` (reads via user-scoped client)
-
-Non-admin users querying these tables get an empty result (RLS returns zero rows). Both files silently catch the error and fall back to `DEFAULT_MIN_TIER` / code-default routing. This means the admin-configurable overrides in `/admin/feature-access` and `/admin/ai-config` are effectively non-functional for real users.
-
-**Impact:** admin controls don't do what they claim. Not a security issue — a functional bug.
-
-**Fix options:**
-1. Relax RLS: allow any authenticated user to SELECT on `feature_access` and `ai_config_overrides` (tables contain no sensitive data — just tier gates and model names)
-2. Read via service-role client from server-side code (adds friction; requires updating both lib files)
-
-Option 1 is simpler. Add:
-```sql
-CREATE POLICY "Authenticated read feature_access"
-  ON public.feature_access FOR SELECT
-  USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated read ai_config_overrides"
-  ON public.ai_config_overrides FOR SELECT
-  USING (auth.role() = 'authenticated');
-```
-
-Keep write policies admin-only (already in place).
+The original finding described two user-scoped reads that silently fell back to code defaults. That description and its proposed SQL are historical; the two paths now use different corrections. Reopen this item if a real non-admin request ignores an admin override or if the service-role feature-access read fails open.
 
 ---
 

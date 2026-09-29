@@ -150,7 +150,7 @@ rg -n --hidden "(service_role|SUPABASE_SERVICE_ROLE_KEY|postgres(ql)?://|sbp_[A-
 1. Re-run every repository, clean-room reset, linked dry-run, migration-list, schema-parity, test, typecheck, and lint command from a clean working tree and record command, time, exit code, and result.
 2. Confirm all Task 4 controls are `VERIFIED` and the isolated restore drill passed. If any are not, record Phase 0 as blocked and do not proceed to Phase 1.
 3. Generate a whole-branch review package from `c449867` to `HEAD`.
-4. Run an independent Greybeard and Three AImigos exit review against the spec, plan, evidence, SQL, scripts, and complete branch diff.
+4. Run a fresh independent exit review against the spec, plan, evidence, SQL, scripts, and complete current branch diff. No council-tool verdict is required.
 5. Return every actionable finding to the owning implementer, rerun the relevant checks, and repeat independent review until no blocker remains or the user must resolve an external checkpoint.
 6. Do not push, merge, or start Phase 1 without an explicit handoff after the gate result.
 

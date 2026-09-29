@@ -1,12 +1,14 @@
 # Phase 0 isolated restore drill
 
-**Status:** `REQUIRES AUTHORIZATION` - designed but not executed.
+**Status:** `POST-MIGRATION BACKUP AND AUTHORIZATION REQUIRED` - designed but not executed.
 **Source:** Supabase project `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`).
 **Safety rule:** Never restore over production. The only permitted target is one newly created, disposable, isolated project after all access, preflight, cost, and authorization gates pass.
 
 ## Access checkpoint before authorization
 
-General eligibility is `VERIFIED`: the organization is paid and the source has completed physical backups. Actual source eligibility and the operator-visible **Restore to a New Project** action are `BLOCKED BY ACCESS`; neither is exposed by the available read-only CLI/API surfaces, and the authenticated Dashboard action has not been observed.
+General eligibility is `VERIFIED`: the organization is paid and the source has completed physical backups. On 2026-09-29 the authenticated Dashboard showed the operator-visible **Restore to a New Project** action for the completed `2026-09-29T10:52:23Z` backup and a confirmation dialog. No target was created; repeat this inspection for the exact backup selected at execution.
+
+At the 2026-09-29 18:28 UTC recheck, that 10:52:23 UTC backup was still the newest `COMPLETED` backup. The approved AI routing policy migration was applied at 18:21 UTC, after the backup. For the final current-schema parity drill, select a newly completed physical backup taken after that migration; then repeat all source, configuration, quote, and authorization checks below. The earlier `$10.18` monthly quote and `USD 0.07962` bounded estimate are preliminary for the old snapshot.
 
 An authenticated Supabase Dashboard operator must first perform a read-only inspection. Record only:
 
@@ -17,6 +19,8 @@ An authenticated Supabase Dashboard operator must first perform a read-only insp
 - hourly/monthly add-ons, one-time charges, and the displayed estimate.
 
 Stop before confirmation. Seeing the action does not authorize creating the target.
+
+The 2026-09-29 read-only Dashboard inspection found source Micro compute at `USD 0.01344/hour`, gp3 8 GB, 3,000 IOPS, 125 MB/s, no read replicas, and Dedicated IPv4/PITR/Custom Domain add-ons disabled. The confirmation dialog proposed the same organization and `us-east-2` region, source compute size, a 1.5× disk (12 GB), and additional monthly compute `USD 9.68` plus disk `USD 0.50`, total `USD 10.18`. The Pro organization's Spend Cap is enabled; it does not cover compute. No one-time charge appeared in the dialog, but absence from the displayed lines is not a guarantee that none can arise.
 
 ## Source preflight and outbound abort gate
 
@@ -79,6 +83,8 @@ worst_case_4h_estimate =
 Current published compute rates in USD/hour are Micro `0.01344`, Small `0.0206`, Medium `0.0822`, Large `0.1517`, XL `0.2877`, 2XL `0.562`, 4XL `1.32`, 8XL `2.562`, 12XL `3.836`, and 16XL `5.12`. For example, five 4XL compute hours alone are `5 * 1.32 = USD 6.60`; five 8XL compute hours alone are `USD 12.81` and must abort.
 
 The estimate must include every line item shown at confirmation. Limit total drill egress to 0.1 GB and price it from the first byte at the current uncached overage rate, adding `USD 0.009` even if plan quota remains. Only catalog/aggregate queries and the bounded recovery checks below are permitted. If any add-on, tax, one-time charge, or mirrored attribute cannot be conservatively quantified, the estimate is not a hard bound.
+
+For the 2026-09-29 observed configuration, the five-billable-hour estimate is `5 × (0.01344 + 4 × 0.000171) + 0.009 = USD 0.07962`, before any unlisted or one-time charge. The Dashboard's `USD 10.18` is a monthly quote, not the expected cost of a promptly deleted drill target. Recompute from the final confirmation screen and current source configuration immediately before authorization.
 
 **Abort threshold:** do not request execution authorization unless `worst_case_4h_estimate < USD 8.00`. The USD 2.00 margin is for estimation error; it does not turn the estimate into a provider-enforced cap.
 
