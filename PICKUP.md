@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-08-20 (Phase 0 integrated into `main`; CI green)
-**Build status:** `main`, `origin/main`, `codex/phase-0-containment`, and its remote are synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
+**Last updated:** 2026-09-29 (Join Beta Test signup form built — PR #8 open, awaiting merge; Phase 0 status unchanged since 2026-08-20)
+**Build status:** `origin/main` is at `713685c` (Phase 0 integration checkpoint docs). The beta-signup work sits on `claude/repo-sync-check-vzass3` (code final at `9ba1068`) as [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) — clean against `main`, 260/260 tests. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
@@ -29,6 +29,45 @@ Required before Phase 0 exit and Phase 1:
 See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
 
 Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
+
+## 🟡 Join Beta Test signup form — PR #8 open, awaiting merge (built 2026-09-19)
+
+**Not on `main` yet.** Branch `claude/repo-sync-check-vzass3`, [PR #8](https://github.com/iambigd60/PostCrisp/pull/8), code final at `9ba1068` (plus this tracker commit), base `main` `713685c`. Mergeable (clean); no code changes since 2026-09-19. Merging is Dennis's call — see the Phase 0 note at the bottom of this section.
+
+### What it does
+
+A `#beta` section on the landing page (above the final CTA, plus nav + footer links). Visitors give name, email, and influencer channel link; a 6-digit code emailed to them confirms the address; only then is the signup forwarded to **beta@postcrisp.com** with reply-to set to the tester.
+
+- `POST /api/beta-signup` — validates input, emails the code, returns an opaque signed token.
+- `POST /api/beta-signup/verify` — checks the code against the token, then emails the verified signup to `beta@`.
+- **Stateless — no table, no migration.** The submission rides in an HMAC-signed token (15-minute expiry) that also binds a server-keyed MAC of the code, so a token holder cannot brute-force the code offline. Honeypot field, input length caps, fails closed when no signing key is available.
+
+### Commits
+
+- `3aa6773` feat(landing): the form, both routes, `src/lib/beta-signup.ts`, 19 unit tests.
+- `9ba1068` fix: CodeRabbit's 6 findings — reject non-object JSON bodies with 400; channel must parse as an http(s) URL with a dotted hostname; 10s timeout on the Resend call; `Idempotency-Key` on the `beta@` email so a double-submit can't send twice; deterministic offline-guess test; docstrings. All review threads resolved; only CodeRabbit's soft docstring-coverage warning remains (non-blocking).
+
+Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/api/beta-signup/verify/route.ts`, `src/components/BetaSignupForm.tsx`, `src/app/page.tsx`, `src/lib/__tests__/beta-signup.test.ts`, `README.md` (env docs). 7 files, +814.
+
+### Verification
+
+- 260/260 tests across 27 files (re-run 2026-09-29); typecheck + lint clean at `9ba1068`.
+- **Never exercised against real email.** No end-to-end run has sent a code or reached `beta@`.
+
+### Config
+
+- **No new env vars required.** Reuses `RESEND_API_KEY`; the signing key is a domain-separated subkey of `SUPABASE_SERVICE_ROLE_KEY` unless `BETA_SIGNUP_SECRET` is set. Sender `noreply@postcrisp.com` is already verified in Resend.
+- Optional: `BETA_NOTIFICATION_EMAIL` (default `beta@postcrisp.com`), `BETA_SIGNUP_SECRET` (preferred signing key).
+
+### Owed before / right after merge
+
+1. 🔴 **Confirm `beta@postcrisp.com` forwarding reaches an inbox you read.** The app sends regardless; without forwarding, verified signups vanish silently.
+2. 🔴 **One real signup on postcrisp.com after deploy** — code email arrives, verify succeeds, the signup lands at `beta@` with the tester as reply-to.
+3. 🟡 **Online code-guessing is bounded only by the 15-minute expiry plus the Vercel WAF per-IP limit** — and the WAF rules are themselves unverified (see "Manual setup still pending"). There is no per-token attempt counter because the flow is stateless. Close the WAF gate, or add a per-IP limit to the verify route.
+
+### Phase 0 note
+
+The change is code-only and touches no database, grant, or migration surface. But `ROADMAP.md` still opens with "do not push, merge this branch, change `main`, or begin Phase 1" while Phase 0 is blocked — written for `codex/phase-0-containment` before integration, and never reconciled with the integration above. Decide whether that rule still gates unrelated landing-page work before merging PR #8.
 
 ## Historical session-27 worklist — superseded where noted
 
@@ -1320,7 +1359,8 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 - 🟡 **Register Stripe webhook endpoint for production** — same blocker
 - Set Anthropic monthly spending cap ($50-100) — defense in depth (5 min, do anytime)
 - Google OAuth in Supabase Auth settings (currently disabled in invite-only flow anyway)
+- 🔴 **Confirm `beta@postcrisp.com` mail forwarding** before the beta-signup form (PR #8) goes live — verified signups are emailed there and nowhere else.
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
-- 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`.
+- 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`. The beta-signup verify route (PR #8) also relies on this limit to bound code guessing.
 - 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
 - ~~**Verify applied migration versions match `supabase/migrations/`.**~~ ✅ **RESOLVED by Phase 0 on 2026-08-20.** Exactly ten local/remote versions pair through `20260820220303`, the linked `--skip-vault` dry run is empty, and post-hardening object parity is byte-identical. Earlier eight-version/manual-apply/object-unverified wording is historical and non-actionable.
