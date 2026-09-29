@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (PRs #8–#10 merged; CodeRabbit deep-scan fixes on `claude/repo-sync-check-vzass3`, not yet in a PR; Phase 0 status unchanged since 2026-08-20)
-**Build status:** `origin/main` is at `ce989e6` — beta signup ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8)), AI engine models ([PR #9](https://github.com/iambigd60/PostCrisp/pull/9)), and the beta invitation that replaced placeholder testimonials ([PR #10](https://github.com/iambigd60/PostCrisp/pull/10)) all merged 2026-09-29. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
+**Last updated:** 2026-09-29 (PRs #8–#11 merged; CodeRabbit deep-scan fixes live and both migrations applied — the Auth hook still needs enabling in the dashboard; Phase 0 status unchanged since 2026-08-20)
+**Build status:** `origin/main` is at `aedd041` — beta signup ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8)), AI engine models ([PR #9](https://github.com/iambigd60/PostCrisp/pull/9)), the beta invitation that replaced placeholder testimonials ([PR #10](https://github.com/iambigd60/PostCrisp/pull/10)), and the CodeRabbit deep-scan fixes ([PR #11](https://github.com/iambigd60/PostCrisp/pull/11)) all merged 2026-09-29. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
@@ -30,32 +30,47 @@ See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-r
 
 Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
 
-## 🔴 CodeRabbit deep-scan fixes (2026-09-29) — branch `claude/repo-sync-check-vzass3`, no PR yet
+## 🟡 CodeRabbit deep-scan fixes (2026-09-29) — live; Auth hook still to enable
 
-CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed against the code. Code fixes are on the branch; **two migrations are committed but NOT applied, and one Auth hook is NOT enabled.**
+CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed against the code and fixed. [PR #11](https://github.com/iambigd60/PostCrisp/pull/11) merged as `aedd041` and deployed to production. Both migrations are applied. **The Auth hook is NOT enabled yet**, so finding 8 stays open until it is.
 
 | # | Sev | Finding | Fix |
 |---|-----|---------|-----|
 | 1 | High | Two signups could both spend one single-use invite code | Code is reserved atomically **before** the account exists, then attached or released (`src/lib/invite-codes.ts`, signup action) |
-| 2 | Med | Clients could forge `preferences.alpha_nda` and skip the alpha agreement | App: `/api/user/alpha-acceptance` writes with the service role. DB: migration `20260929025759` rejects client changes to `alpha_nda` |
+| 2 | Med | Clients could forge `preferences.alpha_nda` and skip the alpha agreement | App: `/api/user/alpha-acceptance` writes with the service role. DB: migration `20260929031720` rejects client changes to `alpha_nda` |
 | 3 | Med | Feedback email's admin link used the request Origin/Host | Uses `NEXT_PUBLIC_APP_URL` only |
 | 4 | Med | Feature-access overrides read with the user's client (RLS returns nothing) and failed open to defaults | Service-role read; fails closed with 503 `POLICY_UNAVAILABLE` |
 | 5 | Med | Maintenance pause only enforced on the login form | Middleware signs out non-admins on app pages and 503s app APIs while `login_enabled` is false |
 | 6 | Med | Admin token/cost totals trusted user-writable `generations.tokens_used` | All 23 AI routes now write the service-role `generation_ai_calls` ledger; analytics reads tokens/cost only from it |
 | 7 | Low | `feature = 'constructor'` crashed admin analytics | The estimator on user-supplied feature names is gone (ledger-only totals) |
-| 8 | Low | Direct Auth / Google OAuth signups bypassed closed and invite-only modes | Migration `20260929025800` adds `public.hook_enforce_signup_policy`; the signup action sends `invite_code` in signUp metadata |
+| 8 | Low | Direct Auth / Google OAuth signups bypassed closed and invite-only modes | Migration `20260929032918` adds `public.hook_enforce_signup_policy`; the signup action sends `invite_code` in signUp metadata |
 
-### Rollout order (each step needs Dennis's go-ahead)
+### Rollout
 
-1. Merge and deploy the app changes. Both migrations depend on them being live.
-2. Apply `20260929025759_protect_alpha_nda_acceptance.sql`. Applied before step 1, every alpha acceptance fails.
-3. Apply `20260929025800_before_user_created_signup_policy.sql`, then enable it: Supabase Dashboard → Authentication → Hooks → Before User Created → Postgres → `public.hook_enforce_signup_policy`. Disabling the hook there is the rollback.
-4. Re-run the Phase 0 parity/probe gates (`supabase/migrations/README.md`). Both migrations change the inventory: one function body, one new function, `EXECUTE` + schema `USAGE` for `supabase_auth_admin`.
-5. Smoke test: an invite-mode signup with a single-use code, one with the shared code, and a Google sign-up while invite-only (should be refused).
+1. ✅ App changes merged and deployed (`aedd041`, production READY 2026-09-29 ~03:12Z, no runtime errors in the following hour).
+2. ✅ `20260929031720_protect_alpha_nda_acceptance.sql` applied 2026-09-29 via the Supabase connector's `apply_migration`.
+3. ✅ `20260929032918_before_user_created_signup_policy.sql` applied the same way. 🔴 **Still owed: enable it** — Supabase Dashboard → Authentication → Hooks → Before User Created → Postgres → `public.hook_enforce_signup_policy`. Disabling the hook there is the rollback.
+4. 🟡 Phase 0 gates — production half done, local half owed (below).
+5. 🔴 Smoke test after the hook is on: an invite-mode signup with a single-use code, one with the shared code, and a Google sign-up (should be refused — production is in `invite` mode).
+
+**Why the versions changed:** the connector's `apply_migration` stamps the apply time as the version, so the files were committed as `20260929025759` / `20260929025800` and renamed afterwards to the recorded `20260929031720` / `20260929032918`, the same fix Phase 0 made for the 2026-08-19 migrations. Contents are unchanged.
+
+### Phase 0 gates
+
+Production (2026-09-29, read-only):
+- Migration history lists 12 versions, and after the rename they pair one-for-one with the 12 repo files.
+- Live function bodies match the repo files (MD5 of `prosrc`: trigger `450a77ed…`, hook `bd42baf6…`). The trigger is still bound. The hook is `SECURITY DEFINER`, `search_path=""`, owned by `postgres`.
+- `EXECUTE` on the hook: `supabase_auth_admin` only; `anon`, `authenticated`, and `service_role` are denied. `supabase_auth_admin` already had `USAGE` on `public`, so that grant was a no-op.
+- The live hook refuses a code-less (Google) signup and a made-up code under the current `invite` mode.
+- Security advisor unchanged: exactly the 3 `INFO` policyless-RLS items.
+
+Owed (needs the CLI on Dennis's PC):
+- `supabase migration list --linked` (expect 12 paired) and `supabase db push --dry-run --linked --skip-vault` (expect empty).
+- A fresh `supabase db reset --local`, both `scripts/phase0/probe-*.sql` probes, and a schema-inventory capture/compare. The committed evidence still describes the ten-migration state.
 
 ### Verification
 
-- 301/301 tests (32 files), typecheck clean, lint at the four baseline warnings, `next build` succeeds.
+- 301/301 tests (32 files), typecheck clean, lint at the four baseline warnings, `next build` succeeds; CI green on PR #11.
 - Both migrations exercised on a throwaway PostgreSQL 16 with stub Supabase roles: forged, rewritten, or dropped `alpha_nda` rejected for `authenticated`; ordinary preference merges and service-role writes pass; hook allow/deny matrix (open, closed, missing row, unknown mode, shared code, fresh/stale/never-reserved/attached codes) correct; only `supabase_auth_admin` can execute the hook; both files re-apply cleanly.
 - Supabase Auth source confirms the hook runs for email, OTP/magic-link, anonymous, OAuth, ID-token, and SAML signups, and **not** for admin-API creation (dashboard "Add user" keeps working in every mode).
 
