@@ -296,11 +296,17 @@ CREATE TABLE IF NOT EXISTS public.ai_config_overrides (
 
 ALTER TABLE public.ai_config_overrides ENABLE ROW LEVEL SECURITY;
 
--- Only admins can read or write config overrides
+-- Authenticated users read routing config; only admins can write overrides.
 DROP POLICY IF EXISTS "Admins read ai_config_overrides" ON public.ai_config_overrides;
 CREATE POLICY "Admins read ai_config_overrides"
   ON public.ai_config_overrides FOR SELECT
   USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+
+DROP POLICY IF EXISTS "Authenticated read ai_config_overrides" ON public.ai_config_overrides;
+CREATE POLICY "Authenticated read ai_config_overrides"
+  ON public.ai_config_overrides FOR SELECT
+  TO authenticated
+  USING (true);
 
 DROP POLICY IF EXISTS "Admins write ai_config_overrides" ON public.ai_config_overrides;
 CREATE POLICY "Admins write ai_config_overrides"
