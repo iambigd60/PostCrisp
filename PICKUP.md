@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
 **Last updated:** 2026-09-29 (AI routing policy applied and [PR #14](https://github.com/iambigd60/PostCrisp/pull/14) merged; the Auth hook still needs enabling in the dashboard; Phase 0 exit remains blocked)
-**Build status:** `main` and `origin/main` are at `07761f9` after PR #14. Its CI and Vercel preview passed. The earlier ten-migration Phase 0 reset and grant-probe evidence remains historical; production now records 13 migrations through `20260929182158`, and a fresh local reset of that complete chain was unavailable on this Mac because Docker was not running.
+**Build status:** PR #14 merged as `07761f9`; its CI and Vercel preview passed. The Phase 0 evidence and retired review-tool configuration were then refreshed in a documentation commit. The earlier ten-migration Phase 0 reset and grant-probe evidence remains historical; production now records 13 migrations through `20260929182158`, and a fresh local reset of that complete chain was unavailable on this Mac because Docker was not running.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The restore drill remains unexecuted; Vercel configuration is now partly verified, while provider-console limits and runtime linkage remain open. A fresh independent exit review is required after those gates close.
