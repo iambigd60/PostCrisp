@@ -1,6 +1,6 @@
 # Phase 0 isolated restore drill
 
-**Status:** `POST-MIGRATION BACKUP AND AUTHORIZATION REQUIRED` - designed but not executed.
+**Status:** `DEFERRED BY OWNER; NO RESTORE AUTHORIZED` - backup availability checked, isolated restore not verified.
 **Source:** Supabase project `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`).
 **Safety rule:** Never restore over production. The only permitted target is one newly created, disposable, isolated project after all access, preflight, cost, and authorization gates pass.
 
@@ -9,6 +9,8 @@
 General eligibility is `VERIFIED`: the organization is paid and the source has completed physical backups. On 2026-09-29 the authenticated Dashboard showed the operator-visible **Restore to a New Project** action for the completed `2026-09-29T10:52:23Z` backup and a confirmation dialog. No target was created; repeat this inspection for the exact backup selected at execution.
 
 At the 2026-09-29 18:28 UTC recheck, that 10:52:23 UTC backup was still the newest `COMPLETED` backup. The approved AI routing policy migration was applied at 18:21 UTC, after the backup. For the final current-schema parity drill, select a newly completed physical backup taken after that migration; then repeat all source, configuration, quote, and authorization checks below. The earlier `$10.18` monthly quote and `USD 0.07962` bounded estimate are preliminary for the old snapshot.
+
+At the 20:51 UTC recheck, the same backup was still newest. The owner confirmed the backups are present and declined creating a temporary restore project now because it incurs cost. This is a backup-availability check, not a completed restore drill. Do not run the procedure below unless the owner later resumes it and provides the specific authorization required at the cost checkpoint.
 
 An authenticated Supabase Dashboard operator must first perform a read-only inspection. Record only:
 

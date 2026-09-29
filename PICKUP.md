@@ -22,9 +22,13 @@ Verified current state:
 
 Required before Phase 0 exit and Phase 1:
 
-1. Complete the isolated restore drill. The Dashboard's newest `COMPLETED` backup at the 2026-09-29 18:28 UTC recheck was `2026-09-29T10:52:23Z`, before the 18:21 UTC AI routing migration. Wait for a completed post-migration backup, then refresh source captures and the final clone quote. The prior five-billable-hour estimate was `USD 0.07962`, but it is not a hard cap. No target was created; exact-backup and residual-cost authorization is still required.
+1. Complete the isolated restore drill when the owner is ready to incur its cost. The 2026-09-29 20:51 UTC Dashboard recheck found completed backups, but the newest (`10:52:23Z`) predates the 18:21 UTC AI routing migration. Dennis confirmed he checked backup availability and does not want to create a restore project now because it costs money. Backup availability is verified; an isolated restore, validation, deletion, and settled-cost evidence are not. No target was created by this task, and the connected project inventory showed no active temporary target. Do not start a restore until the owner explicitly resumes this gate and the runbook's current-backup, preflight, quote, and authorization checks pass.
 2. Finish platform/provider evidence and prove effective routing. The authenticated Vercel `postcrisp` project confirms both firewall rules are active and exposes Production variable names. Claude organization limits and the user's intended OpenAI Personal Organization rate limits are captured; that OpenAI account has zero listed API keys and zero available credits. Neither Vercel provider key has been linked to an account, and effective OpenAI production spend controls remain unverified. The AI override policy now lets `authenticated` read all 72 Claude rows and denies `anon`; PR #11 already moved feature-access reads to the service role. A real non-admin generation after the policy change remains unverified. The Vercel key-storage warnings and absent Stripe names also need disposition.
 3. Complete a fresh independent exit review against the final evidence and current repository state after the restore and platform/provider gates close.
+
+**Provider decision (2026-09-29):** Dennis confirmed PostCrisp should retain both OpenAI and Anthropic APIs. Do not remove either integration. This product choice does not establish which accounts own the masked Vercel keys or whether the intended OpenAI Personal Organization can pay for calls.
+
+**Restore decision (2026-09-29):** Dennis checked that Supabase has completed backups and deferred the paid restore drill. Do not treat the backup check as a successful restore test or create a temporary project under the earlier approval.
 
 See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
 

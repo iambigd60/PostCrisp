@@ -15,8 +15,8 @@ Completed and verified:
 
 Blocking exit:
 
-- the newest completed backup at the 2026-09-29 18:28 UTC Dashboard check predates the AI routing migration. Wait for a completed post-migration backup, then refresh source preflights and the clone quote, obtain exact-backup/cost authorization, execute the drill, validate, delete, and collect settled billing evidence. The prior five-billable-hour estimate is `USD 0.07962`, not a provider cap;
-- Vercel project identity, two active 429 rules, and Production variable names are verified. Rule enforcement, provider-key ownership and effective spend controls, Config-versus-Secret warnings, and absent Stripe-name disposition remain open;
+- completed backup availability was confirmed again at 20:51 UTC on 2026-09-29, but the newest backup predates the AI routing migration. Dennis declined a paid restore now; the isolated drill, validation, cleanup, and settled billing evidence remain open. Do not initiate it until he resumes the gate and approves the exact current backup/configuration and residual cost;
+- Dennis chose to retain both OpenAI and Anthropic APIs. Vercel project identity, two active 429 rules, and Production variable names are verified. Rule enforcement, provider-key ownership and effective spend controls, Config-versus-Secret warnings, and absent Stripe-name disposition remain open;
 - A fresh independent exit review is still required after the restore drill and platform/provider evidence are complete.
 
 See [the current Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
