@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
-import {
-  tierFromDbValue,
-  TASK_TIER_PROFILE,
-  DEFAULT_PROFILE_CONFIG,
-  type Tier,
-  type CrispTask,
-} from '@/lib/crisp-engine-config'
-import { blendedPricePer1M } from '@/lib/ai-costs'
+import { tierFromDbValue, type Tier } from '@/lib/crisp-engine-config'
+import { estimateFeatureCostUsd } from '@/lib/feature-cost-estimate'
 
 // Monthly prices in USD. Mirror of values in src/lib/stripe.ts — kept local
 // so this route doesn't pull in Stripe SDK server deps.
@@ -15,27 +9,6 @@ const TIER_MRR: Record<Tier, number> = {
   starter: 0,
   creator: 19,
   elite:   79,
-}
-
-// Feature names stored in `generations.feature` use underscores; CrispTask uses
-// hyphens. Normalize both directions.
-function featureToTask(feature: string): CrispTask | null {
-  const hyphenated = feature.replace(/_/g, '-') as CrispTask
-  return (hyphenated in TASK_TIER_PROFILE) ? hyphenated : null
-}
-
-/**
- * Estimated $ cost for a given feature + total tokens, using CURRENT creator-tier
- * routing config. This is an approximation — it does not account for the tier the
- * user was on at generation time, nor for routing changes mid-window.
- */
-function estimateCostUSD(feature: string, totalTokens: number): number {
-  const task = featureToTask(feature)
-  if (!task) return 0
-  const profile = TASK_TIER_PROFILE[task].creator
-  const { model } = DEFAULT_PROFILE_CONFIG[profile]
-  const ratePerMillion = blendedPricePer1M(model)
-  return (totalTokens / 1_000_000) * ratePerMillion
 }
 
 /** Admin analytics: user, revenue, usage, and estimated AI-cost rollups. */
@@ -125,7 +98,7 @@ export async function GET() {
     const created = new Date(g.created_at)
     const tokens = g.tokens_used ?? 0
     const feat = g.feature ?? 'unknown'
-    const rowCost = ledgerCostByGeneration.get(g.id) ?? estimateCostUSD(feat, tokens)
+    const rowCost = ledgerCostByGeneration.get(g.id) ?? estimateFeatureCostUsd(feat, tokens)
     totalTokens30d += tokens
     totalGenerations30d += 1
     totalEstCostUsd30d += rowCost

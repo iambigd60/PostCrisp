@@ -37,55 +37,74 @@ export function normalizeCode(input: string): string {
 }
 
 /**
- * Atomically claim an invite code. Returns true on success, false if the
- * code is missing or already used. Uses an UPDATE with WHERE used_at IS NULL
- * so two simultaneous claims on the same code can't both succeed.
+ * Atomically reserve a single-use invite code before the account exists.
+ * Sets used_at on an unused row (used_by stays null until the account is
+ * created) so two simultaneous signups on the same code can't both pass.
+ * Returns the reservation timestamp, or null if the code is missing or
+ * already used/reserved.
  */
-export async function claimInviteCode(
+export async function reserveInviteCode(
   supabaseAdmin: SupabaseClient,
   code: string,
-  userId: string,
-): Promise<boolean> {
-  const normalized = normalizeCode(code)
-
+): Promise<string | null> {
+  const reservedAt = new Date().toISOString()
   const { data, error } = await supabaseAdmin
     .from('invite_codes')
-    .update({
-      used_at: new Date().toISOString(),
-      used_by: userId,
-    })
-    .eq('code', normalized)
+    .update({ used_at: reservedAt })
+    .eq('code', normalizeCode(code))
     .is('used_at', null)
     .select('code')
     .maybeSingle()
 
   if (error) {
-    console.error('claimInviteCode failed:', error)
+    console.error('reserveInviteCode failed:', error)
+    return null
+  }
+  return data ? reservedAt : null
+}
+
+/**
+ * Attach the new account to a reserved code. Only fills an empty used_by,
+ * so it can never reassign a code already tied to another account.
+ */
+export async function finalizeInviteCode(
+  supabaseAdmin: SupabaseClient,
+  code: string,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('invite_codes')
+    .update({ used_by: userId })
+    .eq('code', normalizeCode(code))
+    .is('used_by', null)
+    .select('code')
+    .maybeSingle()
+
+  if (error) {
+    console.error('finalizeInviteCode failed:', error)
     return false
   }
-
   return !!data
 }
 
 /**
- * Read-only check — used to give the signup form a fast 'invalid code'
- * response before running the actual auth.signUp call. Note this is NOT
- * race-safe; the atomic claimInviteCode is the source of truth.
+ * Undo a reservation when no account was created (signup error, or the email
+ * already belonged to an account). Matches on the exact reservation time and
+ * an empty used_by, so it can only release this signup's own reservation.
  */
-export async function isInviteCodeAvailable(
+export async function releaseInviteCode(
   supabaseAdmin: SupabaseClient,
   code: string,
-): Promise<boolean> {
-  const normalized = normalizeCode(code)
-
-  const { data, error } = await supabaseAdmin
+  reservedAt: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin
     .from('invite_codes')
-    .select('code, used_at')
-    .eq('code', normalized)
-    .maybeSingle()
+    .update({ used_at: null })
+    .eq('code', normalizeCode(code))
+    .eq('used_at', reservedAt)
+    .is('used_by', null)
 
-  if (error || !data) return false
-  return data.used_at === null
+  if (error) console.error('releaseInviteCode failed:', error)
 }
 
 /**

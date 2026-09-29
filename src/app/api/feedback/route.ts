@@ -44,8 +44,10 @@ export async function POST(request: Request) {
     const apiKey = process.env.RESEND_API_KEY
     if (apiKey) {
       const adminEmail = process.env.FEEDBACK_NOTIFICATION_EMAIL ?? 'captain@postcrisp.com'
-      const origin = request.headers.get('origin') ||
-        (request.headers.get('host') ? `https://${request.headers.get('host')}` : '')
+      // Build the admin link from the configured canonical origin, never the
+      // request's Origin/Host headers — a caller controls those, and this link
+      // lands in an admin's inbox.
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ?? ''
       const catLabel = category ? category.toUpperCase() : 'GENERAL'
       const subject = `[PostCrisp ${catLabel}] feedback from ${user.email}`
       const text =
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
         `— Category: ${category ?? 'general'}\n` +
         `— Page: ${url ?? 'unknown'}\n` +
         `— User agent: ${userAgent ?? 'unknown'}\n\n` +
-        `Triage in admin: ${origin}/admin/feedback`
+        `Triage in admin: ${appUrl}/admin/feedback`
 
       await fetch('https://api.resend.com/emails', {
         method: 'POST',

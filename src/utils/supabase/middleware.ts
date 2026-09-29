@@ -1,5 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { readAccessControl } from '@/lib/platform-settings'
+import { isMaintenanceGatedPath, MAINTENANCE_MESSAGE } from '@/lib/maintenance-gate'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -63,6 +65,36 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
+
+  // Maintenance pause — close signed-in app surfaces to non-admins. The login
+  // form enforces this too, but a session can come straight from Supabase Auth
+  // or predate the pause. Only reads settings for signed-in requests to gated
+  // paths; readAccessControl caches for 30s and fails open on login.
+  if (user && isMaintenanceGatedPath(path)) {
+    const access = await readAccessControl()
+    if (!access.login_enabled) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (profile?.role !== 'admin') {
+        if (path.startsWith('/api/')) {
+          return NextResponse.json({ error: MAINTENANCE_MESSAGE }, { status: 503 })
+        }
+        // Sign out so /login doesn't bounce them straight back to /dashboard;
+        // signOut clears the auth cookies on supabaseResponse, which the
+        // redirect must carry.
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.search = ''
+        const redirect = NextResponse.redirect(url)
+        for (const cookie of supabaseResponse.cookies.getAll()) redirect.cookies.set(cookie)
+        return redirect
+      }
+    }
+  }
 
   // Unauthenticated users hitting /dashboard or /admin → /login
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {

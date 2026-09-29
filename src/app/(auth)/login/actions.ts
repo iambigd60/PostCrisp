@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { readAccessControl } from '@/lib/platform-settings'
+import { MAINTENANCE_MESSAGE } from '@/lib/maintenance-gate'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -29,7 +30,7 @@ export async function login(formData: FormData) {
 
     if (profile?.role !== 'admin') {
       await supabase.auth.signOut()
-      return { error: 'PostCrisp is temporarily paused for maintenance. Check back soon.' }
+      return { error: MAINTENANCE_MESSAGE }
     }
   }
 

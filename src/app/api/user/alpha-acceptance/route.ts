@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import {
   ALPHA_AGREEMENT_VERSION,
@@ -58,8 +59,20 @@ export async function POST(request: Request) {
     user_agent: userAgent,
   }
 
+  // Written with the service role: the acceptance record is what the alpha
+  // gate trusts, so the database refuses changes to preferences.alpha_nda
+  // from the user's own client (see the profiles column-protection trigger).
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) {
+    return NextResponse.json({ error: 'Acceptance is temporarily unavailable.' }, { status: 503 })
+  }
+  const admin = createAdminClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
   // Merge into preferences without disturbing other keys
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('preferences')
     .eq('id', user.id)
@@ -68,7 +81,7 @@ export async function POST(request: Request) {
   const current: Record<string, unknown> = (profile?.preferences as Record<string, unknown>) ?? {}
   const next = { ...current, alpha_nda: acceptance }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('profiles')
     .update({ preferences: next })
     .eq('id', user.id)
