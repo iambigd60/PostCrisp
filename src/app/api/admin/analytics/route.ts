@@ -24,9 +24,11 @@ function featureToTask(feature: string): CrispTask | null {
   return (hyphenated in TASK_TIER_PROFILE) ? hyphenated : null
 }
 
-// Estimated $ cost for a given feature + total tokens, using CURRENT creator-tier
-// routing config. This is an approximation — it does not account for the tier the
-// user was on at generation time, nor for routing changes mid-window.
+/**
+ * Estimated $ cost for a given feature + total tokens, using CURRENT creator-tier
+ * routing config. This is an approximation — it does not account for the tier the
+ * user was on at generation time, nor for routing changes mid-window.
+ */
 function estimateCostUSD(feature: string, totalTokens: number): number {
   const task = featureToTask(feature)
   if (!task) return 0
@@ -36,6 +38,7 @@ function estimateCostUSD(feature: string, totalTokens: number): number {
   return (totalTokens / 1_000_000) * ratePerMillion
 }
 
+/** Admin analytics: user, revenue, usage, and estimated AI-cost rollups. */
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

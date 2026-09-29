@@ -46,6 +46,11 @@ export interface AiCallCostInput {
   cacheCreationInputTokens?: number
 }
 
+/**
+ * Estimated USD cost of one model call from its token usage. Anthropic cache
+ * reads and writes are priced separately; unknown models cost 0 so analytics
+ * fail closed instead of inventing numbers.
+ */
 export function estimateAiCallCostUsd(input: AiCallCostInput): number {
   const pricing = MODEL_PRICING_USD_PER_1M[input.model]
   if (!pricing) return 0
