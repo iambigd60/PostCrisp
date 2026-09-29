@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { readAccessControl, matchesInviteCode } from '@/lib/platform-settings'
-import { isInviteCodeAvailable, claimInviteCode, normalizeCode } from '@/lib/invite-codes'
+import { reserveInviteCode, finalizeInviteCode, releaseInviteCode, normalizeCode } from '@/lib/invite-codes'
 
 function serviceRoleClient() {
   return createAdminClient(
@@ -29,29 +29,6 @@ export async function signup(formData: FormData) {
     return { error: 'Signups are currently closed. Please check back later.' }
   }
 
-  let admin: ReturnType<typeof serviceRoleClient> | null = null
-
-  if (access.signup_mode === 'invite') {
-    if (!inviteCode) {
-      return { error: 'An invite code is required to sign up.' }
-    }
-
-    admin = serviceRoleClient()
-
-    // Single-use codes (invite_codes table) take precedence. Fall back to
-    // the legacy shared code from access_control.invite_code so any pre-
-    // existing testers still get in while we migrate.
-    const singleUseAvailable = await isInviteCodeAvailable(admin, inviteCode)
-    const sharedMatches = matchesInviteCode(inviteCode, access.invite_code)
-
-    if (!singleUseAvailable && !sharedMatches) {
-      return { error: 'That invite code is not valid or has already been used.' }
-    }
-  }
-
-  // ─── Proceed with signup ──────────────────────────────────────────────
-  const supabase = await createClient()
-
   // Use the fixed, env-configured canonical origin for the confirmation
   // link. NEVER derive it from the request Host header — that is attacker-
   // controllable and enables link poisoning, same as the password-reset
@@ -60,10 +37,40 @@ export async function signup(formData: FormData) {
   // dashboard's Site URL resolves to, which may not point at /auth/callback —
   // silently skipping the onboarding-routing fix for the email-confirmation
   // path most production users take.
+  // Checked before any invite code is reserved, so this early return can't
+  // leave a code stuck in the reserved state.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '')
   if (!appUrl) {
     return { error: 'Signup is temporarily unavailable. Please try again later.' }
   }
+
+  let admin: ReturnType<typeof serviceRoleClient> | null = null
+  // Set when a single-use code is reserved for this signup (not the legacy
+  // shared-code path). Released again if no account ends up being created.
+  let reservedAt: string | null = null
+
+  if (access.signup_mode === 'invite') {
+    if (!inviteCode) {
+      return { error: 'An invite code is required to sign up.' }
+    }
+
+    admin = serviceRoleClient()
+
+    // Single-use codes (invite_codes table) take precedence and are reserved
+    // atomically BEFORE the account exists, so a concurrent signup on the same
+    // code is refused instead of also getting an account. The
+    // legacy shared code from access_control.invite_code is a separate path
+    // with nothing to reserve.
+    reservedAt = await reserveInviteCode(admin, inviteCode)
+    const sharedMatches = matchesInviteCode(inviteCode, access.invite_code)
+
+    if (!reservedAt && !sharedMatches) {
+      return { error: 'That invite code is not valid or has already been used.' }
+    }
+  }
+
+  // ─── Proceed with signup ──────────────────────────────────────────────
+  const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -75,18 +82,23 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
+    if (admin && reservedAt) await releaseInviteCode(admin, inviteCode, reservedAt)
     return { error: error.message }
   }
 
-  // ─── Claim the single-use code (post-signup, atomic) ─────────────────
-  // Skip if the user got in via the legacy shared code (no row to claim).
-  if (access.signup_mode === 'invite' && admin && data.user) {
-    const claimed = await claimInviteCode(admin, inviteCode, data.user.id)
-    if (!claimed) {
-      // Race: code was claimed between validation and signup, OR the
-      // user got in via the legacy shared code. Either is acceptable —
-      // user account exists, no further action needed.
-      console.info('[signup] Invite code claim skipped — likely shared-code path or race', { codeMasked: inviteCode.slice(0, 2) + '****' })
+  // ─── Settle the reservation ──────────────────────────────────────────
+  // With email confirmation on, signUp on an existing email returns a user
+  // with no identities and creates nothing — release the code in that case.
+  if (admin && reservedAt) {
+    const createdAccount = (data.user?.identities?.length ?? 0) > 0
+    if (data.user && createdAccount) {
+      const attached = await finalizeInviteCode(admin, inviteCode, data.user.id)
+      if (!attached) {
+        // The code stays consumed (used_at set) — only the audit link is missing.
+        console.error('[signup] reserved invite code could not be attached to the new account', { codeMasked: inviteCode.slice(0, 2) + '****' })
+      }
+    } else {
+      await releaseInviteCode(admin, inviteCode, reservedAt)
     }
   }
 
