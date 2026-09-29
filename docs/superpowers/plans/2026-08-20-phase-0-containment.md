@@ -1,5 +1,7 @@
 # PostCrisp Phase 0 Containment Implementation Plan
 
+**Historical plan:** On 2026-09-29 Dennis directed an [owner transition to Phase 1](../../operations/2026-09-29-phase-transition.md) with incomplete Phase 0 technical checks carried forward. The constraints below describe the original containment work and are not current branch instructions.
+
 > **Spec:** `docs/superpowers/specs/2026-08-20-phase-0-containment.md`
 >
 > **Global constraints:** Work only in `C:\Projects\postcrisp-phase-0-containment` on `codex/phase-0-containment`. Production is read-only throughout the first pass. Never run `supabase db push`, `supabase migration repair`, `supabase db reset --linked`, remote DDL, `apply_migration`, a production restore, or a firewall mutation. Never commit secrets or row data. Use explicit `--local` targets for resets. Do not push or merge. A paid or state-changing external step requires a fresh user checkpoint.

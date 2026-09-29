@@ -6,7 +6,7 @@
 
 **2026-09-29 scope update:** The AI routing RLS migration was separately approved, applied, and merged in PR #14. No restore target was created or paid resource added.
 
-**Current-status update (2026-09-29):** The council-tool requirement was retired and is not a Phase 0 gate. The table below incorporates the new Dashboard observations; older dated captures remain historical. The owner confirmed backup availability but deferred the paid isolated restore; that gate remains open. Vercel/provider evidence and a later independent exit review also remain open.
+**Current-status update (2026-09-29):** The council-tool requirement was retired. The owner confirmed backup availability but deferred the paid isolated restore, then directed the project to close Phase 0 and start Phase 1. This is an [owner transition](../../2026-09-29-phase-transition.md), not a verified pass for the open controls. The table below incorporates newer Dashboard observations; older dated captures remain historical. Vercel/provider evidence and a later independent review remain open.
 
 ### Evidence and owner decisions on 2026-09-29
 
@@ -64,7 +64,7 @@ These tables intentionally deny client CRUD through RLS today. They remain recor
 4. The owner chose to retain both Anthropic and OpenAI APIs. Anthropic organization spend/rate-limit evidence and the user's intended Edge `Personal Organization` OpenAI Free-tier rate rows are captured; the Edge account currently has no listed API keys or available credits. The M4 AI override role-read defect is fixed and the separate feature-access path had already been fixed in PR #11; verify one real non-admin generation after the policy change. Identify which accounts/projects own the masked production keys without revealing their values, then establish effective OpenAI spend mode, model access, and rate limits. The separate Chrome `Crusher Brands LLC` Limits screens did not load.
 5. After the operational controls above close, complete a fresh independent exit review against the final evidence and current repository state.
 
-Until the restore and platform/provider controls close and the independent exit review has no unresolved blocker, Phase 0 remains fail-closed **BLOCKED** and Phase 1 must not begin. The user's 2026-08-20 approval authorizes repository push and merge only; it does not close or waive these operational gates.
+At the original technical exit checkpoint, the restore and platform/provider controls remained open and the independent review had not passed, so the verification verdict was **BLOCKED**. On 2026-09-29 the owner directed Phase 1 work to begin with those controls tracked as open verification debt. This record does not claim the deferred restore passed or authorize a paid target.
 
 ## Historical evidence note
 

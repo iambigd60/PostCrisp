@@ -1,14 +1,14 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (AI routing policy applied and [PR #14](https://github.com/iambigd60/PostCrisp/pull/14) merged; the Auth hook still needs enabling in the dashboard; Phase 0 exit remains blocked)
+**Last updated:** 2026-09-29 (Dennis closed Phase 0 by owner decision and started Phase 1; unresolved verification remains tracked below)
 **Build status:** PR #14 merged as `07761f9`; its CI and Vercel preview passed. The Phase 0 evidence and retired review-tool configuration were then refreshed in a documentation commit. The earlier ten-migration Phase 0 reset and grant-probe evidence remains historical; production now records 13 migrations through `20260929182158`, and a fresh local reset of that complete chain was unavailable on this Mac because Docker was not running.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The restore drill remains unexecuted; Vercel configuration is now partly verified, while provider-console limits and runtime linkage remain open. A fresh independent exit review is required after those gates close.
+**Launch status:** 🟡 **Phase 0 closed by owner decision; Phase 1 billing/runtime-control work may begin.** This is not a verified Phase 0 pass. The paid restore drill remains deferred, the complete migration chain needs a fresh local parity run, provider/runtime controls remain partly unverified, and the independent exit review was not performed. See the [owner transition record](docs/operations/2026-09-29-phase-transition.md). No paid restore or billing activation was authorized by this status change.
 
 ---
 
-## 🔴 CURRENT PHASE 0 PICKUP — start here (2026-08-21T00:04Z)
+## Phase 0 evidence handoff — 2026-08-21 checkpoint, owner transition 2026-09-29
 
 Verified current state:
 
@@ -20,17 +20,19 @@ Verified current state:
 - linked restore preflight is clean and Auth capture has the reviewed exact 10-key shape with PostgreSQL 17 membership options; no raw identities retained.
 - exact-head whole-branch re-review through `0ad498d` returned `APPROVED` with no Critical, Important, or Minor findings; `main` and the feature branch are pushed and synchronized at that commit, and GitHub CI passed. That review predates later merges; a fresh independent exit review is still required after the two external gates below close.
 
-Required before Phase 0 exit and Phase 1:
+Verification debt carried into Phase 1 by the owner decision:
 
 1. Complete the isolated restore drill when the owner is ready to incur its cost. The 2026-09-29 20:51 UTC Dashboard recheck found completed backups, but the newest (`10:52:23Z`) predates the 18:21 UTC AI routing migration. Dennis confirmed he checked backup availability and does not want to create a restore project now because it costs money. Backup availability is verified; an isolated restore, validation, deletion, and settled-cost evidence are not. No target was created by this task, and the connected project inventory showed no active temporary target. Do not start a restore until the owner explicitly resumes this gate and the runbook's current-backup, preflight, quote, and authorization checks pass.
 2. Finish platform/provider evidence and prove effective routing. The authenticated Vercel `postcrisp` project confirms both firewall rules are active and exposes Production variable names. Claude organization limits and the user's intended OpenAI Personal Organization rate limits are captured; that OpenAI account has zero listed API keys and zero available credits. Neither Vercel provider key has been linked to an account, and effective OpenAI production spend controls remain unverified. The AI override policy now lets `authenticated` read all 72 Claude rows and denies `anon`; PR #11 already moved feature-access reads to the service role. A real non-admin generation after the policy change remains unverified. The Vercel key-storage warnings and absent Stripe names also need disposition.
-3. Complete a fresh independent exit review against the final evidence and current repository state after the restore and platform/provider gates close.
+3. Complete a fresh independent review against the final evidence and current repository state once the deferred recovery and platform/provider checks are available.
 
 **Provider decision (2026-09-29):** Dennis confirmed PostCrisp should retain both OpenAI and Anthropic APIs. Do not remove either integration. This product choice does not establish which accounts own the masked Vercel keys or whether the intended OpenAI Personal Organization can pay for calls.
 
 **Restore decision (2026-09-29):** Dennis checked that Supabase has completed backups and deferred the paid restore drill. Do not treat the backup check as a successful restore test or create a temporary project under the earlier approval.
 
 See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
+
+**Phase 1 first work item:** the [read-only billing/runtime inventory](docs/operations/2026-09-29-phase-1-billing-runtime-inventory.md) found no `STRIPE_*` names in the live Vercel Project or Shared tabs. Next, make paid routes fail clearly and safely when required configuration is absent. The 2026-08-20 Phase 0 spec names this as the next phase; older onboarding and Voice Trainer sections use “Phase 1” for already shipped work. The [transition record](docs/operations/2026-09-29-phase-transition.md) defines the scope and retained risks.
 
 ### Read-only dashboard progress — 2026-09-29
 
@@ -138,7 +140,7 @@ Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/ap
 
 ### Phase 0 note
 
-Resolved 2026-09-29. The change is code-only and touches no database, grant, or migration surface. `ROADMAP.md`'s old "do not push, merge, or change `main`" rule was written for `codex/phase-0-containment` before integration; it now reads that work not depending on Phase 0 exit may land, and only Phase 1 stays blocked.
+Resolved 2026-09-29. The change is code-only and touches no database, grant, or migration surface. `ROADMAP.md`'s old "do not push, merge, or change `main`" rule was written for `codex/phase-0-containment` before integration. Phase 1 was subsequently opened by the 2026-09-29 owner transition recorded at the top of this file.
 
 ## Historical session-27 worklist — superseded where noted
 

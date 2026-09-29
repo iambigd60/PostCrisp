@@ -1,8 +1,8 @@
 # PostCrisp — Pre-Launch Roadmap
 
-## 🔴 Phase 0 containment — BLOCKED (updated 2026-09-29)
+## 🟡 Phase 0 owner-closed; Phase 1 billing/runtime controls started (2026-09-29)
 
-The Phase 0 containment branch was integrated into `main` on 2026-08-20, so the earlier rule against pushing, merging, or changing `main` is retired — work that doesn't depend on Phase 0 exit can land (the beta-signup form, PR #8, merged 2026-09-29). **Do not begin Phase 1** until every remaining gate below closes with fresh evidence.
+The Phase 0 containment branch was integrated into `main` on 2026-08-20. On 2026-09-29 Dennis directed the project to close Phase 0 and begin Phase 1. The [transition record](docs/operations/2026-09-29-phase-transition.md) preserves the open recovery, provider, parity, and review work. This is an owner decision to proceed, not a claim that every Phase 0 exit check passed.
 
 Completed and verified:
 
@@ -13,11 +13,13 @@ Completed and verified:
 - HIBP leaked-password protection enabled; security advisor reports only 3 `INFO` policyless-RLS items and no `WARN`/`ERROR`;
 - AI routing override SELECT is now available to `authenticated` (72 rows in a read-only role probe), while `anon` sees none; the migration is applied and merged in PR #14. A real non-admin generation is still open.
 
-Blocking exit:
+Open verification debt carried into Phase 1:
 
 - completed backup availability was confirmed again at 20:51 UTC on 2026-09-29, but the newest backup predates the AI routing migration. Dennis declined a paid restore now; the isolated drill, validation, cleanup, and settled billing evidence remain open. Do not initiate it until he resumes the gate and approves the exact current backup/configuration and residual cost;
 - Dennis chose to retain both OpenAI and Anthropic APIs. Vercel project identity, two active 429 rules, and Production variable names are verified. Rule enforcement, provider-key ownership and effective spend controls, Config-versus-Secret warnings, and absent Stripe-name disposition remain open;
-- A fresh independent exit review is still required after the restore drill and platform/provider evidence are complete.
+- the independent exit review was not completed against the final evidence; perform it once the deferred recovery and platform/provider checks are available.
+
+**Phase 1 first work item:** the [read-only billing/runtime inventory](docs/operations/2026-09-29-phase-1-billing-runtime-inventory.md) found no `STRIPE_*` names in live Vercel Project or Shared settings. Next, make paid routes fail clearly and safely when required Stripe configuration is absent. Keep both OpenAI and Anthropic integrations. The phase transition itself authorizes no paid restore, Stripe transaction, or production billing activation.
 
 See [the current Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
 

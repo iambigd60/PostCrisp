@@ -6,6 +6,8 @@
 **Supabase project:** `sikabeqzypvllimyostg` (`postcrisp`, `us-east-2`)
 **Vercel project:** `prj_jk99T7FADZ391B7LWt9g8SYwLn9w`
 
+**2026-09-29 owner sequencing update:** Dennis directed the project to close Phase 0 and start Phase 1 with unfinished technical exit checks carried forward. This does not change the original acceptance criteria or claim they passed. See [the transition record](../../operations/2026-09-29-phase-transition.md).
+
 ## Objective
 
 Make the repository a trustworthy, reproducible description of the production database before any billing, authorization, onboarding, or release work continues. Phase 0 must prove what exists in production, reconcile the local migration lineage without changing production on the first pass, and leave a reviewable recovery and platform-control record.
