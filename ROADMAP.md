@@ -2,7 +2,7 @@
 
 ## 🔴 Phase 0 containment — BLOCKED (current 2026-08-20 checkpoint)
 
-Do **not** push, merge this branch, change `main`, or begin Phase 1 until every remaining gate below closes with fresh evidence.
+The Phase 0 containment branch was integrated into `main` on 2026-08-20, so the earlier rule against pushing, merging, or changing `main` is retired — work that doesn't depend on Phase 0 exit can land (the beta-signup form, PR #8, merged 2026-09-29). **Do not begin Phase 1** until every remaining gate below closes with fresh evidence.
 
 Completed and verified:
 
@@ -27,11 +27,11 @@ Informational accepted residual: `supabase_admin` retains 8 table-default + 6 se
 
 ---
 
-## 🟡 Join Beta Test signup form — built, PR #8 awaiting merge (2026-09-19)
+## ✅ Join Beta Test signup form — merged to `main` 2026-09-29 (PR #8)
 
-Landing-page `#beta` section: name + email + influencer channel link, email ownership confirmed with a 6-digit code, verified signups forwarded to `beta@postcrisp.com`. Stateless HMAC-signed token with a 15-minute expiry — no table, no migration, no new env vars. CodeRabbit's 6 findings fixed (`9ba1068`); 260/260 tests.
+Landing-page `#beta` section: name + email + influencer channel link, email ownership confirmed with a 6-digit code, verified signups forwarded to `beta@postcrisp.com`. Stateless HMAC-signed token with a 15-minute expiry — no table, no migration, no new env vars. CodeRabbit's 6 findings fixed (`33f94be`); 260/260 tests.
 
-- ⏳ Merge [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) — Dennis's call; clean against `main`. Reconcile with the Phase 0 "do not change `main`" rule above first.
+- ✅ Merged [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) on 2026-09-29 (`7117827`).
 - ✅ `beta@postcrisp.com` mailbox created and confirmed working (2026-09-29).
 - ⏳ One real end-to-end signup in production after merge.
 - 📋 Online code-guessing relies on the unverified Vercel WAF per-IP limit — verify the WAF or add a per-IP limit on `/api/beta-signup/verify`.

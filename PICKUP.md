@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (Join Beta Test signup form built — PR #8 open, awaiting merge; Phase 0 status unchanged since 2026-08-20)
-**Build status:** `origin/main` is at `713685c` (Phase 0 integration checkpoint docs). The beta-signup work sits on `claude/repo-sync-check-vzass3` (code final at `9ba1068`) as [PR #8](https://github.com/iambigd60/PostCrisp/pull/8) — clean against `main`, 260/260 tests. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
+**Last updated:** 2026-09-29 (Join Beta Test signup form merged to `main` via PR #8; Phase 0 status unchanged since 2026-08-20)
+**Build status:** `origin/main` is at `7117827` — the beta-signup form ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8)) merged 2026-09-29, 260/260 tests. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
@@ -30,9 +30,9 @@ See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-r
 
 Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
 
-## 🟡 Join Beta Test signup form — PR #8 open, awaiting merge (built 2026-09-19)
+## ✅ Join Beta Test signup form — merged to `main` 2026-09-29 (PR #8)
 
-**Not on `main` yet.** Branch `claude/repo-sync-check-vzass3`, [PR #8](https://github.com/iambigd60/PostCrisp/pull/8), code final at `9ba1068` (plus this tracker commit), base `main` `713685c`. Mergeable (clean); no code changes since 2026-09-19. Merging is Dennis's call — see the Phase 0 note at the bottom of this section.
+**Merged 2026-09-29** ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8), rebase-merged as four commits ending at `7117827`). The merge triggered the production deploy.
 
 ### What it does
 
@@ -44,14 +44,14 @@ A `#beta` section on the landing page (above the final CTA, plus nav + footer li
 
 ### Commits
 
-- `3aa6773` feat(landing): the form, both routes, `src/lib/beta-signup.ts`, 19 unit tests.
-- `9ba1068` fix: CodeRabbit's 6 findings — reject non-object JSON bodies with 400; channel must parse as an http(s) URL with a dotted hostname; 10s timeout on the Resend call; `Idempotency-Key` on the `beta@` email so a double-submit can't send twice; deterministic offline-guess test; docstrings. All review threads resolved; only CodeRabbit's soft docstring-coverage warning remains (non-blocking).
+- `3276b1f` feat(landing): the form, both routes, `src/lib/beta-signup.ts`, 19 unit tests.
+- `33f94be` fix: CodeRabbit's 6 findings — reject non-object JSON bodies with 400; channel must parse as an http(s) URL with a dotted hostname; 10s timeout on the Resend call; `Idempotency-Key` on the `beta@` email so a double-submit can't send twice; deterministic offline-guess test; docstrings. All review threads resolved; only CodeRabbit's soft docstring-coverage warning remains (non-blocking).
 
 Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/api/beta-signup/verify/route.ts`, `src/components/BetaSignupForm.tsx`, `src/app/page.tsx`, `src/lib/__tests__/beta-signup.test.ts`, `README.md` (env docs). 7 files, +814.
 
 ### Verification
 
-- 260/260 tests across 27 files (re-run 2026-09-29); typecheck + lint clean at `9ba1068`.
+- 260/260 tests across 27 files (re-run 2026-09-29); typecheck + lint clean at `33f94be`.
 - **Never exercised against real email.** No end-to-end run has sent a code or reached `beta@`.
 
 ### Config
@@ -67,7 +67,7 @@ Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/ap
 
 ### Phase 0 note
 
-The change is code-only and touches no database, grant, or migration surface. But `ROADMAP.md` still opens with "do not push, merge this branch, change `main`, or begin Phase 1" while Phase 0 is blocked — written for `codex/phase-0-containment` before integration, and never reconciled with the integration above. Decide whether that rule still gates unrelated landing-page work before merging PR #8.
+Resolved 2026-09-29. The change is code-only and touches no database, grant, or migration surface. `ROADMAP.md`'s old "do not push, merge, or change `main`" rule was written for `codex/phase-0-containment` before integration; it now reads that work not depending on Phase 0 exit may land, and only Phase 1 stays blocked.
 
 ## Historical session-27 worklist — superseded where noted
 
