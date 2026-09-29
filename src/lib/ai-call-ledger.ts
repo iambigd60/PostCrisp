@@ -1,4 +1,4 @@
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type PostgrestError } from '@supabase/supabase-js'
 import type { createClient } from '@/utils/supabase/server'
 import type { ProviderId } from './providers/types'
 import type { Tier } from './crisp-engine-config'
@@ -61,4 +61,44 @@ export async function recordGenerationAiCalls(
   if (error) {
     console.error('[ai-call-ledger] failed to record generation AI calls:', error.message)
   }
+}
+
+export interface GenerationRow {
+  user_id: string
+  feature: string
+  tokens_used: number
+  [column: string]: unknown
+}
+
+/**
+ * Insert a generations row and the AI-call ledger rows for it.
+ *
+ * Users can write their own generations rows (including tokens_used), so
+ * admin analytics trusts only generation_ai_calls, which is written with the
+ * service role. Saving through here gives every generation its ledger entry.
+ *
+ * Resolves like a supabase-js insert: `error` is the generations insert
+ * error, if any. A ledger failure is logged, never thrown, so a generation
+ * that already succeeded is never turned into an error response.
+ */
+export async function saveGenerationWithLedger(
+  supabase: ServerClient,
+  row: GenerationRow,
+  ledger: { tier: Tier; aiCalls: AiCallLedgerEntry[] },
+): Promise<{ data: { id: string } | null; error: PostgrestError | null }> {
+  const { data, error } = await supabase.from('generations').insert(row).select('id').single()
+  if (error || !data) return { data: null, error }
+
+  try {
+    await recordGenerationAiCalls(supabase, {
+      generationId: data.id,
+      userId: row.user_id,
+      feature: row.feature,
+      tier: ledger.tier,
+      calls: ledger.aiCalls,
+    })
+  } catch (err) {
+    console.error('[ai-call-ledger] failed to record generation AI calls:', err)
+  }
+  return { data, error: null }
 }

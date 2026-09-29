@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
 import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
@@ -81,7 +82,7 @@ Rules:
     const denied = await reserveCredits(auth)
     if (denied) return denied
 
-    const { text, totalTokens } = await crispGenerate({
+    const { text, totalTokens, aiCalls } = await crispGenerate({
       task: 'hashtags',
       tier: auth.tier,
       prompt,
@@ -99,14 +100,14 @@ Rules:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    const { error: insertError } = await auth.supabase.from('generations').insert({
+    const { error: insertError } = await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'hashtags',
       platform,
       input_data: { query, count, mix, tutorialMode: tutorialResult.bypassCredits },
       output_data: { hashtags },
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
     if (insertError) console.error('Hashtags — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {

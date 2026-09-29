@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { tierFromDbValue, type Tier } from '@/lib/crisp-engine-config'
-import { estimateFeatureCostUsd } from '@/lib/feature-cost-estimate'
 
 // Monthly prices in USD. Mirror of values in src/lib/stripe.ts — kept local
 // so this route doesn't pull in Stripe SDK server deps.
@@ -11,7 +10,15 @@ const TIER_MRR: Record<Tier, number> = {
   elite:   79,
 }
 
-/** Admin analytics: user, revenue, usage, and estimated AI-cost rollups. */
+/**
+ * Admin analytics: user, revenue, usage, and estimated AI-cost rollups.
+ *
+ * Token and cost figures come only from generation_ai_calls, which the
+ * service role writes as each AI call completes. generations.tokens_used is
+ * not used: users can insert and update their own generations rows, so it
+ * would let anyone inflate these numbers. Generation counts and active users
+ * still come from generations.
+ */
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -28,7 +35,7 @@ export async function GET() {
       .select('id, subscription_tier, created_at'),
     auth.supabaseAdmin
       .from('generations')
-      .select('id, user_id, feature, tokens_used, created_at')
+      .select('user_id, feature, created_at')
       .gte('created_at', windowStart.toISOString()),
     auth.supabaseAdmin
       .from('credit_transactions')
@@ -46,21 +53,11 @@ export async function GET() {
 
   const { data: aiCallRows, error: aiCallError } = await auth.supabaseAdmin
     .from('generation_ai_calls')
-    .select('generation_id, user_id, feature, total_tokens, estimated_cost_usd, created_at')
+    .select('user_id, feature, total_tokens, estimated_cost_usd, created_at')
     .gte('created_at', windowStart.toISOString())
 
-  const ledgerRows = aiCallError ? [] : (aiCallRows ?? [])
-  if (aiCallError) console.warn('[admin/analytics] generation_ai_calls unavailable, falling back to token estimates:', aiCallError.message)
-
-  const ledgerCostByGeneration = new Map<string, number>()
-  for (const row of ledgerRows) {
-    const generationId = row.generation_id as string | null
-    if (!generationId) continue
-    ledgerCostByGeneration.set(
-      generationId,
-      (ledgerCostByGeneration.get(generationId) ?? 0) + Number(row.estimated_cost_usd ?? 0),
-    )
-  }
+  if (aiCallError) return NextResponse.json({ error: aiCallError.message }, { status: 500 })
+  const ledgerRows = aiCallRows ?? []
 
   // ─── User-level aggregates ──────────────────────────────────────────
   const totalUsers = profiles.length
@@ -94,32 +91,39 @@ export async function GET() {
   const userUsageMap: Record<string, { user_id: string; count: number; tokens: number; estCostUsd: number }> = {}
   let totalEstCostUsd30d = 0
 
+  const featureEntry = (feat: string) =>
+    (featureMap[feat] ??= { feature: feat, count: 0, tokens: 0, estCostUsd: 0 })
+  const userEntry = (userId: string) =>
+    (userUsageMap[userId] ??= { user_id: userId, count: 0, tokens: 0, estCostUsd: 0 })
+
   for (const g of gens) {
-    const created = new Date(g.created_at)
-    const tokens = g.tokens_used ?? 0
-    const feat = g.feature ?? 'unknown'
-    const rowCost = ledgerCostByGeneration.get(g.id) ?? estimateFeatureCostUsd(feat, tokens)
-    totalTokens30d += tokens
     totalGenerations30d += 1
-    totalEstCostUsd30d += rowCost
     monthUserIds.add(g.user_id)
-    if (created >= dayStart) todayUserIds.add(g.user_id)
+    if (new Date(g.created_at) >= dayStart) todayUserIds.add(g.user_id)
 
     const dayKey = g.created_at.slice(0, 10)
-    if (dailyMap[dayKey]) {
-      dailyMap[dayKey].count += 1
-      dailyMap[dayKey].tokens += tokens
-    }
+    if (dailyMap[dayKey]) dailyMap[dayKey].count += 1
 
-    if (!featureMap[feat]) featureMap[feat] = { feature: feat, count: 0, tokens: 0, estCostUsd: 0 }
-    featureMap[feat].count += 1
-    featureMap[feat].tokens += tokens
-    featureMap[feat].estCostUsd += rowCost
+    featureEntry(g.feature ?? 'unknown').count += 1
+    userEntry(g.user_id).count += 1
+  }
 
-    if (!userUsageMap[g.user_id]) userUsageMap[g.user_id] = { user_id: g.user_id, count: 0, tokens: 0, estCostUsd: 0 }
-    userUsageMap[g.user_id].count += 1
-    userUsageMap[g.user_id].tokens += tokens
-    userUsageMap[g.user_id].estCostUsd += rowCost
+  for (const call of ledgerRows) {
+    const tokens = Number(call.total_tokens ?? 0)
+    const cost = Number(call.estimated_cost_usd ?? 0)
+    totalTokens30d += tokens
+    totalEstCostUsd30d += cost
+
+    const dayKey = String(call.created_at).slice(0, 10)
+    if (dailyMap[dayKey]) dailyMap[dayKey].tokens += tokens
+
+    const feature = featureEntry(call.feature ?? 'unknown')
+    feature.tokens += tokens
+    feature.estCostUsd += cost
+
+    const user = userEntry(call.user_id)
+    user.tokens += tokens
+    user.estCostUsd += cost
   }
 
   // ─── Top 10 users by tokens — join against profiles for display ────

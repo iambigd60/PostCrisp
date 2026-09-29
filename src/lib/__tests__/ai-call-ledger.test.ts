@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
+import { recordGenerationAiCalls, saveGenerationWithLedger, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 import { createFakeSupabase, type FakeSupabaseTables } from './fake-supabase'
 
 function setupTables(): FakeSupabaseTables {
@@ -78,5 +78,71 @@ describe('recordGenerationAiCalls', () => {
     })
 
     expect(tables.generation_ai_calls).toHaveLength(0)
+  })
+})
+
+describe('saveGenerationWithLedger', () => {
+  const call: AiCallLedgerEntry = {
+    requestRole: 'primary',
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-6',
+    inputTokens: 400,
+    outputTokens: 200,
+    totalTokens: 600,
+    estimatedCostUsd: 0.0042,
+  }
+  const row = { user_id: 'user-1', feature: 'hashtags', platform: 'tiktok', tokens_used: 600 }
+
+  /** generations insert().select('id').single() and a plain ledger insert. */
+  function fakeClient(opts: { generationError?: { message: string }; ledgerThrows?: boolean } = {}) {
+    const written: Record<string, unknown[]> = { generations: [], generation_ai_calls: [] }
+    const client = {
+      from(table: string) {
+        return {
+          insert(payload: unknown) {
+            if (table === 'generation_ai_calls') {
+              if (opts.ledgerThrows) throw new Error('network down')
+              written.generation_ai_calls.push(...(payload as unknown[]))
+              return Promise.resolve({ error: null })
+            }
+            return {
+              select: () => ({
+                single: () => {
+                  if (opts.generationError) return Promise.resolve({ data: null, error: opts.generationError })
+                  written.generations.push(payload)
+                  return Promise.resolve({ data: { id: 'gen-9' }, error: null })
+                },
+              }),
+            }
+          },
+        }
+      },
+    }
+    return { client: client as never, written }
+  }
+
+  it('saves the generation, then a ledger row per call tied to its id', async () => {
+    const { client, written } = fakeClient()
+    const result = await saveGenerationWithLedger(client, row, { tier: 'creator', aiCalls: [call] })
+
+    expect(result).toEqual({ data: { id: 'gen-9' }, error: null })
+    expect(written.generations).toEqual([row])
+    expect(written.generation_ai_calls).toEqual([
+      expect.objectContaining({ generation_id: 'gen-9', user_id: 'user-1', feature: 'hashtags', tier: 'creator', total_tokens: 600 }),
+    ])
+  })
+
+  it('returns the insert error and writes no ledger rows when the generation is not saved', async () => {
+    const { client, written } = fakeClient({ generationError: { message: 'rls' } })
+    const result = await saveGenerationWithLedger(client, row, { tier: 'creator', aiCalls: [call] })
+
+    expect(result.error).toEqual({ message: 'rls' })
+    expect(written.generation_ai_calls).toHaveLength(0)
+  })
+
+  it('does not throw when recording the ledger throws', async () => {
+    const { client } = fakeClient({ ledgerThrows: true })
+    await expect(saveGenerationWithLedger(client, row, { tier: 'creator', aiCalls: [call] }))
+      .resolves.toEqual({ data: { id: 'gen-9' }, error: null })
   })
 })

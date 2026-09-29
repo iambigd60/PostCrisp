@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 import { getUserChannels, formatChannelsForPrompt } from '@/lib/user-channels'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
@@ -68,7 +69,7 @@ Rules:
     if (denied) return denied
 
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
-    const { text, totalTokens } = await crispGenerate({
+    const { text, totalTokens, aiCalls } = await crispGenerate({
       task: 'youtube-seo',
       tier: auth.tier,
       voiceSnippet,
@@ -80,14 +81,14 @@ Rules:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'youtube_seo',
       platform: 'youtube',
       input_data: { topic, keywords, category, competitorUrl },
       output_data: parsed,
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
 
     return NextResponse.json(parsed)
   } catch (error) {
