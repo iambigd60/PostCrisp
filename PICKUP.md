@@ -69,6 +69,37 @@ Migration ordering question · seven of Codex's eighteen silent-failure modes ·
 
 ---
 
+## 🟡 AI Engine Config — Claude 5.x + GPT-6 models (2026-09-29) — PR #9 open, awaiting merge
+
+**Not on `main` yet.** Branch `claude/ai-engine-new-models`, [PR #9](https://github.com/iambigd60/PostCrisp/pull/9), code at `c5998fd`, base `main` `713685c`. CI green; CodeRabbit reviewed it and its one finding is fixed. Merging is Dennis's call. **Defaults are unchanged** — the new models are selectable in `/admin/ai-config`, not used, until an admin picks one.
+
+### What changed
+
+- **New dropdown options** (`MODEL_CATALOG` in `src/lib/crisp-engine-config.ts`): Claude Opus 5.5 `claude-opus-5-5` ($4/$20 per 1M), Sonnet 5.5 `claude-sonnet-5-5` ($2/$10), Fable 5.1 `claude-fable-5-1` ($10/$50); GPT-6 Sol `gpt-6-sol` ($2/$10), GPT-6 Astra `gpt-6-astra` ($10/$50). Existing models stay first per provider because the UI pre-selects the first entry when an admin switches provider.
+- **Adapters had to change, or the new models would have returned blank output.** Claude 5-generation models return a `thinking` block before the answer, and the Anthropic adapter plus the thumbnail analyzer read only `content[0]`. Both now use `extractAnthropicText`. Refusals and empty answers throw, so routes refund credits instead of parsing nothing; OpenAI refusals (`message.refusal`) do the same via `extractOpenAIText`.
+- **Thinking/reasoning headroom.** Those tokens count against the output cap our routes sized for visible output. Claude 5.x and GPT-6 requests get +8,000 tokens (a ceiling, unbilled unless used) and effort pinned to `low` to stay near current latency under the 110s client timeout. Tunables: top of `src/lib/providers/anthropic.ts` and `openai.ts`.
+- **Refusal fallback.** Opus 5.5, Fable 5.1, and Sonnet 5.5 send `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`) so a safety-classifier decline is retried on another model inside the same call.
+- **Cost telemetry.** Every new model priced in `src/lib/ai-costs.ts`; the analytics route now derives its blended rates from that table instead of a second copy; a test fails if a catalog model has no price.
+
+### Found along the way
+
+- 🔴 **Opus 4.7 was priced at $15/$75 per 1M; it lists at $5/$25.** Cost telemetry for the current Premium default has been overstated ~3×. PR #9 fixes new rows only — `generation_ai_calls.estimated_cost_usd` is stored at write time, so rows written before the merge keep the inflated figure. Discount them (÷3 for `claude-opus-4-7`) when reading historical spend, or backfill after merge.
+- 🟡 `o1` / `o1-mini` are in the catalog with no price, so they report $0. Listed as a known gap in the new coverage test; price or drop them.
+
+### Verification
+
+- 262/262 tests (27 files), typecheck clean, lint at the four baseline warnings; CI green on `c5998fd`.
+- **Never run against the live APIs** — no provider keys in the build container.
+
+### Owed before selecting a new model in production
+
+1. 🔴 **Confirm the GPT-6 model IDs** (`gpt-6-sol`, `gpt-6-astra`) in the OpenAI dashboard — they came from web search because OpenAI's docs were unreachable from the build container.
+2. 🔴 **One generation per new model in the PR #9 preview deploy** — confirms output quality at `low` effort, and that GPT-6 accepts `reasoning_effort: "low"` and `response_format: json_object`.
+3. 🟡 **Fable 5.1 needs 30-day data retention** on the Anthropic account, or every call returns a 400.
+4. 🟡 Raise effort per model later if the `low`-effort output reads thin.
+
+---
+
 ## ✅ Session 27 — Migration state verified against production, then telemetry made provable (2026-08-19)
 
 ### The migration gate is CLOSED — and the ordering held
