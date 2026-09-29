@@ -237,17 +237,26 @@ export const CREDIT_PACKS: CreditPack[] = [
   { id: 'large',  credits: 1500, priceDollars: 40, envVarKey: 'STRIPE_CREDIT_PACK_LARGE_PRICE_ID' },
 ]
 
+// Models offered in the /admin/ai-config dropdowns. The first entry per
+// provider is what the UI pre-selects when an admin switches provider, so the
+// established defaults stay first. Every model here also needs a price in
+// MODEL_PRICING_USD_PER_1M (ai-costs.ts) or its cost shows as $0.
 export const MODEL_CATALOG: Record<ProviderId, { id: string; label: string; notes?: string }[]> = {
   anthropic: [
-    { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7',           notes: 'Premium quality' },
-    { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',         notes: 'Balanced default' },
-    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',          notes: 'Cheapest / fastest' },
+    { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7',           notes: 'Premium quality, $5/$25 per 1M' },
+    { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',         notes: 'Balanced default, $3/$15 per 1M' },
+    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',          notes: 'Cheapest / fastest, $1/$5 per 1M' },
+    { id: 'claude-opus-5-5',           label: 'Claude Opus 5.5',           notes: 'Newest Opus, $4/$20 per 1M — always thinks' },
+    { id: 'claude-sonnet-5-5',         label: 'Claude Sonnet 5.5',         notes: 'Newest Sonnet, $2/$10 per 1M — thinks' },
+    { id: 'claude-fable-5-1',          label: 'Claude Fable 5.1',          notes: 'Most capable, $10/$50 per 1M — always thinks; needs 30-day data retention' },
   ],
   openai: [
     { id: 'gpt-4o',                    label: 'GPT-4o',                    notes: 'Balanced, ~$2.50/$10 per 1M' },
     { id: 'gpt-4o-mini',               label: 'GPT-4o mini',               notes: 'Cheap, ~$0.15/$0.60 per 1M' },
     { id: 'o1',                        label: 'o1 (reasoning)',            notes: 'Premium reasoning, slow' },
     { id: 'o1-mini',                   label: 'o1-mini (reasoning)',       notes: 'Cheaper reasoning' },
+    { id: 'gpt-6-sol',                 label: 'GPT-6 Sol',                 notes: 'Mid-tier reasoning, $2/$10 per 1M' },
+    { id: 'gpt-6-astra',               label: 'GPT-6 Astra',               notes: 'Flagship reasoning, $10/$50 per 1M' },
   ],
   azure: [
     { id: 'gpt-4o',                    label: 'Azure GPT-4o',              notes: 'Azure adapter not yet wired — falls back to Anthropic' },

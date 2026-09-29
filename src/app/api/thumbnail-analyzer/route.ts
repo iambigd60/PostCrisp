@@ -5,6 +5,7 @@ import { parseLooseJson } from '@/lib/safe-json'
 import { DEFAULT_PROFILE_CONFIG, TASK_TIER_PROFILE } from '@/lib/crisp-engine-config'
 import { systemPromptFor } from '@/lib/system-prompts'
 import { estimateAiCallCostUsd } from '@/lib/ai-costs'
+import { anthropicModelTuning, extractAnthropicText } from '@/lib/providers/anthropic'
 import { recordGenerationAiCalls, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -138,9 +139,13 @@ Rules:
   let totalTokens = 0
   let aiCalls: AiCallLedgerEntry[] = []
   try {
+    // Same model-dependent tuning as the engine (thinking headroom, effort,
+    // refusal fallback) so a Claude 5-generation default doesn't break vision.
+    const tuning = anthropicModelTuning(model, 2500)
     const response = await getAnthropic().messages.create({
       model,
       max_tokens: 2500,
+      ...tuning.body,
       system: systemPromptFor('thumbnail-analyzer'),
       messages: [
         {
@@ -158,9 +163,9 @@ Rules:
           ],
         },
       ],
-    })
+    }, tuning.options)
 
-    text = response.content[0].type === 'text' ? response.content[0].text : ''
+    text = extractAnthropicText(response)
     const usage = response.usage as { input_tokens: number; output_tokens: number }
     totalTokens = usage.input_tokens + usage.output_tokens
     aiCalls = [{

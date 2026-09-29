@@ -7,6 +7,7 @@ import {
   type Tier,
   type CrispTask,
 } from '@/lib/crisp-engine-config'
+import { blendedPricePer1M } from '@/lib/ai-costs'
 
 // Monthly prices in USD. Mirror of values in src/lib/stripe.ts — kept local
 // so this route doesn't pull in Stripe SDK server deps.
@@ -14,16 +15,6 @@ const TIER_MRR: Record<Tier, number> = {
   starter: 0,
   creator: 19,
   elite:   79,
-}
-
-// ─── Model pricing ($ per 1M tokens) ─────────────────────────────────────
-// Blended rate = (input + 3*output) / 4 — output dominates for generative tasks,
-// and Anthropic cache reads reduce input cost further. Update when pricing shifts.
-const MODEL_BLENDED_PRICE_PER_1M: Record<string, number> = {
-  'gpt-4o-mini':      (0.15  + 3 * 0.60) / 4,  // ≈ $0.49
-  'gpt-4o':           (2.50  + 3 * 10)    / 4, // ≈ $8.13
-  'claude-sonnet-4-6':(3     + 3 * 15)    / 4, // ≈ $12
-  'claude-opus-4-7':  (15    + 3 * 75)    / 4, // ≈ $60
 }
 
 // Feature names stored in `generations.feature` use underscores; CrispTask uses
@@ -41,7 +32,7 @@ function estimateCostUSD(feature: string, totalTokens: number): number {
   if (!task) return 0
   const profile = TASK_TIER_PROFILE[task].creator
   const { model } = DEFAULT_PROFILE_CONFIG[profile]
-  const ratePerMillion = MODEL_BLENDED_PRICE_PER_1M[model] ?? 0
+  const ratePerMillion = blendedPricePer1M(model)
   return (totalTokens / 1_000_000) * ratePerMillion
 }
 

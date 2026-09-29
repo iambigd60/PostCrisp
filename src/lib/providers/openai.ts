@@ -15,6 +15,29 @@ function getClient(): OpenAI {
   return _client
 }
 
+// ─── GPT-6 models ────────────────────────────────────────────────────────────
+// GPT-6 Sol and Astra reason before answering, and reasoning tokens count
+// against max_completion_tokens. Our per-route caps were sized for visible
+// output only, so these models get extra headroom — otherwise a long reasoning
+// pass can leave an empty answer. The cap is a ceiling; unused headroom is not
+// billed. Effort is pinned to 'low' to keep latency near the non-reasoning
+// models under our 110s client timeout. Raise it once real output has been
+// compared.
+const REASONING_MODEL = /^gpt-6(-|$)/
+const REASONING_EFFORT = 'low' as const
+const REASONING_HEADROOM_TOKENS = 8000
+
+export function openaiModelTuning(model: string, maxTokens: number): {
+  max_completion_tokens: number
+  reasoning_effort?: typeof REASONING_EFFORT
+} {
+  if (!REASONING_MODEL.test(model)) return { max_completion_tokens: maxTokens }
+  return {
+    max_completion_tokens: maxTokens + REASONING_HEADROOM_TOKENS,
+    reasoning_effort: REASONING_EFFORT,
+  }
+}
+
 export const openaiProvider: AIProvider = {
   id: 'openai',
   async generate(args: GenerateArgs): Promise<GenerateResult> {
@@ -24,7 +47,7 @@ export const openaiProvider: AIProvider = {
 
     const response = await getClient().chat.completions.create({
       model: args.model,
-      max_completion_tokens: args.maxTokens,
+      ...openaiModelTuning(args.model, args.maxTokens),
       messages: [
         { role: 'system', content: args.system },
         { role: 'user', content: args.prompt },
@@ -32,7 +55,11 @@ export const openaiProvider: AIProvider = {
       ...(wantsJson ? { response_format: { type: 'json_object' as const } } : {}),
     })
 
-    const text = response.choices[0]?.message?.content ?? ''
+    const choice = response.choices[0]
+    const text = choice?.message?.content ?? ''
+    if (!text && choice?.finish_reason === 'length') {
+      throw new Error('OpenAI used the whole max_completion_tokens budget before writing an answer')
+    }
     return {
       text,
       inputTokens: response.usage?.prompt_tokens ?? 0,
