@@ -61,7 +61,7 @@ Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/ap
 
 ### Owed before / right after merge
 
-1. 🔴 **Confirm `beta@postcrisp.com` forwarding reaches an inbox you read.** The app sends regardless; without forwarding, verified signups vanish silently.
+1. ✅ ~~**Confirm `beta@postcrisp.com` forwarding reaches an inbox you read.**~~ **Done 2026-09-29** — Dennis confirmed the mailbox is created and receiving mail.
 2. 🔴 **One real signup on postcrisp.com after deploy** — code email arrives, verify succeeds, the signup lands at `beta@` with the tester as reply-to.
 3. 🟡 **Online code-guessing is bounded only by the 15-minute expiry plus the Vercel WAF per-IP limit** — and the WAF rules are themselves unverified (see "Manual setup still pending"). There is no per-token attempt counter because the flow is stateless. Close the WAF gate, or add a per-IP limit to the verify route.
 
@@ -1359,7 +1359,7 @@ The first-session redesign shipped complete (all 8 plan tasks merged and deploye
 - 🟡 **Register Stripe webhook endpoint for production** — same blocker
 - Set Anthropic monthly spending cap ($50-100) — defense in depth (5 min, do anytime)
 - Google OAuth in Supabase Auth settings (currently disabled in invite-only flow anyway)
-- 🔴 **Confirm `beta@postcrisp.com` mail forwarding** before the beta-signup form (PR #8) goes live — verified signups are emailed there and nowhere else.
+- ~~**Confirm `beta@postcrisp.com` mail forwarding**~~ ✅ Done 2026-09-29 — mailbox created and confirmed working.
 - MFA in-app for captain@postcrisp.com (Tier 2, requires UI build, ~4-6 hrs, post-launch)
 - 🔴 **Verify Vercel WAF rules exist in the dashboard** (Project → Firewall → Custom Rules) — s25 could not confirm this from tooling, and clean runtime logs are NOT evidence. First confirm the Vercel plan is Pro/Enterprise; rate-limit rules are unavailable on Hobby. Rules + burst test in `docs/rate-limiting.md`. The beta-signup verify route (PR #8) also relies on this limit to bound code guessing.
 - 🔴 **Verify Supabase rate limiting** (Auth → Rate Limits) — outstanding launch gate, needs a live session.
