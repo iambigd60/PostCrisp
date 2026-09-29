@@ -273,7 +273,7 @@ max_frequency = "5s"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # Enforces access_control.signup_mode for every Auth signup path (see
-# migrations/20260929025800_before_user_created_signup_policy.sql). The hosted
+# migrations/20260929032918_before_user_created_signup_policy.sql). The hosted
 # project enables it separately under Authentication → Hooks.
 [auth.hook.before_user_created]
 enabled = true
