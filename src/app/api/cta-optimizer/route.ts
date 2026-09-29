@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 
@@ -124,6 +125,7 @@ Rules:
 
   let text = ''
   let totalTokens = 0
+  let aiCalls: AiCallLedgerEntry[] = []
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const result = await crispGenerate({
@@ -135,6 +137,7 @@ Rules:
     })
     text = result.text
     totalTokens = result.totalTokens
+    aiCalls = result.aiCalls
   } catch (error) {
     console.error('CTA optimizer — model call failed:', error)
     await refundCredits(auth)
@@ -161,7 +164,7 @@ Rules:
   // Phase 4: persistence — non-fatal
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-    await auth.supabase.from('generations').insert({
+    await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'cta_optimizer',
       platform,
@@ -175,7 +178,7 @@ Rules:
       },
       output_data: parsed,
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
   } catch (error) {
     console.error('CTA optimizer — persistence failed (non-fatal):', error)
   }

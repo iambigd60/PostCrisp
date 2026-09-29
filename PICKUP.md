@@ -1,7 +1,7 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (Join Beta Test signup form merged to `main` via PR #8; Phase 0 status unchanged since 2026-08-20)
-**Build status:** `origin/main` is at `7117827` — the beta-signup form ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8)) merged 2026-09-29, 260/260 tests. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
+**Last updated:** 2026-09-29 (PRs #8–#10 merged; CodeRabbit deep-scan fixes on `claude/repo-sync-check-vzass3`, not yet in a PR; Phase 0 status unchanged since 2026-08-20)
+**Build status:** `origin/main` is at `ce989e6` — beta signup ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8)), AI engine models ([PR #9](https://github.com/iambigd60/PostCrisp/pull/9)), and the beta invitation that replaced placeholder testimonials ([PR #10](https://github.com/iambigd60/PostCrisp/pull/10)) all merged 2026-09-29. Phase 0 integration: `main`, `origin/main`, `codex/phase-0-containment`, and its remote were synchronized at `0ad498d`. The merged tree passes 69/69 focused Phase 0 tests plus one intentional environment-gated skip, 240/240 app tests, typecheck, and lint with four baseline warnings; GitHub CI run `32430934651` passed. The retained database evidence includes a fresh ten-migration reset and both grant probes.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
 **Launch status:** 🔴 **Phase 0 operational exit remains BLOCKED; repository integration completed on 2026-08-20.** Do not begin Phase 1. Database lineage/parity, `pg_graphql`, client-role grants, HIBP, and the reserved-role disposition are verified closed. The unexecuted restore drill, Vercel/provider-console access, and a valid independent council verdict remain open.
@@ -30,6 +30,42 @@ See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-r
 
 Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
 
+## 🔴 CodeRabbit deep-scan fixes (2026-09-29) — branch `claude/repo-sync-check-vzass3`, no PR yet
+
+CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed against the code. Code fixes are on the branch; **two migrations are committed but NOT applied, and one Auth hook is NOT enabled.**
+
+| # | Sev | Finding | Fix |
+|---|-----|---------|-----|
+| 1 | High | Two signups could both spend one single-use invite code | Code is reserved atomically **before** the account exists, then attached or released (`src/lib/invite-codes.ts`, signup action) |
+| 2 | Med | Clients could forge `preferences.alpha_nda` and skip the alpha agreement | App: `/api/user/alpha-acceptance` writes with the service role. DB: migration `20260929025759` rejects client changes to `alpha_nda` |
+| 3 | Med | Feedback email's admin link used the request Origin/Host | Uses `NEXT_PUBLIC_APP_URL` only |
+| 4 | Med | Feature-access overrides read with the user's client (RLS returns nothing) and failed open to defaults | Service-role read; fails closed with 503 `POLICY_UNAVAILABLE` |
+| 5 | Med | Maintenance pause only enforced on the login form | Middleware signs out non-admins on app pages and 503s app APIs while `login_enabled` is false |
+| 6 | Med | Admin token/cost totals trusted user-writable `generations.tokens_used` | All 23 AI routes now write the service-role `generation_ai_calls` ledger; analytics reads tokens/cost only from it |
+| 7 | Low | `feature = 'constructor'` crashed admin analytics | The estimator on user-supplied feature names is gone (ledger-only totals) |
+| 8 | Low | Direct Auth / Google OAuth signups bypassed closed and invite-only modes | Migration `20260929025800` adds `public.hook_enforce_signup_policy`; the signup action sends `invite_code` in signUp metadata |
+
+### Rollout order (each step needs Dennis's go-ahead)
+
+1. Merge and deploy the app changes. Both migrations depend on them being live.
+2. Apply `20260929025759_protect_alpha_nda_acceptance.sql`. Applied before step 1, every alpha acceptance fails.
+3. Apply `20260929025800_before_user_created_signup_policy.sql`, then enable it: Supabase Dashboard → Authentication → Hooks → Before User Created → Postgres → `public.hook_enforce_signup_policy`. Disabling the hook there is the rollback.
+4. Re-run the Phase 0 parity/probe gates (`supabase/migrations/README.md`). Both migrations change the inventory: one function body, one new function, `EXECUTE` + schema `USAGE` for `supabase_auth_admin`.
+5. Smoke test: an invite-mode signup with a single-use code, one with the shared code, and a Google sign-up while invite-only (should be refused).
+
+### Verification
+
+- 301/301 tests (32 files), typecheck clean, lint at the four baseline warnings, `next build` succeeds.
+- Both migrations exercised on a throwaway PostgreSQL 16 with stub Supabase roles: forged, rewritten, or dropped `alpha_nda` rejected for `authenticated`; ordinary preference merges and service-role writes pass; hook allow/deny matrix (open, closed, missing row, unknown mode, shared code, fresh/stale/never-reserved/attached codes) correct; only `supabase_auth_admin` can execute the hook; both files re-apply cleanly.
+- Supabase Auth source confirms the hook runs for email, OTP/magic-link, anonymous, OAuth, ID-token, and SAML signups, and **not** for admin-API creation (dashboard "Add user" keeps working in every mode).
+
+### Known gaps, not fixed here
+
+- 🟡 Voice-profile analysis (`src/lib/voice-profile.ts`) calls the model with no `generations` row, so its cost never reaches the ledger or analytics.
+- 🟡 Ledger rows cascade-delete with their generation, and users can delete their own generations, so a user can remove their spend from analytics. Generation counts and DAU/MAU still come from `generations`, which users can insert into.
+- 🟡 Generations written before this deploy have no ledger rows and now show 0 tokens / $0 in analytics.
+- 🟡 A Google sign-up refused by the hook lands on `/login?error=auth-callback-failed`; the callback doesn't surface the hook's message.
+
 ## ✅ Join Beta Test signup form — merged to `main` 2026-09-29 (PR #8)
 
 **Merged 2026-09-29** ([PR #8](https://github.com/iambigd60/PostCrisp/pull/8), rebase-merged as four commits ending at `7117827`). The merge triggered the production deploy.
@@ -52,7 +88,7 @@ Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/ap
 ### Verification
 
 - 260/260 tests across 27 files (re-run 2026-09-29); typecheck + lint clean at `33f94be`.
-- **Never exercised against real email.** No end-to-end run has sent a code or reached `beta@`.
+- Exercised end to end in production 2026-09-29 (see Owed #2).
 
 ### Config
 
@@ -62,7 +98,7 @@ Files: `src/lib/beta-signup.ts`, `src/app/api/beta-signup/route.ts`, `src/app/ap
 ### Owed before / right after merge
 
 1. ✅ ~~**Confirm `beta@postcrisp.com` forwarding reaches an inbox you read.**~~ **Done 2026-09-29** — Dennis confirmed the mailbox is created and receiving mail.
-2. 🔴 **One real signup on postcrisp.com after deploy** — code email arrives, verify succeeds, the signup lands at `beta@` with the tester as reply-to.
+2. ✅ ~~**One real signup on postcrisp.com after deploy**~~ **Done 2026-09-29** — Dennis ran a real signup end to end and confirmed it works.
 3. 🟡 **Online code-guessing is bounded only by the 15-minute expiry plus the Vercel WAF per-IP limit** — and the WAF rules are themselves unverified (see "Manual setup still pending"). There is no per-token attempt counter because the flow is stateless. Close the WAF gate, or add a per-IP limit to the verify route.
 
 ### Phase 0 note
@@ -108,9 +144,9 @@ Migration ordering question · seven of Codex's eighteen silent-failure modes ·
 
 ---
 
-## 🟡 AI Engine Config — Claude 5.x + GPT-6 models (2026-09-29) — PR #9 open, awaiting merge
+## 🟡 AI Engine Config — Claude 5.x + GPT-6 models (2026-09-29) — merged (PR #9)
 
-**Not on `main` yet.** Branch `claude/ai-engine-new-models`, [PR #9](https://github.com/iambigd60/PostCrisp/pull/9), code at `c5998fd`, base `main` `713685c`. CI green; CodeRabbit reviewed it and its one finding is fixed. Merging is Dennis's call. **Defaults are unchanged** — the new models are selectable in `/admin/ai-config`, not used, until an admin picks one.
+**Merged to `main` 2026-09-29** via [PR #9](https://github.com/iambigd60/PostCrisp/pull/9) (branch `claude/ai-engine-new-models`). CI green; CodeRabbit's one finding was fixed before merge. **Defaults are unchanged** — the new models are selectable in `/admin/ai-config`, not used, until an admin picks one.
 
 ### What changed
 

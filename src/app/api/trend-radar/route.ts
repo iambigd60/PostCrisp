@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 
 export interface Trend {
@@ -57,6 +58,7 @@ Rules:
 
   let text = ''
   let totalTokens = 0
+  let aiCalls: AiCallLedgerEntry[] = []
   try {
     const result = await crispGenerate({
       task: 'trend-radar',
@@ -69,6 +71,7 @@ Rules:
     })
     text = result.text
     totalTokens = result.totalTokens
+    aiCalls = result.aiCalls
   } catch (error) {
     console.error('Trend radar — model call failed:', error)
     await refundCredits(auth)
@@ -105,14 +108,14 @@ Rules:
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'trend_radar',
       platform: null,
       input_data: { niche, platforms },
       output_data: parsed,
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
 
   } catch (error) {
     // Persistence failed but we have the trends — return them anyway. The

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger, type AiCallLedgerEntry } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
 import { recordTutorialRedemption } from '@/lib/tutorial-redemptions'
@@ -170,6 +171,7 @@ Rules:
 
   let text = ''
   let totalTokens = 0
+  let aiCalls: AiCallLedgerEntry[] = []
   try {
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
     const result = await crispGenerate({
@@ -181,6 +183,7 @@ Rules:
     })
     text = result.text
     totalTokens = result.totalTokens
+    aiCalls = result.aiCalls
   } catch (error) {
     console.error('Viral ideas — model call failed:', error)
     await refundCredits(auth)
@@ -200,14 +203,14 @@ Rules:
 
   try {
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
-    const { error: insertError } = await auth.supabase.from('generations').insert({
+    const { error: insertError } = await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'viral_ideas',
       platform: platforms[0] ?? null,
       input_data: { niche, platforms, formats, trendSource, audience, count: safeCount, tutorialMode: tutorialResult.bypassCredits },
       output_data: { ideas },
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
     if (insertError) console.error('Viral ideas — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {

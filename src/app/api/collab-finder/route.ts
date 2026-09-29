@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 
 // Vercel function timeout. Default 60s on Pro plan; AI calls (especially
@@ -75,7 +76,7 @@ Rules:
     const denied = await reserveCredits(auth)
     if (denied) return denied
 
-    const { text, totalTokens } = await crispGenerate({
+    const { text, totalTokens, aiCalls } = await crispGenerate({
       task: 'collab-finder',
       tier: auth.tier,
       prompt,
@@ -86,14 +87,14 @@ Rules:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    await auth.supabase.from('generations').insert({
+    await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'collab_finder',
       platform: null,
       input_data: { niche, followerRange, platforms, collabType, lookingFor },
       output_data: parsed,
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
 
     return NextResponse.json(parsed)
   } catch (error) {

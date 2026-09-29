@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkAuthAndUsage, incrementUsage, reserveCredits, refundCredits } from '@/lib/auth-usage'
 import { crispGenerate } from '@/lib/crisp-engine'
+import { saveGenerationWithLedger } from '@/lib/ai-call-ledger'
 import { parseLooseJson } from '@/lib/safe-json'
 import { loadVoicePromptSnippet } from '@/lib/voice-profile'
 import { resolveTutorialCharge } from '@/lib/tutorial-charge-resolver'
@@ -107,7 +108,7 @@ Return ONLY valid JSON with this structure — no markdown:
     if (denied) return denied
 
     const voiceSnippet = await loadVoicePromptSnippet(auth.supabase, auth.userId)
-    const { text, totalTokens } = await crispGenerate({
+    const { text, totalTokens, aiCalls } = await crispGenerate({
       task: 'captions',
       tier: auth.tier,
       voiceSnippet,
@@ -126,14 +127,14 @@ Return ONLY valid JSON with this structure — no markdown:
 
     await incrementUsage(auth.supabase, auth.userId, auth.dailyUsed)
 
-    const { error: insertError } = await auth.supabase.from('generations').insert({
+    const { error: insertError } = await saveGenerationWithLedger(auth.supabase, {
       user_id: auth.userId,
       feature: 'captions',
       platform,
       input_data: { topic, tone, contentType, audience: audience ?? null, count: safeCount, tutorialMode: tutorialResult.bypassCredits },
       output_data: { captions },
       tokens_used: totalTokens,
-    })
+    }, { tier: auth.tier, aiCalls })
     if (insertError) console.error('Captions — persistence failed (non-fatal):', insertError)
 
     if (tutorialResult.bypassCredits) {

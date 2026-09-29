@@ -76,7 +76,12 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      data: { full_name: fullName },
+      // invite_code is what the Auth before-user-created hook
+      // (public.hook_enforce_signup_policy) checks in invite mode — it only
+      // accepts a code this action has just reserved, or the shared code.
+      data: access.signup_mode === 'invite'
+        ? { full_name: fullName, invite_code: inviteCode }
+        : { full_name: fullName },
       emailRedirectTo: `${appUrl}/auth/callback`,
     },
   })
