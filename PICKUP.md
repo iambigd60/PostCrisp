@@ -8,6 +8,8 @@
 
 **Current beta direction (2026-09-29):** Dennis wants email login only for now; the Google buttons and OAuth initiation were removed from login and signup in the beta branch. The live Supabase Google provider was already disabled, while Email, email confirmation, and the Before User Created signup-policy hook were enabled. Both Anthropic and OpenAI integrations stay. The hook's enabled state supersedes older rollout notes below; real invite/signup smoke checks remain open. Address the security review's dependency and privileged password-reset findings before broad beta invitations.
 
+**Admin MFA preparation (2026-09-29):** Dennis chose admins first. The beta branch now has TOTP setup/challenge at `/mfa`, AAL2 gates on admin pages and APIs, and an unapplied migration for direct Data API admin policies. Follow the [staged rollout](docs/operations/2026-09-29-admin-mfa-rollout.md): deploy app, have an admin enroll and verify privately, then apply the migration. No admin enrollment or live enforcement was verified when this note was written.
+
 ---
 
 ## Phase 0 evidence handoff — 2026-08-21 checkpoint, owner transition 2026-09-29

@@ -4,6 +4,8 @@
 
 Dennis deferred billing work and the paid restore drill. Keep both Anthropic and OpenAI integrations. Email/password is the current login path; the Google buttons and OAuth initiation were removed from login and signup, and the live Supabase Google provider is disabled. The Before User Created signup-policy hook is enabled, but real invite/signup smoke checks are still owed. Complete the [beta security review's](docs/operations/2026-09-29-beta-security-review.md) high-priority work before broad beta invitations. Historical Phase 1 billing notes below describe the earlier transition, not the current work order.
 
+**Admin MFA:** TOTP app setup and AAL2 gates are prepared for the beta branch. Use the [staged admin MFA rollout](docs/operations/2026-09-29-admin-mfa-rollout.md) before treating admin access as protected in production. The SQL migration is intentionally not applied ahead of enrollment.
+
 ## 🟡 Phase 0 owner-closed; Phase 1 billing/runtime controls started (2026-09-29)
 
 The Phase 0 containment branch was integrated into `main` on 2026-08-20. On 2026-09-29 Dennis directed the project to close Phase 0 and begin Phase 1. The [transition record](docs/operations/2026-09-29-phase-transition.md) preserves the open recovery, provider, parity, and review work. This is an owner decision to proceed, not a claim that every Phase 0 exit check passed.

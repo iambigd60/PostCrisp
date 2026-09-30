@@ -12,9 +12,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // gates /admin on role=admin, but re-check here so the admin UI shell is
   // never rendered on a middleware bypass. Admin API routes enforce
   // requireAdmin() independently, so data is protected regardless.
-  const { isAdmin } = await checkAdminAccess();
+  const { isAdmin, mfaVerified } = await checkAdminAccess();
   if (!isAdmin) {
     redirect("/dashboard");
+  }
+  if (!mfaVerified) {
+    redirect("/mfa");
   }
 
   return (
