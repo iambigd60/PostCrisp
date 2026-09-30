@@ -1,12 +1,9 @@
 /**
  * Single source of truth for where a freshly authenticated user should land.
  *
- * Why this exists: three sign-in paths each independently defaulted to
- * /dashboard and so skipped onboarding — Google OAuth (no `next` passed at
- * either call site), email confirmation (callback default), and the alpha
- * agreement hop. Production data showed 10 of 13 users never obtained a
- * tutorial record at all. Centralising the decision means a future fourth
- * path cannot quietly regress it.
+ * Why this exists: sign-in callbacks and the agreement hop previously
+ * defaulted to /dashboard and skipped onboarding. Centralising the decision
+ * means a future authentication path cannot quietly regress it.
  */
 
 import { hasFinishedFirstSession } from './first-session-state'

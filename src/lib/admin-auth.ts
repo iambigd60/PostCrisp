@@ -10,6 +10,22 @@ function serviceRoleClient() {
   )
 }
 
+type UserClient = Awaited<ReturnType<typeof createClient>>
+
+async function hasAdminMfa(supabase: UserClient): Promise<boolean> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError || !session) return false
+    // Passing the JWT makes Supabase fetch the current user/factors rather
+    // than trusting the factor list cached in the cookie session. A stale
+    // aal2 token must not pass after the last factor is removed.
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(session.access_token)
+    return !error && data.currentLevel === 'aal2' && data.nextLevel === 'aal2'
+  } catch {
+    return false
+  }
+}
+
 /**
  * Use in admin API routes. Returns { ok: true, userId, supabase, supabaseAdmin } on success,
  * or { ok: false, response } with a 401/403 response.
@@ -36,17 +52,27 @@ export async function requireAdmin() {
     return { ok: false as const, response: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
   }
 
+  if (!(await hasAdminMfa(supabase))) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: 'Admin MFA required', code: 'MFA_REQUIRED', setupUrl: '/mfa' },
+        { status: 403 }
+      ),
+    }
+  }
+
   return { ok: true as const, userId: user.id, supabase, supabaseAdmin: serviceRoleClient() }
 }
 
 /**
- * Use at the top of admin pages. Returns `true` if admin, else `false`
- * (caller should redirect).
+ * Use at the top of admin pages. The layout redirects non-admins to the app
+ * and AAL1 admins to the TOTP setup/challenge page.
  */
-export async function checkAdminAccess(): Promise<{ isAdmin: boolean; userId: string | null }> {
+export async function checkAdminAccess(): Promise<{ isAdmin: boolean; mfaVerified: boolean; userId: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { isAdmin: false, userId: null }
+  if (!user) return { isAdmin: false, mfaVerified: false, userId: null }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -54,5 +80,6 @@ export async function checkAdminAccess(): Promise<{ isAdmin: boolean; userId: st
     .eq('id', user.id)
     .maybeSingle()
 
-  return { isAdmin: profile?.role === 'admin', userId: user.id }
+  const isAdmin = profile?.role === 'admin'
+  return { isAdmin, mfaVerified: isAdmin && await hasAdminMfa(supabase), userId: user.id }
 }

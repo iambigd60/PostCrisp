@@ -21,19 +21,21 @@ export async function login(formData: FormData) {
   // ─── Login gate — block non-admin logins when disabled ────────────────
   // Admins always bypass so they can't accidentally lock themselves out.
   const access = await readAccessControl()
-  if (!access.login_enabled) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .maybeSingle()
 
-    if (profile?.role !== 'admin') {
-      await supabase.auth.signOut()
-      return { error: MAINTENANCE_MESSAGE }
-    }
+  if (!access.login_enabled && profile?.role !== 'admin') {
+    await supabase.auth.signOut()
+    return { error: MAINTENANCE_MESSAGE }
   }
 
   revalidatePath('/', 'layout')
+  if (profile?.role === 'admin') {
+    // Admin pages and APIs require aal2. The setup page is reachable at aal1.
+    redirect('/mfa')
+  }
   redirect('/dashboard')
 }

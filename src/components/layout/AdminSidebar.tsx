@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/admin/access-control",   label: "Access Control",    icon: "🚪",  enabled: true },
   { href: "/admin/invite-codes",     label: "Invite Codes",      icon: "🎟️",  enabled: true },
   { href: "/admin/feedback",         label: "Feedback",          icon: "💬",  enabled: true },
+  { href: "/mfa",                    label: "My MFA",            icon: "🔒",  enabled: true },
 ];
 
 export function AdminSidebar() {

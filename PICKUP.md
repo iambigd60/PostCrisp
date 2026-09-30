@@ -1,10 +1,14 @@
 # PostCrisp — Where We Left Off
 
-**Last updated:** 2026-09-29 (Dennis closed Phase 0 by owner decision and started Phase 1; unresolved verification remains tracked below)
+**Last updated:** 2026-09-29 (beta preparation and security review; historical phase records remain below)
 **Build status:** PR #14 merged as `07761f9`; its CI and Vercel preview passed. The Phase 0 evidence and retired review-tool configuration were then refreshed in a documentation commit. The earlier ten-migration Phase 0 reset and grant-probe evidence remains historical; production now records 13 migrations through `20260929182158`, and a fresh local reset of that complete chain was unavailable on this Mac because Docker was not running.
 **Production URL:** **https://postcrisp.com** (primary)
 **Dev server:** `npm run dev` (port 3000 or next available)
-**Launch status:** 🟡 **Phase 0 closed by owner decision; Phase 1 billing/runtime-control work may begin.** This is not a verified Phase 0 pass. The paid restore drill remains deferred, the complete migration chain needs a fresh local parity run, provider/runtime controls remain partly unverified, and the independent exit review was not performed. See the [owner transition record](docs/operations/2026-09-29-phase-transition.md). No paid restore or billing activation was authorized by this status change.
+**Launch status:** 🟡 **Phase 0 closed by owner decision; current priority is a fuller invite-only beta. Billing work is deferred.** This is not a verified Phase 0 pass. The paid restore drill remains deferred, the complete migration chain needs a fresh local parity run, provider/runtime controls remain partly unverified, and the independent exit review was not performed. See the [owner transition record](docs/operations/2026-09-29-phase-transition.md) and [beta security review](docs/operations/2026-09-29-beta-security-review.md). No paid restore or billing activation was authorized by this status change.
+
+**Current beta direction (2026-09-29):** Dennis wants email login only for now; the Google buttons and OAuth initiation were removed from login and signup in the beta branch. The live Supabase Google provider was already disabled, while Email, email confirmation, and the Before User Created signup-policy hook were enabled. Both Anthropic and OpenAI integrations stay. The hook's enabled state supersedes older rollout notes below; real invite/signup smoke checks remain open. Address the security review's dependency and privileged password-reset findings before broad beta invitations.
+
+**Admin MFA preparation (2026-09-29):** Dennis chose admins first. The beta branch now has TOTP setup/challenge at `/mfa`, AAL2 gates on admin pages and APIs, and an unapplied migration for direct Data API admin policies. Follow the [staged rollout](docs/operations/2026-09-29-admin-mfa-rollout.md): deploy app, have an admin enroll and verify privately, then apply the migration. No admin enrollment or live enforcement was verified when this note was written.
 
 ---
 
@@ -32,7 +36,7 @@ Verification debt carried into Phase 1 by the owner decision:
 
 See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-report.md).
 
-**Phase 1 first work item:** the [read-only billing/runtime inventory](docs/operations/2026-09-29-phase-1-billing-runtime-inventory.md) found no `STRIPE_*` names in the live Vercel Project or Shared tabs. Next, make paid routes fail clearly and safely when required configuration is absent. The 2026-08-20 Phase 0 spec names this as the next phase; older onboarding and Voice Trainer sections use “Phase 1” for already shipped work. The [transition record](docs/operations/2026-09-29-phase-transition.md) defines the scope and retained risks.
+**Earlier Phase 1 billing inventory (deferred by owner):** the [read-only billing/runtime inventory](docs/operations/2026-09-29-phase-1-billing-runtime-inventory.md) found no `STRIPE_*` names in the live Vercel Project or Shared tabs. Do not enable paid checkout until the missing configuration is handled and Dennis resumes billing work. The [transition record](docs/operations/2026-09-29-phase-transition.md) defines that earlier scope and retained risks.
 
 ### Read-only dashboard progress — 2026-09-29
 
@@ -48,9 +52,9 @@ See [the Phase 0 exit report](docs/operations/evidence/phase-0/2026-08-20-exit-r
 
 Accepted Informational residual: `supabase_admin` retains exactly 8 table-default + 6 sequence-default rows. The reserved platform role cannot authenticate through the Data API, customer `postgres` cannot assume/alter it, and current forbidden objects plus customer-owned defaults are zero. Reopen only if a reserved-role-created public object appears or official customer remediation emerges.
 
-## 🟡 CodeRabbit deep-scan fixes (2026-09-29) — live; Auth hook still to enable
+## 🟡 CodeRabbit deep-scan fixes (2026-09-29) — live; Auth hook enabled later that day
 
-CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed against the code and fixed. [PR #11](https://github.com/iambigd60/PostCrisp/pull/11) merged as `aedd041` and deployed to production. Both migrations are applied. **The Auth hook is NOT enabled yet**, so finding 8 stays open until it is.
+CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed against the code and fixed. [PR #11](https://github.com/iambigd60/PostCrisp/pull/11) merged as `aedd041` and deployed to production. Both migrations are applied. **A later direct Dashboard check confirmed the Auth hook enabled**; the signup smoke check is still open.
 
 | # | Sev | Finding | Fix |
 |---|-----|---------|-----|
@@ -67,9 +71,9 @@ CodeRabbit's deep scan of `main` reported 8 findings; all 8 were confirmed again
 
 1. ✅ App changes merged and deployed (`aedd041`, production READY 2026-09-29 ~03:12Z, no runtime errors in the following hour).
 2. ✅ `20260929031720_protect_alpha_nda_acceptance.sql` applied 2026-09-29 via the Supabase connector's `apply_migration`.
-3. ✅ `20260929032918_before_user_created_signup_policy.sql` applied the same way. 🔴 **Still owed: enable it** — Supabase Dashboard → Authentication → Hooks → Before User Created → Postgres → `public.hook_enforce_signup_policy`. Disabling the hook there is the rollback.
+3. ✅ `20260929032918_before_user_created_signup_policy.sql` applied the same way. A direct Dashboard check later on 2026-09-29 confirmed Authentication → Hooks → Before User Created → `public.hook_enforce_signup_policy` **enabled**. Disabling the hook there is the rollback.
 4. ✅ Phase 0 gates re-run 2026-09-29 (below): fresh local rebuild, both probes, exact inventory parity with production.
-5. 🔴 Smoke test after the hook is on: an invite-mode signup with a single-use code, one with the shared code, and a Google sign-up (should be refused — production is in `invite` mode).
+5. 🔴 Smoke test after the hook is on: an invite-mode signup with a single-use code, one with the shared code, and a direct Auth attempt without a code (should be refused — production is in `invite` mode). Google is disabled and its UI has been removed.
 
 **Why the versions changed:** the connector's `apply_migration` stamps the apply time as the version, so the files were committed as `20260929025759` / `20260929025800` and renamed afterwards to the recorded `20260929031720` / `20260929032918`, the same fix Phase 0 made for the 2026-08-19 migrations. Contents are unchanged.
 
