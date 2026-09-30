@@ -4,7 +4,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
-type Status = "new" | "in_progress" | "resolved";
+type Status = "new" | "in_progress" | "resolved" | "archived";
 type Category = "bug" | "feature" | "general";
 
 interface FeedbackEntry {
@@ -33,6 +33,7 @@ const STATUS_META: Record<Status, { label: string; color: string }> = {
   new:          { label: "New",         color: "bg-sky-500/15 text-sky-300 border-sky-500/20" },
   in_progress:  { label: "In progress", color: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
   resolved:     { label: "Resolved",    color: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" },
+  archived:     { label: "Archived",    color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20" },
 };
 
 const CATEGORY_META: Record<Category, { label: string; icon: string }> = {
@@ -60,6 +61,7 @@ export default function AdminFeedbackPage() {
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [page, setPage] = useState(1);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const load = async () => {
@@ -67,6 +69,10 @@ export default function AdminFeedbackPage() {
     try {
       const params = new URLSearchParams({ status: statusFilter, category: categoryFilter, page: String(page) });
       const res = await apiFetch<ListResponse>(`/api/admin/feedback?${params.toString()}`);
+      if (page > Math.max(1, res.totalPages)) {
+        setPage(Math.max(1, res.totalPages));
+        return;
+      }
       setData(res);
     } catch (err) {
       addToast(err instanceof ApiError ? err.message : "Failed to load feedback", "error");
@@ -77,27 +83,44 @@ export default function AdminFeedbackPage() {
 
   useEffect(() => { load(); }, [statusFilter, categoryFilter, page]); // eslint-disable-line
 
-  const updateEntry = async (id: string, patch: { status?: Status; admin_notes?: string }) => {
+  const updateEntry = async (id: string, patch: { status?: Exclude<Status, "archived">; admin_notes?: string; action?: "archive" | "restore" }) => {
+    setBusyId(id);
     try {
       await apiFetch("/api/admin/feedback", {
         method: "PATCH",
         body: JSON.stringify({ id, ...patch }),
       });
-      addToast("Updated", "success");
+      addToast(patch.action === "archive" ? "Feedback archived" : patch.action === "restore" ? "Feedback restored" : "Updated", "success");
       await load();
     } catch (err) {
       addToast(err instanceof ApiError ? err.message : "Update failed", "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteEntry = async (id: string) => {
+    if (!window.confirm("Permanently delete this feedback and its admin notes? This cannot be undone.")) return;
+    setBusyId(id);
+    try {
+      await apiFetch(`/api/admin/feedback?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      addToast("Feedback deleted", "success");
+      await load();
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : "Delete failed", "error");
+    } finally {
+      setBusyId(null);
     }
   };
 
   const stats = useMemo(() => {
-    if (!data) return { new: 0, in_progress: 0, resolved: 0 };
+    if (!data) return { new: 0, in_progress: 0, resolved: 0, archived: 0 };
     return data.feedback.reduce(
       (acc, f) => {
         acc[f.status] = (acc[f.status] ?? 0) + 1;
         return acc;
       },
-      { new: 0, in_progress: 0, resolved: 0 } as Record<Status, number>
+      { new: 0, in_progress: 0, resolved: 0, archived: 0 } as Record<Status, number>
     );
   }, [data]);
 
@@ -106,7 +129,7 @@ export default function AdminFeedbackPage() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100">Feedback</h1>
         <p className="text-zinc-500 mt-1">
-          {data ? `${data.total.toLocaleString()} total — ${stats.new} new on this page` : "Loading…"}
+          {data ? `${data.total.toLocaleString()} ${statusFilter === "archived" ? "archived" : "active"} — ${stats.new} new on this page` : "Loading…"}
         </p>
       </div>
 
@@ -121,6 +144,7 @@ export default function AdminFeedbackPage() {
           <option value="new">New</option>
           <option value="in_progress">In progress</option>
           <option value="resolved">Resolved</option>
+          <option value="archived">Archived</option>
         </select>
         <select
           value={categoryFilter}
@@ -166,21 +190,34 @@ export default function AdminFeedbackPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {f.status !== "in_progress" && (
-                    <Button size="sm" variant="secondary" onClick={() => updateEntry(f.id, { status: "in_progress" })}>
+                  {f.status !== "archived" && f.status !== "in_progress" && (
+                    <Button size="sm" variant="secondary" disabled={busyId !== null} onClick={() => updateEntry(f.id, { status: "in_progress" })}>
                       Mark in progress
                     </Button>
                   )}
-                  {f.status !== "resolved" && (
-                    <Button size="sm" onClick={() => updateEntry(f.id, { status: "resolved" })}>
+                  {f.status !== "archived" && f.status !== "resolved" && (
+                    <Button size="sm" disabled={busyId !== null} onClick={() => updateEntry(f.id, { status: "resolved" })}>
                       Resolve
                     </Button>
                   )}
                   {f.status === "resolved" && (
-                    <Button size="sm" variant="secondary" onClick={() => updateEntry(f.id, { status: "new" })}>
+                    <Button size="sm" variant="secondary" disabled={busyId !== null} onClick={() => updateEntry(f.id, { status: "new" })}>
                       Reopen
                     </Button>
                   )}
+                  {f.status === "resolved" && (
+                    <Button size="sm" variant="secondary" disabled={busyId !== null} onClick={() => updateEntry(f.id, { action: "archive" })}>
+                      Archive
+                    </Button>
+                  )}
+                  {f.status === "archived" && (
+                    <Button size="sm" variant="secondary" disabled={busyId !== null} onClick={() => updateEntry(f.id, { action: "restore" })}>
+                      Restore
+                    </Button>
+                  )}
+                  <Button size="sm" variant="danger" disabled={busyId !== null} onClick={() => deleteEntry(f.id)}>
+                    Delete
+                  </Button>
                 </div>
               </div>
 
@@ -199,7 +236,7 @@ export default function AdminFeedbackPage() {
                     className="w-full rounded-lg bg-surface-tertiary border border-brand-500/10 text-zinc-200 placeholder:text-zinc-600 px-3 py-2 text-xs focus:outline-none focus:border-brand-500/40 resize-none"
                   />
                   {notesDirty && (
-                    <Button size="sm" variant="secondary" onClick={() => updateEntry(f.id, { admin_notes: notes })}>
+                    <Button size="sm" variant="secondary" disabled={busyId !== null} onClick={() => updateEntry(f.id, { admin_notes: notes })}>
                       Save note
                     </Button>
                   )}

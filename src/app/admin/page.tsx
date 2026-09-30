@@ -128,7 +128,7 @@ export default function AdminOverviewPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-100 group-hover:text-amber-200 transition-colors">Feedback</h3>
               <p className="text-sm text-zinc-500 mt-1">
-                In-app bug reports, feature ideas, and general feedback from testers and users. Triage by status (new / in progress / resolved), filter by category, attach private admin notes.
+                In-app bug reports, feature ideas, and general feedback from testers and users. Triage by status, archive resolved items, or permanently delete them. Add private admin notes.
               </p>
             </div>
             <span className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>

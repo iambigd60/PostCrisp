@@ -94,7 +94,7 @@ export function FeedbackOverviewWidget() {
 
       {!loading && latest && latest.length === 0 && (
         <div className="rounded-lg bg-surface-tertiary/30 p-6 text-center text-xs text-zinc-500">
-          No feedback yet. When testers submit, it&apos;ll show up here.
+          No active feedback. New submissions will show up here.
         </div>
       )}
 
