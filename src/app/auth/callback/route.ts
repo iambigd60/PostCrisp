@@ -12,9 +12,8 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       // Decide onboarding-vs-dashboard here rather than defaulting to
-      // /dashboard. Google OAuth passes no `next` from either call site, and
-      // the email-confirmation link doesn't either, so the old default skipped
-      // onboarding for every user arriving by those routes.
+      // /dashboard. Email-confirmation links and future OAuth flows may not
+      // carry `next`; the old default skipped onboarding for those users.
       let tutorialCompleted = false
       let onboardedAt: string | null = null
 
